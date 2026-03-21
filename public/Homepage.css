@@ -1135,3 +1135,14 @@ h1 span {
     min-height: 300px;
   }
 }
+
+.top-nav {
+  position: relative;
+  z-index: 10;
+}
+
+.top-nav .toggle {
+  position: relative;
+  z-index: 11;
+  pointer-events: all;
+}

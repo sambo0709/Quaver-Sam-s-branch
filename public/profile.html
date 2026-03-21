@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -12,11 +12,11 @@
   <nav class="top-nav">
     <div class="nav-left">
       <a href="Index.html">
-        <img class="logo" id="logo" src="Quaver_nightmode1.png" alt="Quaver Logo">
+        <img class="logo" id="logo" src="QuaverNightmode1.png" alt="Quaver Logo">
       </a>
     </div>
     <div class="nav-right">
-      <button class="toggle" onclick="toggleTheme()">☀ Light</button>
+      <button class="toggle" id="theme-btn" onclick="toggleTheme()">☀ Light</button>
       <div class="profile bigger-profile">
         <svg viewBox="0 0 24 24">
           <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
@@ -25,7 +25,6 @@
     </div>
   </nav>
 
-  <!-- Spotify Embed Player -->
   <div id="spotify-player" class="spotify-player" style="display:none">
     <div class="player-header">
       <span id="player-song-name">—</span>
@@ -45,10 +44,8 @@
 
   <main class="profile-main">
     <h1 class="profile-title">Profile</h1>
-
     <div class="content-boxes">
 
-      <!-- Recent Moods -->
       <div class="box">
         <h2>Recent Moods</h2>
         <div id="recent-moods-list">
@@ -56,7 +53,6 @@
         </div>
       </div>
 
-      <!-- Playlists -->
       <div class="box">
         <h2>Playlists</h2>
         <div id="playlists-list">
@@ -64,7 +60,6 @@
         </div>
       </div>
 
-      <!-- Suggestions -->
       <div class="box">
         <h2>Suggestions</h2>
         <div id="suggestions-list">
@@ -76,16 +71,10 @@
   </main>
 
   <script>
-    // Theme
     function applyTheme(theme) {
-      const html = document.documentElement;
-      const btn = document.querySelector('.toggle');
-      const logos = document.querySelectorAll('.logo');
-      html.setAttribute('data-theme', theme);
-      btn.textContent = theme === 'dark' ? '☀ Light' : '☾ Dark';
-      logos.forEach(function(l) {
-        l.src = theme === 'dark' ? 'images/Quaver_nightmode1.png' : 'images/Quaver_lightmode1.png';
-      });
+      document.documentElement.setAttribute('data-theme', theme);
+      document.getElementById('theme-btn').textContent = theme === 'dark' ? '☀ Light' : '☾ Dark';
+      document.getElementById('logo').src = theme === 'dark' ? 'QuaverNightmode1.png' : 'Quaver lightmode1.png';
     }
 
     function toggleTheme() {
@@ -95,12 +84,10 @@
       localStorage.setItem('theme', next);
     }
 
-    // Spotify player
     function playInApp(trackId, title) {
-      const player = document.getElementById('spotify-player');
       document.getElementById('spotify-iframe').src = 'https://open.spotify.com/embed/track/' + trackId + '?utm_source=generator&theme=0';
       document.getElementById('player-song-name').textContent = title;
-      player.style.display = 'block';
+      document.getElementById('spotify-player').style.display = 'block';
     }
 
     function closePlayer() {
@@ -108,7 +95,6 @@
       document.getElementById('spotify-player').style.display = 'none';
     }
 
-    // Render recent moods
     function renderRecentMoods(moods) {
       const container = document.getElementById('recent-moods-list');
       if (!moods || moods.length === 0) {
@@ -116,14 +102,10 @@
         return;
       }
       container.innerHTML = moods.map(function(item) {
-        return '<div class="profile-mood-item">' +
-          '<span class="profile-mood-badge">' + item.mood + '</span>' +
-          '<span class="profile-mood-time">' + item.time + '</span>' +
-        '</div>';
+        return '<div class="profile-mood-item"><span class="profile-mood-badge">' + item.mood + '</span><span class="profile-mood-time">' + item.time + '</span></div>';
       }).join('');
     }
 
-    // Render playlists
     function renderPlaylists(playlists) {
       const container = document.getElementById('playlists-list');
       if (!playlists || playlists.length === 0) {
@@ -132,20 +114,15 @@
       }
       container.innerHTML = playlists.map(function(pl, i) {
         return '<div class="profile-playlist-item" onclick="togglePlaylistSongs(' + i + ')">' +
-          '<div>' +
-            '<div class="profile-playlist-name">' + pl.name + '</div>' +
-            '<div class="profile-playlist-meta">' + pl.songs.length + ' songs · ' + pl.mood + '</div>' +
-          '</div>' +
+          '<div><div class="profile-playlist-name">' + pl.name + '</div>' +
+          '<div class="profile-playlist-meta">' + pl.songs.length + ' songs · ' + pl.mood + '</div></div>' +
         '</div>' +
         '<div id="playlist-songs-' + i + '" style="display:none">' +
           pl.songs.map(function(song) {
             const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
             return '<div class="profile-suggestion-item">' +
               (song.album_art ? '<img class="profile-suggestion-art" src="' + song.album_art + '" alt="art"/>' : '<div class="profile-suggestion-art"></div>') +
-              '<div class="profile-suggestion-info">' +
-                '<div class="profile-suggestion-title">' + song.title + '</div>' +
-                '<div class="profile-suggestion-artist">' + song.artist + '</div>' +
-              '</div>' +
+              '<div class="profile-suggestion-info"><div class="profile-suggestion-title">' + song.title + '</div><div class="profile-suggestion-artist">' + song.artist + '</div></div>' +
               (trackId ? '<button class="profile-suggestion-play" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\')">&#9654;</button>' : '') +
             '</div>';
           }).join('') +
@@ -158,38 +135,27 @@
       if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
     }
 
-    // Render suggestions based on most used mood
     async function renderSuggestions(moods) {
       const container = document.getElementById('suggestions-list');
       if (!moods || moods.length === 0) {
         container.innerHTML = '<p class="box-empty">Pick a mood to get suggestions.</p>';
         return;
       }
-
-      // Find most used mood
       const moodCounts = {};
-      moods.forEach(function(m) {
-        moodCounts[m.mood] = (moodCounts[m.mood] || 0) + 1;
-      });
-      const topMood = Object.keys(moodCounts).sort(function(a, b) {
-        return moodCounts[b] - moodCounts[a];
-      })[0];
-
+      moods.forEach(function(m) { moodCounts[m.mood] = (moodCounts[m.mood] || 0) + 1; });
+      const topMood = Object.keys(moodCounts).sort(function(a, b) { return moodCounts[b] - moodCounts[a]; })[0];
       container.innerHTML = '<p class="box-empty">Loading suggestions for <strong>' + topMood + '</strong>...</p>';
-
       try {
         const res = await fetch('http://localhost:3000/api/music/recommend?mood=' + topMood + '&limit=5');
         const data = await res.json();
         if (data.songs && data.songs.length > 0) {
-          container.innerHTML = '<div style="font-family:Quicksand,sans-serif;font-size:11px;opacity:0.5;margin-bottom:12px;">Based on your love of <strong>' + topMood + '</strong></div>' +
+          container.innerHTML =
+            '<div style="font-family:Quicksand,sans-serif;font-size:11px;opacity:0.5;margin-bottom:12px;">Based on your love of <strong>' + topMood + '</strong></div>' +
             data.songs.map(function(song) {
               const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
               return '<div class="profile-suggestion-item">' +
                 (song.album_art ? '<img class="profile-suggestion-art" src="' + song.album_art + '" alt="art"/>' : '<div class="profile-suggestion-art"></div>') +
-                '<div class="profile-suggestion-info">' +
-                  '<div class="profile-suggestion-title">' + song.title + '</div>' +
-                  '<div class="profile-suggestion-artist">' + song.artist + '</div>' +
-                '</div>' +
+                '<div class="profile-suggestion-info"><div class="profile-suggestion-title">' + song.title + '</div><div class="profile-suggestion-artist">' + song.artist + '</div></div>' +
                 (trackId ? '<button class="profile-suggestion-play" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\')">&#9654;</button>' : '') +
               '</div>';
             }).join('');
@@ -199,7 +165,6 @@
       }
     }
 
-    // On load
     window.addEventListener('DOMContentLoaded', function() {
       applyTheme(localStorage.getItem('theme') || 'dark');
       const moods = JSON.parse(localStorage.getItem('quaver_moods') || '[]');

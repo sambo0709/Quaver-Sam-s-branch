@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <link rel="icon" type="image/png" href="images/nightmode_logo.png">
+  <link rel="icon" href="nightmode_logo.png">
   <title>Quaver</title>
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="HomePage.css">
@@ -12,13 +12,13 @@
 
   <nav>
     <div class="nav-left">
-      <img class="logo" id="logo" src="Quaver_nightmode1.png" alt="Quaver Logo">
+      <img class="logo" id="logo" src="QuaverNightmode1.png" alt="Quaver Logo">
     </div>
     <div class="nav-right">
       <button class="playlist-toggle" onclick="togglePlaylistPanel()">
         My Playlist <span id="playlist-count" class="count-badge">0</span>
       </button>
-      <button class="toggle" onclick="toggleTheme()">☀ Light</button>
+      <button class="toggle" id="theme-btn" onclick="toggleTheme()">☀ Light</button>
       <a href="profile.html" class="profile">
         <svg viewBox="0 0 24 24">
           <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
@@ -105,14 +105,9 @@
     let activePlaylistName = null;
 
     function applyTheme(theme) {
-      const html = document.documentElement;
-      const btn = document.querySelector('.toggle');
-      const logos = document.querySelectorAll('.logo');
-      html.setAttribute('data-theme', theme);
-      btn.textContent = theme === 'dark' ? '☀ Light' : '☾ Dark';
-      logos.forEach(function(l) {
-        l.src = theme === 'dark' ? 'Quaver_nightmode1.png' : 'Quaver_lightmode1.png';
-      });
+      document.documentElement.setAttribute('data-theme', theme);
+      document.getElementById('theme-btn').textContent = theme === 'dark' ? '☀ Light' : '☾ Dark';
+      document.getElementById('logo').src = theme === 'dark' ? 'QuaverNightmode1.png' : 'Quaver lightmode1.png';
     }
 
     function toggleTheme() {
@@ -154,35 +149,25 @@
     async function fetchSongs() {
       document.getElementById('loading').style.display = 'flex';
       document.getElementById('results').innerHTML = '';
-
       try {
         const res = await fetch('http://localhost:3000/api/music/recommend?mood=' + currentMood + '&limit=' + currentLimit);
         const data = await res.json();
         document.getElementById('loading').style.display = 'none';
-
         if (data.songs && data.songs.length > 0) {
           let html = '<div class="results-header">' + data.songs.length + ' tracks — ' + currentMood + '</div>';
-
           data.songs.forEach(function(song, i) {
             const inPlaylist = playlistSongs.some(function(s) { return s.title === song.title; });
             const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
-
             html += '<div class="song-card" style="animation-delay:' + (i * 0.06) + 's">';
             html += '<span class="song-num">' + String(i + 1).padStart(2, '0') + '</span>';
             html += song.album_art ? '<img class="album-art" src="' + song.album_art + '" alt="art"/>' : '<div class="album-art"></div>';
-            html += '<div class="song-info">';
-            html += '<div class="song-title">' + song.title + '</div>';
-            html += '<div class="song-artist">' + song.artist + '</div>';
-            html += '</div>';
+            html += '<div class="song-info"><div class="song-title">' + song.title + '</div><div class="song-artist">' + song.artist + '</div></div>';
             html += '<div class="song-actions">';
-            if (trackId) {
-              html += '<button class="play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\')">&#9654;</button>';
-            }
+            if (trackId) html += '<button class="play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\')">&#9654;</button>';
             html += '<span class="song-duration">' + song.duration + '</span>';
             html += '<button class="add-btn' + (inPlaylist ? ' added' : '') + '" onclick=\'addToPlaylist(' + JSON.stringify(song).replace(/'/g, "&#39;") + ', this)\'>' + (inPlaylist ? 'Added' : '+ Add') + '</button>';
             html += '</div></div>';
           });
-
           document.getElementById('results').innerHTML = html;
         } else {
           document.getElementById('results').innerHTML = '<p class="no-results">No songs found. Try another mood!</p>';
@@ -194,11 +179,10 @@
     }
 
     function playInApp(trackId, title) {
-      const player = document.getElementById('spotify-player');
       document.getElementById('spotify-iframe').src = 'https://open.spotify.com/embed/track/' + trackId + '?utm_source=generator&theme=0';
       document.getElementById('player-song-name').textContent = title;
-      player.style.display = 'block';
-      player.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      document.getElementById('spotify-player').style.display = 'block';
+      document.getElementById('spotify-player').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function closePlayer() {
@@ -237,10 +221,7 @@
       const container = document.getElementById('panel-songs');
       let header = '';
       if (activePlaylistName) {
-        header = '<div class="active-playlist-header">' +
-          '<button class="back-btn" onclick="clearActivePlaylist()">← Back</button>' +
-          '<span class="active-playlist-name">' + activePlaylistName + '</span>' +
-        '</div>';
+        header = '<div class="active-playlist-header"><button class="back-btn" onclick="clearActivePlaylist()">← Back</button><span class="active-playlist-name">' + activePlaylistName + '</span></div>';
       }
       if (playlistSongs.length === 0) {
         container.innerHTML = header + '<p class="empty-msg">Add songs from your results.</p>';
@@ -248,16 +229,9 @@
       }
       container.innerHTML = header + playlistSongs.map(function(song, i) {
         const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
-        return '<div class="panel-song-item">' +
-          '<div class="panel-song-info">' +
-            '<div class="panel-song-title">' + song.title + '</div>' +
-            '<div class="panel-song-artist">' + song.artist + '</div>' +
-          '</div>' +
-          '<div class="panel-song-actions">' +
-            (trackId ? '<button class="panel-play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\')">&#9654;</button>' : '') +
-            '<button class="remove-btn" onclick="removeFromPlaylist(' + i + ')">✕</button>' +
-          '</div>' +
-        '</div>';
+        return '<div class="panel-song-item"><div class="panel-song-info"><div class="panel-song-title">' + song.title + '</div><div class="panel-song-artist">' + song.artist + '</div></div><div class="panel-song-actions">' +
+          (trackId ? '<button class="panel-play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\')">&#9654;</button>' : '') +
+          '<button class="remove-btn" onclick="removeFromPlaylist(' + i + ')">✕</button></div></div>';
       }).join('');
     }
 
@@ -305,13 +279,7 @@
       if (savedPlaylists.length === 0) { container.innerHTML = ''; return; }
       let html = '<div class="saved-section-label">Saved playlists</div>';
       savedPlaylists.forEach(function(pl, i) {
-        html += '<div class="saved-playlist-item">';
-        html += '<div class="saved-playlist-info" onclick="openSavedPlaylist(' + i + ')">';
-        html += '<div class="saved-playlist-name">' + pl.name + '</div>';
-        html += '<div class="saved-playlist-meta">' + pl.songs.length + ' songs · ' + pl.mood + '</div>';
-        html += '</div>';
-        html += '<button class="delete-playlist-btn" onclick="deletePlaylist(' + i + ')">✕</button>';
-        html += '</div>';
+        html += '<div class="saved-playlist-item"><div class="saved-playlist-info" onclick="openSavedPlaylist(' + i + ')"><div class="saved-playlist-name">' + pl.name + '</div><div class="saved-playlist-meta">' + pl.songs.length + ' songs · ' + pl.mood + '</div></div><button class="delete-playlist-btn" onclick="deletePlaylist(' + i + ')">✕</button></div>';
       });
       container.innerHTML = html;
     }
