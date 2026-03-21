@@ -1,6 +1,6 @@
-/* ═══════════════════════════════════════
+/* ========================
    THEME VARIABLES
-═══════════════════════════════════════ */
+   ======================== */
 
 :root[data-theme="dark"] {
   --bg: #0d1b2a;
@@ -12,16 +12,16 @@
 
 :root[data-theme="light"] {
   --bg: #f5f5f5;
-  --bg2: #f5f5f5;
+  --bg2: #fff6e8;
   --text: #1a2a3a;
-  --accent: #0099cc;
-  --accent-glow: rgba(0, 153, 204, 0.15);
+  --accent: #C95502;
+  --accent-glow: rgba(253, 209, 124, 0.25);
 }
 
 
-/* ═══════════════════════════════════════
-   RESET & BASE
-═══════════════════════════════════════ */
+/* ========================
+   GLOBAL STYLES
+   ======================== */
 
 * {
   margin: 0;
@@ -51,30 +51,42 @@ body::before {
 }
 
 
-/* ═══════════════════════════════════════
-   NAV
-═══════════════════════════════════════ */
+/* ========================
+   NAVIGATION
+   ======================== */
 
-nav {
+nav,
+.top-nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 1.5rem;
 }
 
-.logo {
-  height: 130px;
-  width: auto;
-  margin-top: -5px;
-  margin-left: -10px;
-  object-fit: contain;
-  filter: drop-shadow(0 0 10px var(--accent-glow));
-}
-
+.nav-left,
+.nav-center,
 .nav-right {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+.logo {
+  height: 130px;
+  width: auto;
+  filter: drop-shadow(0 0 10px var(--accent-glow));
+}
+
+.small-logo {
+  height: 50px;
+  width: auto;
+}
+
+.page-title {
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--text);
+  transition: color 0.3s ease;
 }
 
 .toggle {
@@ -108,6 +120,7 @@ nav {
   justify-content: center;
   transition: all 0.3s ease;
   box-shadow: 0 0 10px var(--accent-glow);
+  text-decoration: none;
 }
 
 .profile:hover {
@@ -119,6 +132,16 @@ nav {
   width: 20px;
   height: 20px;
   fill: var(--accent);
+}
+
+.bigger-profile {
+  width: 50px;
+  height: 50px;
+}
+
+.bigger-profile svg {
+  width: 26px;
+  height: 26px;
 }
 
 .playlist-toggle {
@@ -160,9 +183,9 @@ nav {
 }
 
 
-/* ═══════════════════════════════════════
-   MAIN / HERO
-═══════════════════════════════════════ */
+/* ========================
+   HOMEPAGE MAIN
+   ======================== */
 
 main {
   flex: 1;
@@ -252,22 +275,10 @@ h1 span {
   color: var(--text);
 }
 
-[data-theme="light"] .mood-select,
-[data-theme="light"] .random-btn {
-  border-color: #C95502;
-  color: #C95502;
-}
 
-[data-theme="light"] .mood-select:hover,
-[data-theme="light"] .random-btn:hover {
-  background: #C95502;
-  color: #ffffff;
-}
-
-
-/* ═══════════════════════════════════════
+/* ========================
    LOADING
-═══════════════════════════════════════ */
+   ======================== */
 
 .loading {
   display: flex;
@@ -307,9 +318,9 @@ h1 span {
 }
 
 
-/* ═══════════════════════════════════════
+/* ========================
    RESULTS
-═══════════════════════════════════════ */
+   ======================== */
 
 .results {
   width: 100%;
@@ -340,9 +351,9 @@ h1 span {
 }
 
 
-/* ═══════════════════════════════════════
+/* ========================
    SONG CARDS
-═══════════════════════════════════════ */
+   ======================== */
 
 .song-card {
   display: flex;
@@ -478,9 +489,9 @@ h1 span {
 }
 
 
-/* ═══════════════════════════════════════
+/* ========================
    SPOTIFY EMBED PLAYER
-═══════════════════════════════════════ */
+   ======================== */
 
 .spotify-player {
   position: fixed;
@@ -536,9 +547,9 @@ h1 span {
 }
 
 
-/* ═══════════════════════════════════════
+/* ========================
    PLAYLIST OVERLAY
-═══════════════════════════════════════ */
+   ======================== */
 
 .playlist-overlay {
   position: fixed;
@@ -556,9 +567,9 @@ h1 span {
 }
 
 
-/* ═══════════════════════════════════════
+/* ========================
    PLAYLIST PANEL
-═══════════════════════════════════════ */
+   ======================== */
 
 .playlist-panel {
   position: fixed;
@@ -681,9 +692,9 @@ h1 span {
 }
 
 
-/* ═══════════════════════════════════════
+/* ========================
    ACTIVE PLAYLIST HEADER
-═══════════════════════════════════════ */
+   ======================== */
 
 .active-playlist-header {
   display: flex;
@@ -724,9 +735,9 @@ h1 span {
 }
 
 
-/* ═══════════════════════════════════════
+/* ========================
    PANEL SONG ITEMS
-═══════════════════════════════════════ */
+   ======================== */
 
 .panel-song-item {
   display: flex;
@@ -807,9 +818,9 @@ h1 span {
 }
 
 
-/* ═══════════════════════════════════════
+/* ========================
    SAVED PLAYLISTS
-═══════════════════════════════════════ */
+   ======================== */
 
 .saved-playlists {
   padding: 14px 20px;
@@ -876,4 +887,251 @@ h1 span {
 .delete-playlist-btn:hover {
   color: #e05555;
   opacity: 1;
+}
+
+
+/* ========================
+   PROFILE PAGE
+   ======================== */
+
+.profile-main {
+  position: relative;
+  top: -3.5rem;
+  text-align: center;
+  padding: 0 1rem;
+}
+
+.profile-title {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 4.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-align: center;
+  transition: color 0.4s ease;
+}
+
+.content-boxes {
+  margin-top: 0.5rem;
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+  width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.box {
+  flex: 1 1 28%;
+  min-height: 400px;
+  border: 2px solid var(--accent);
+  border-radius: 20px;
+  padding: 1.5rem;
+  background: var(--bg2);
+  box-shadow: 0 0 20px var(--accent-glow);
+  transition: all 0.4s ease;
+  text-align: left;
+  overflow-y: auto;
+}
+
+.box h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 2px;
+}
+
+/* Profile box items */
+.profile-mood-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+  font-family: 'Quicksand', sans-serif;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.profile-mood-badge {
+  background: var(--accent);
+  color: var(--bg);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.profile-mood-time {
+  font-size: 11px;
+  opacity: 0.4;
+  margin-left: auto;
+}
+
+.profile-playlist-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.profile-playlist-item:hover {
+  opacity: 0.7;
+}
+
+.profile-playlist-name {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.profile-playlist-meta {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 11px;
+  color: var(--text);
+  opacity: 0.4;
+  margin-top: 2px;
+}
+
+.profile-playlist-play {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.profile-playlist-play:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.profile-suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+}
+
+.profile-suggestion-art {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: rgba(0, 212, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.profile-suggestion-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-suggestion-title {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-suggestion-artist {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 11px;
+  color: var(--text);
+  opacity: 0.5;
+}
+
+.profile-suggestion-play {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.profile-suggestion-play:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.box-empty {
+  color: var(--text);
+  opacity: 0.4;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 13px;
+  text-align: center;
+  padding: 40px 0;
+}
+
+
+/* ========================
+   THEME OVERRIDES
+   ======================== */
+
+:root[data-theme="light"] .box {
+  border-color: #C95502;
+  box-shadow: 0 0 20px rgba(253, 209, 124, 0.25);
+  background: #fff6e8;
+}
+
+:root[data-theme="light"] .box h2,
+:root[data-theme="light"] .profile-title {
+  color: #C95502;
+}
+
+:root[data-theme="dark"] .box {
+  border-color: #00d4ff;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+}
+
+:root[data-theme="dark"] .box h2,
+:root[data-theme="dark"] .profile-title {
+  color: #00d4ff;
+}
+
+
+/* ========================
+   RESPONSIVE
+   ======================== */
+
+@media (max-width: 900px) {
+  .content-boxes {
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: center;
+  }
+
+  .box {
+    width: 80%;
+    min-height: 300px;
+  }
 }

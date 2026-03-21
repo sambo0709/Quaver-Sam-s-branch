@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="icon" type="image/png" href="images/nightmode_logo.png">
   <title>Quaver</title>
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="HomePage.css">
@@ -10,17 +11,19 @@
 <body>
 
   <nav>
-    <img class="logo" id="logo" src="Quavernightmode1.PNG" alt="Quaver">
+    <div class="nav-left">
+      <img class="logo" id="logo" src="Quaver_nightmode1.png" alt="Quaver Logo">
+    </div>
     <div class="nav-right">
       <button class="playlist-toggle" onclick="togglePlaylistPanel()">
         My Playlist <span id="playlist-count" class="count-badge">0</span>
       </button>
       <button class="toggle" onclick="toggleTheme()">☀ Light</button>
-      <div class="profile">
+      <a href="profile.html" class="profile">
         <svg viewBox="0 0 24 24">
           <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
         </svg>
-      </div>
+      </a>
     </div>
   </nav>
 
@@ -58,7 +61,6 @@
     <div id="results" class="results"></div>
   </main>
 
-  <!-- Spotify Embed Player -->
   <div id="spotify-player" class="spotify-player" style="display:none">
     <div class="player-header">
       <span id="player-song-name">—</span>
@@ -76,10 +78,8 @@
     </iframe>
   </div>
 
-  <!-- Playlist Overlay -->
   <div class="playlist-overlay" id="playlist-overlay" onclick="togglePlaylistPanel()"></div>
 
-  <!-- Playlist Panel -->
   <div class="playlist-panel" id="playlist-panel">
     <div class="panel-header">
       <h2 class="panel-title">My Playlist</h2>
@@ -100,23 +100,32 @@
     let currentMood = null;
     let currentLimit = 5;
     let playlistSongs = [];
-    let savedPlaylists = [];
+    let savedPlaylists = JSON.parse(localStorage.getItem('quaver_playlists') || '[]');
+    let recentMoods = JSON.parse(localStorage.getItem('quaver_moods') || '[]');
     let activePlaylistName = null;
 
-    function toggleTheme() {
+    function applyTheme(theme) {
       const html = document.documentElement;
       const btn = document.querySelector('.toggle');
-      const logo = document.getElementById('logo');
-      if (html.getAttribute('data-theme') === 'dark') {
-        html.setAttribute('data-theme', 'light');
-        btn.textContent = '☾ Dark';
-        logo.src = 'Quaverlightmode1.PNG';
-      } else {
-        html.setAttribute('data-theme', 'dark');
-        btn.textContent = '☀ Light';
-        logo.src = 'Quavernightmode1.PNG';
-      }
+      const logos = document.querySelectorAll('.logo');
+      html.setAttribute('data-theme', theme);
+      btn.textContent = theme === 'dark' ? '☀ Light' : '☾ Dark';
+      logos.forEach(function(l) {
+        l.src = theme === 'dark' ? 'Quaver_nightmode1.png' : 'Quaver_lightmode1.png';
+      });
     }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      localStorage.setItem('theme', next);
+    }
+
+    window.addEventListener('DOMContentLoaded', function() {
+      applyTheme(localStorage.getItem('theme') || 'dark');
+      renderSavedPlaylists();
+    });
 
     function randomMood() {
       const random = moods[Math.floor(Math.random() * moods.length)];
@@ -136,6 +145,9 @@
 
     function setMood(mood) {
       currentMood = mood;
+      recentMoods.unshift({ mood: mood, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+      if (recentMoods.length > 10) recentMoods.pop();
+      localStorage.setItem('quaver_moods', JSON.stringify(recentMoods));
       fetchSongs();
     }
 
@@ -157,11 +169,7 @@
 
             html += '<div class="song-card" style="animation-delay:' + (i * 0.06) + 's">';
             html += '<span class="song-num">' + String(i + 1).padStart(2, '0') + '</span>';
-            if (song.album_art) {
-              html += '<img class="album-art" src="' + song.album_art + '" alt="art"/>';
-            } else {
-              html += '<div class="album-art"></div>';
-            }
+            html += song.album_art ? '<img class="album-art" src="' + song.album_art + '" alt="art"/>' : '<div class="album-art"></div>';
             html += '<div class="song-info">';
             html += '<div class="song-title">' + song.title + '</div>';
             html += '<div class="song-artist">' + song.artist + '</div>';
@@ -187,10 +195,8 @@
 
     function playInApp(trackId, title) {
       const player = document.getElementById('spotify-player');
-      const iframe = document.getElementById('spotify-iframe');
-      const songName = document.getElementById('player-song-name');
-      iframe.src = 'https://open.spotify.com/embed/track/' + trackId + '?utm_source=generator&theme=0';
-      songName.textContent = title;
+      document.getElementById('spotify-iframe').src = 'https://open.spotify.com/embed/track/' + trackId + '?utm_source=generator&theme=0';
+      document.getElementById('player-song-name').textContent = title;
       player.style.display = 'block';
       player.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
@@ -229,7 +235,6 @@
 
     function renderPanelSongs() {
       const container = document.getElementById('panel-songs');
-
       let header = '';
       if (activePlaylistName) {
         header = '<div class="active-playlist-header">' +
@@ -237,12 +242,10 @@
           '<span class="active-playlist-name">' + activePlaylistName + '</span>' +
         '</div>';
       }
-
       if (playlistSongs.length === 0) {
         container.innerHTML = header + '<p class="empty-msg">Add songs from your results.</p>';
         return;
       }
-
       container.innerHTML = header + playlistSongs.map(function(song, i) {
         const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
         return '<div class="panel-song-item">' +
@@ -285,6 +288,7 @@
         });
         const data = await res.json();
         savedPlaylists.push(data.playlist);
+        localStorage.setItem('quaver_playlists', JSON.stringify(savedPlaylists));
         document.getElementById('playlist-name').value = '';
         activePlaylistName = null;
         playlistSongs = [];
@@ -316,6 +320,7 @@
       const pl = savedPlaylists[index];
       try { await fetch('http://localhost:3000/api/playlist/' + pl.id, { method: 'DELETE' }); } catch(e) {}
       savedPlaylists.splice(index, 1);
+      localStorage.setItem('quaver_playlists', JSON.stringify(savedPlaylists));
       renderSavedPlaylists();
     }
 
