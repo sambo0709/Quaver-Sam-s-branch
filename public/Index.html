@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Quaver</title>
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="index_style.css">
+  <link rel="stylesheet" href="HomePage.css">
 </head>
 <body>
 
@@ -58,6 +58,24 @@
     <div id="results" class="results"></div>
   </main>
 
+  <!-- Spotify Embed Player -->
+  <div id="spotify-player" class="spotify-player" style="display:none">
+    <div class="player-header">
+      <span id="player-song-name">—</span>
+      <button class="player-close-btn" onclick="closePlayer()">✕</button>
+    </div>
+    <iframe id="spotify-iframe"
+      style="border-radius:12px"
+      src=""
+      width="100%"
+      height="80"
+      frameborder="0"
+      allowfullscreen=""
+      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+      loading="lazy">
+    </iframe>
+  </div>
+
   <!-- Playlist Overlay -->
   <div class="playlist-overlay" id="playlist-overlay" onclick="togglePlaylistPanel()"></div>
 
@@ -71,9 +89,13 @@
       <input type="text" id="playlist-name" class="playlist-input" placeholder="Playlist name..." />
       <button class="save-btn" onclick="savePlaylist()">Save</button>
     </div>
+
+    <!-- Current queue -->
     <div id="panel-songs" class="panel-songs">
       <p class="empty-msg">Add songs from your results.</p>
     </div>
+
+    <!-- Saved playlists -->
     <div id="saved-playlists" class="saved-playlists"></div>
   </div>
 
@@ -83,8 +105,6 @@
     let currentLimit = 5;
     let playlistSongs = [];
     let savedPlaylists = [];
-    let currentAudio = null;
-    let currentPlayingBtn = null;
 
     function toggleTheme() {
       const html = document.documentElement;
@@ -123,7 +143,6 @@
     }
 
     async function fetchSongs() {
-      stopCurrentAudio();
       document.getElementById('loading').style.display = 'flex';
       document.getElementById('results').innerHTML = '';
 
@@ -137,36 +156,30 @@
 
           data.songs.forEach(function(song, i) {
             const inPlaylist = playlistSongs.some(function(s) { return s.title === song.title; });
-            const hasPreview = !!song.preview_url;
+            const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
+
             html += '<div class="song-card" style="animation-delay:' + (i * 0.06) + 's">';
             html += '<span class="song-num">' + String(i + 1).padStart(2, '0') + '</span>';
+
             if (song.album_art) {
               html += '<img class="album-art" src="' + song.album_art + '" alt="art"/>';
             } else {
               html += '<div class="album-art"></div>';
             }
+
             html += '<div class="song-info">';
             html += '<div class="song-title">' + song.title + '</div>';
             html += '<div class="song-artist">' + song.artist + '</div>';
             html += '</div>';
+
             html += '<div class="song-actions">';
-            if (hasPreview) {
-              html += '<button class="play-btn" data-url="' + song.preview_url + '" onclick="togglePlay(this)">&#9654;</button>';
-            } else {
-              html += '<span class="no-preview">no preview</span>';
+            if (trackId) {
+              html += '<button class="play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\')">&#9654;</button>';
             }
             html += '<span class="song-duration">' + song.duration + '</span>';
-            if (song.spotify_url) {
-              html += '<a class="spotify-link" href="' + song.spotify_url + '" target="_blank">Open</a>';
-            }
             html += '<button class="add-btn' + (inPlaylist ? ' added' : '') + '" onclick=\'addToPlaylist(' + JSON.stringify(song).replace(/'/g, "&#39;") + ', this)\'>' + (inPlaylist ? 'Added' : '+ Add') + '</button>';
             html += '</div></div>';
           });
-
-          html += '<div class="player-bar" id="player-bar" style="display:none">';
-          html += '<div class="player-info"><span class="player-title" id="player-title">—</span><span class="player-artist" id="player-artist">—</span></div>';
-          html += '<div class="player-controls"><div class="progress-wrap"><div class="progress-fill" id="progress-fill"></div></div><span class="player-time" id="player-time">0:00 / 0:30</span></div>';
-          html += '<button class="player-stop" onclick="stopCurrentAudio()">&#9632;</button></div>';
 
           document.getElementById('results').innerHTML = html;
         } else {
@@ -178,56 +191,28 @@
       }
     }
 
-    function togglePlay(btn) {
-      const url = btn.dataset.url;
-      if (currentPlayingBtn === btn && currentAudio && !currentAudio.paused) {
-        currentAudio.pause();
-        btn.innerHTML = '&#9654;';
-        btn.classList.remove('playing');
-        return;
-      }
-      stopCurrentAudio();
-      currentAudio = new Audio(url);
-      currentPlayingBtn = btn;
-      btn.innerHTML = '&#9646;&#9646;';
-      btn.classList.add('playing');
-      const card = btn.closest('.song-card');
-      document.getElementById('player-title').textContent = card.querySelector('.song-title').textContent;
-      document.getElementById('player-artist').textContent = card.querySelector('.song-artist').textContent;
-      document.getElementById('player-bar').style.display = 'flex';
-      currentAudio.play();
-      currentAudio.addEventListener('timeupdate', function() {
-        const pct = (currentAudio.currentTime / currentAudio.duration) * 100;
-        const fill = document.getElementById('progress-fill');
-        const time = document.getElementById('player-time');
-        if (fill) fill.style.width = pct + '%';
-        if (time) time.textContent = formatTime(currentAudio.currentTime) + ' / ' + formatTime(currentAudio.duration);
-      });
-      currentAudio.addEventListener('ended', function() {
-        btn.innerHTML = '&#9654;';
-        btn.classList.remove('playing');
-        currentPlayingBtn = null;
-        const fill = document.getElementById('progress-fill');
-        if (fill) fill.style.width = '0%';
-      });
+    // Spotify embed player
+    function playInApp(trackId, title) {
+      const player = document.getElementById('spotify-player');
+      const iframe = document.getElementById('spotify-iframe');
+      const songName = document.getElementById('player-song-name');
+
+      iframe.src = 'https://open.spotify.com/embed/track/' + trackId + '?utm_source=generator&theme=0';
+      songName.textContent = title;
+      player.style.display = 'block';
+
+      // Scroll player into view smoothly
+      player.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
-    function stopCurrentAudio() {
-      if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-      if (currentPlayingBtn) {
-        currentPlayingBtn.innerHTML = '&#9654;';
-        currentPlayingBtn.classList.remove('playing');
-        currentPlayingBtn = null;
-      }
-      const bar = document.getElementById('player-bar');
-      if (bar) bar.style.display = 'none';
+    function closePlayer() {
+      const player = document.getElementById('spotify-player');
+      const iframe = document.getElementById('spotify-iframe');
+      iframe.src = '';
+      player.style.display = 'none';
     }
 
-    function formatTime(s) {
-      if (isNaN(s)) return '0:00';
-      return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
-    }
-
+    // Playlist
     function addToPlaylist(song, btn) {
       if (playlistSongs.some(function(s) { return s.title === song.title; })) return;
       playlistSongs.push(song);
@@ -262,7 +247,17 @@
         return;
       }
       container.innerHTML = playlistSongs.map(function(song, i) {
-        return '<div class="panel-song-item"><div><div class="panel-song-title">' + song.title + '</div><div class="panel-song-artist">' + song.artist + '</div></div><button class="remove-btn" onclick="removeFromPlaylist(' + i + ')">✕</button></div>';
+        const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
+        return '<div class="panel-song-item">' +
+          '<div class="panel-song-info">' +
+            '<div class="panel-song-title">' + song.title + '</div>' +
+            '<div class="panel-song-artist">' + song.artist + '</div>' +
+          '</div>' +
+          '<div class="panel-song-actions">' +
+            (trackId ? '<button class="panel-play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\')">&#9654;</button>' : '') +
+            '<button class="remove-btn" onclick="removeFromPlaylist(' + i + ')">✕</button>' +
+          '</div>' +
+        '</div>';
       }).join('');
     }
 
@@ -279,6 +274,9 @@
         const data = await res.json();
         savedPlaylists.push(data.playlist);
         document.getElementById('playlist-name').value = '';
+        playlistSongs = [];
+        updatePlaylistBadge();
+        renderPanelSongs();
         renderSavedPlaylists();
       } catch (err) {
         alert('Could not save. Is the server running?');
@@ -290,9 +288,22 @@
       if (savedPlaylists.length === 0) { container.innerHTML = ''; return; }
       let html = '<div class="saved-section-label">Saved playlists</div>';
       savedPlaylists.forEach(function(pl, i) {
-        html += '<div class="saved-playlist-item"><div><div class="saved-playlist-name">' + pl.name + '</div><div class="saved-playlist-meta">' + pl.songs.length + ' songs · ' + pl.mood + '</div></div><button class="delete-playlist-btn" onclick="deletePlaylist(' + i + ')">✕</button></div>';
+        html += '<div class="saved-playlist-item">';
+        html += '<div class="saved-playlist-info" onclick="openSavedPlaylist(' + i + ')">';
+        html += '<div class="saved-playlist-name">' + pl.name + '</div>';
+        html += '<div class="saved-playlist-meta">' + pl.songs.length + ' songs · ' + pl.mood + '</div>';
+        html += '</div>';
+        html += '<button class="delete-playlist-btn" onclick="deletePlaylist(' + i + ')">✕</button>';
+        html += '</div>';
       });
       container.innerHTML = html;
+    }
+
+    function openSavedPlaylist(index) {
+      const pl = savedPlaylists[index];
+      playlistSongs = pl.songs.slice();
+      updatePlaylistBadge();
+      renderPanelSongs();
     }
 
     async function deletePlaylist(index) {

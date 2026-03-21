@@ -692,3 +692,88 @@ h1 span {
   transition: all 0.2s;
 }
 .delete-playlist-btn:hover { color: #e05555; opacity: 1; }
+
+/* ── Spotify Embed Player ── */
+.spotify-player {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg2);
+  border-top: 1px solid rgba(0,212,255,0.2);
+  padding: 12px 24px 16px;
+  z-index: 150;
+  box-shadow: 0 -4px 20px var(--accent-glow);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.player-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.player-header span {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80%;
+}
+
+.player-close-btn {
+  background: none;
+  border: none;
+  color: var(--text);
+  opacity: 0.4;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+.player-close-btn:hover { opacity: 1; }
+
+/* ── Panel song play button ── */
+.panel-song-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.panel-play-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  font-size: 9px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.panel-play-btn:hover { background: var(--accent); color: var(--bg); }
+
+/* ── Saved playlist clickable ── */
+.saved-playlist-info {
+  flex: 1;
+  cursor: pointer;
+  padding: 2px 0;
+  transition: opacity 0.2s;
+}
+.saved-playlist-info:hover { opacity: 0.7; }
