@@ -10,7 +10,7 @@
 <body>
 
   <nav>
-    <img class="logo" id="logo" src="Quaver nightmode1.PNG" alt="Quaver">
+    <img class="logo" id="logo" src="Quavernightmode1.PNG" alt="Quaver">
     <div class="nav-right">
       <button class="playlist-toggle" onclick="togglePlaylistPanel()">
         My Playlist <span id="playlist-count" class="count-badge">0</span>
@@ -89,13 +89,9 @@
       <input type="text" id="playlist-name" class="playlist-input" placeholder="Playlist name..." />
       <button class="save-btn" onclick="savePlaylist()">Save</button>
     </div>
-
-    <!-- Current queue -->
     <div id="panel-songs" class="panel-songs">
       <p class="empty-msg">Add songs from your results.</p>
     </div>
-
-    <!-- Saved playlists -->
     <div id="saved-playlists" class="saved-playlists"></div>
   </div>
 
@@ -105,6 +101,7 @@
     let currentLimit = 5;
     let playlistSongs = [];
     let savedPlaylists = [];
+    let activePlaylistName = null;
 
     function toggleTheme() {
       const html = document.documentElement;
@@ -113,11 +110,11 @@
       if (html.getAttribute('data-theme') === 'dark') {
         html.setAttribute('data-theme', 'light');
         btn.textContent = '☾ Dark';
-        logo.src = 'Quaver lightmode1.PNG';
+        logo.src = 'Quaverlightmode1.PNG';
       } else {
         html.setAttribute('data-theme', 'dark');
         btn.textContent = '☀ Light';
-        logo.src = 'Quaver nightmode1.PNG';
+        logo.src = 'Quavernightmode1.PNG';
       }
     }
 
@@ -160,18 +157,15 @@
 
             html += '<div class="song-card" style="animation-delay:' + (i * 0.06) + 's">';
             html += '<span class="song-num">' + String(i + 1).padStart(2, '0') + '</span>';
-
             if (song.album_art) {
               html += '<img class="album-art" src="' + song.album_art + '" alt="art"/>';
             } else {
               html += '<div class="album-art"></div>';
             }
-
             html += '<div class="song-info">';
             html += '<div class="song-title">' + song.title + '</div>';
             html += '<div class="song-artist">' + song.artist + '</div>';
             html += '</div>';
-
             html += '<div class="song-actions">';
             if (trackId) {
               html += '<button class="play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\')">&#9654;</button>';
@@ -191,28 +185,21 @@
       }
     }
 
-    // Spotify embed player
     function playInApp(trackId, title) {
       const player = document.getElementById('spotify-player');
       const iframe = document.getElementById('spotify-iframe');
       const songName = document.getElementById('player-song-name');
-
       iframe.src = 'https://open.spotify.com/embed/track/' + trackId + '?utm_source=generator&theme=0';
       songName.textContent = title;
       player.style.display = 'block';
-
-      // Scroll player into view smoothly
       player.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function closePlayer() {
-      const player = document.getElementById('spotify-player');
-      const iframe = document.getElementById('spotify-iframe');
-      iframe.src = '';
-      player.style.display = 'none';
+      document.getElementById('spotify-iframe').src = '';
+      document.getElementById('spotify-player').style.display = 'none';
     }
 
-    // Playlist
     function addToPlaylist(song, btn) {
       if (playlistSongs.some(function(s) { return s.title === song.title; })) return;
       playlistSongs.push(song);
@@ -242,11 +229,21 @@
 
     function renderPanelSongs() {
       const container = document.getElementById('panel-songs');
+
+      let header = '';
+      if (activePlaylistName) {
+        header = '<div class="active-playlist-header">' +
+          '<button class="back-btn" onclick="clearActivePlaylist()">← Back</button>' +
+          '<span class="active-playlist-name">' + activePlaylistName + '</span>' +
+        '</div>';
+      }
+
       if (playlistSongs.length === 0) {
-        container.innerHTML = '<p class="empty-msg">Add songs from your results.</p>';
+        container.innerHTML = header + '<p class="empty-msg">Add songs from your results.</p>';
         return;
       }
-      container.innerHTML = playlistSongs.map(function(song, i) {
+
+      container.innerHTML = header + playlistSongs.map(function(song, i) {
         const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
         return '<div class="panel-song-item">' +
           '<div class="panel-song-info">' +
@@ -259,6 +256,21 @@
           '</div>' +
         '</div>';
       }).join('');
+    }
+
+    function openSavedPlaylist(index) {
+      const pl = savedPlaylists[index];
+      activePlaylistName = pl.name;
+      playlistSongs = pl.songs.slice();
+      updatePlaylistBadge();
+      renderPanelSongs();
+    }
+
+    function clearActivePlaylist() {
+      activePlaylistName = null;
+      playlistSongs = [];
+      updatePlaylistBadge();
+      renderPanelSongs();
     }
 
     async function savePlaylist() {
@@ -274,6 +286,7 @@
         const data = await res.json();
         savedPlaylists.push(data.playlist);
         document.getElementById('playlist-name').value = '';
+        activePlaylistName = null;
         playlistSongs = [];
         updatePlaylistBadge();
         renderPanelSongs();
@@ -297,13 +310,6 @@
         html += '</div>';
       });
       container.innerHTML = html;
-    }
-
-    function openSavedPlaylist(index) {
-      const pl = savedPlaylists[index];
-      playlistSongs = pl.songs.slice();
-      updatePlaylistBadge();
-      renderPanelSongs();
     }
 
     async function deletePlaylist(index) {
