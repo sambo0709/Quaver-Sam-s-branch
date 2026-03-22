@@ -1661,8 +1661,41 @@ h1 span {
   /* Song actions: tighter */
   .song-actions { gap: 4px; }
 
-  /* Playlist panel */
-  .playlist-panel { width: 100%; right: 0; }
+  /* Drag handle for bottom sheet */
+  .playlist-panel::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    background: var(--glass-border);
+    border-radius: 2px;
+    margin: 10px auto 0;
+    flex-shrink: 0;
+  }
+
+  /* Playlist panel — bottom sheet on mobile */
+  .playlist-panel {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 85vh;
+    border-radius: 20px 20px 0 0;
+    border-left: none;
+    border-top: 1px solid var(--glass-border);
+    transform: translateY(100%);
+    box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.4);
+  }
+
+  .playlist-panel.open {
+    transform: translateY(0);
+  }
+
+  .playlist-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
 
   /* Auth box */
   .auth-box { padding: 2rem 1.5rem; }
