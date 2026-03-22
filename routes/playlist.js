@@ -1,39 +1,91 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
+const { MongoClient, ObjectId } = require('mongodb');
 
-// in memory store for now (we'll swap this for a real DB later)
-let playlists = [];
+const client = new MongoClient(process.env.MONGODB_URI);
+let db;
 
-// GET /api/playlist - get all playlists
-router.get('/', (req, res) => {
-  res.json({ playlists });
+async function getDB() {
+  if (!db) {
+    await client.connect();
+    db = client.db('quaver');
+  }
+  return db;
+}
+
+function getUser(req) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return null;
+  try {
+    return jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
+  } catch {
+    return null;
+  }
+}
+
+// GET /api/playlist
+router.get('/', async (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
+
+  try {
+    const db = await getDB();
+    const users = db.collection('users');
+    const found = await users.findOne({ _id: new ObjectId(user.userId) });
+    res.json({ playlists: found?.playlists || [] });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
-// POST /api/playlist - save a new playlist
-router.post('/', (req, res) => {
-  const { name, mood, songs } = req.body;
+// POST /api/playlist
+router.post('/', async (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
 
+  const { name, mood, songs } = req.body;
   if (!name || !mood || !songs) {
-    return res.status(400).json({ error: 'name, mood, and songs are required' });
+    return res.status(400).json({ error: 'name, mood and songs required' });
   }
 
   const playlist = {
-    id: Date.now(),
+    id: Date.now().toString(),
     name,
     mood,
     songs,
     createdAt: new Date().toISOString(),
   };
 
-  playlists.push(playlist);
-  res.status(201).json({ message: 'Playlist saved!', playlist });
+  try {
+    const db = await getDB();
+    const users = db.collection('users');
+    await users.updateOne(
+      { _id: new ObjectId(user.userId) },
+      { $push: { playlists: playlist } }
+    );
+    res.status(201).json({ message: 'Playlist saved!', playlist });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
-// DELETE /api/playlist/:id - delete a playlist
-router.delete('/:id', (req, res) => {
-  const id = Number(req.params.id);
-  playlists = playlists.filter(p => p.id !== id);
-  res.json({ message: 'Playlist deleted' });
+// DELETE /api/playlist/:id
+router.delete('/:id', async (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
+
+  try {
+    const db = await getDB();
+    const users = db.collection('users');
+    await users.updateOne(
+      { _id: new ObjectId(user.userId) },
+      { $pull: { playlists: { id: req.params.id } } }
+    );
+    res.json({ message: 'Playlist deleted' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 module.exports = router;
