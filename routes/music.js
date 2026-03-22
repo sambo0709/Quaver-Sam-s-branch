@@ -11,7 +11,13 @@ const moodToSearch = {
   focused:   ['lofi study beats', 'concentration music', 'deep focus instrumental'],
 };
 
+let cachedToken = null;
+let tokenExpiresAt = 0;
+
 async function getSpotifyToken() {
+  if (cachedToken && Date.now() < tokenExpiresAt) {
+    return cachedToken;
+  }
   const credentials = Buffer.from(
     process.env.SPOTIFY_CLIENT_ID + ':' + process.env.SPOTIFY_CLIENT_SECRET
   ).toString('base64');
@@ -25,7 +31,9 @@ async function getSpotifyToken() {
   });
   const data = await res.json();
   if (!data.access_token) throw new Error('Failed to get Spotify token');
-  return data.access_token;
+  cachedToken = data.access_token;
+  tokenExpiresAt = Date.now() + (data.expires_in - 60) * 1000; // expire 1 min early
+  return cachedToken;
 }
 
 async function searchTracks(queries, token, limit) {
@@ -34,6 +42,12 @@ async function searchTracks(queries, token, limit) {
   const res = await fetch(url, {
     headers: { 'Authorization': 'Bearer ' + token }
   });
+  if (res.status === 429) {
+    throw new Error('Spotify rate limit reached. Please try again in a moment.');
+  }
+  if (!res.ok) {
+    throw new Error('Spotify API error: ' + res.status);
+  }
   const data = await res.json();
   if (!data.tracks || !data.tracks.items) {
     throw new Error('Spotify error: ' + JSON.stringify(data));
