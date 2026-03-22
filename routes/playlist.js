@@ -1,18 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const { MongoClient, ObjectId } = require('mongodb');
-
-const client = new MongoClient(process.env.MONGODB_URI);
-let db;
-
-async function getDB() {
-  if (!db) {
-    await client.connect();
-    db = client.db('quaver');
-  }
-  return db;
-}
+const { ObjectId } = require('mongodb');
+const { getDB } = require('./db');
 
 function getUser(req) {
   const authHeader = req.headers.authorization;

@@ -210,7 +210,16 @@
           }
         } catch (e) {}
       }
-      const moods = JSON.parse(localStorage.getItem('quaver_moods') || '[]');
+      let moods = [];
+      if (token) {
+        try {
+          const moodRes = await fetch(API + '/api/mood/history', {
+            headers: { 'Authorization': 'Bearer ' + token }
+          });
+          const moodData = await moodRes.json();
+          if (moodData.moods) moods = [...moodData.moods].reverse();
+        } catch (e) {}
+      }
       renderRecentMoods(moods);
       renderPlaylists(playlists);
       renderSuggestions(moods);

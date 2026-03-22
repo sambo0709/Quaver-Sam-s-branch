@@ -258,6 +258,14 @@
     recentMoods.unshift({ mood: mood, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
     if (recentMoods.length > 10) recentMoods.pop();
     localStorage.setItem('quaver_moods', JSON.stringify(recentMoods));
+    const token = localStorage.getItem('quaver_token');
+    if (token) {
+      fetch(API + '/api/mood/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ mood: mood })
+      }).catch(function() {});
+    }
     fetchSongs();
   }
 

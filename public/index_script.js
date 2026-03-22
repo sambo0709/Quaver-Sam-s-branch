@@ -31,7 +31,20 @@ function setMood(mood) {
   currentMood = mood;
   heroTitle.textContent = mood.charAt(0).toUpperCase() + mood.slice(1) + '.';
   heroTitle.classList.add('has-mood');
+  saveMoodHistory(mood);
   fetchSongs();
+}
+
+async function saveMoodHistory(mood) {
+  const token = localStorage.getItem('quaver_token');
+  if (!token) return;
+  try {
+    await fetch('http://localhost:3000/api/mood/history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ mood })
+    });
+  } catch (e) {}
 }
 
 async function fetchSongs() {
