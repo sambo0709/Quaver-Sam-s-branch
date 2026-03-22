@@ -10,18 +10,24 @@
 <body>
 
   <nav class="top-nav">
+    <!-- Left: Logo -->
     <div class="nav-left">
       <a href="Index.html">
         <img class="logo" id="logo" src="QuaverNightmode1.png" alt="Quaver Logo">
       </a>
     </div>
+
+    <!-- Center: Floating nav pill -->
+    <div class="nav-center">
+      <a class="nav-link" href="Index.html">Home</a>
+      <a class="nav-link active" href="profile.html">Profile</a>
+    </div>
+
+    <!-- Right: Actions + theme toggle -->
     <div class="nav-right">
-      <button class="toggle" id="theme-btn" onclick="toggleTheme()">☀ Light</button>
-      <div class="profile bigger-profile">
-        <svg viewBox="0 0 24 24">
-          <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-        </svg>
-      </div>
+      <span id="nav-username" class="nav-username"></span>
+      <button id="nav-logout" class="logout-btn" onclick="logout()" style="display:none">Logout</button>
+      <button class="toggle" onclick="toggleTheme()">🌙</button>
     </div>
   </nav>
 
@@ -71,17 +77,40 @@
   </main>
 
   <script>
-    function applyTheme(theme) {
-      document.documentElement.setAttribute('data-theme', theme);
-      document.getElementById('theme-btn').textContent = theme === 'dark' ? '☀ Light' : '☾ Dark';
-      document.getElementById('logo').src = theme === 'dark' ? 'QuaverNightmode1.png' : 'Quaver lightmode1.png';
-    }
+    const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
 
     function toggleTheme() {
-      const current = document.documentElement.getAttribute('data-theme') || 'dark';
-      const next = current === 'dark' ? 'light' : 'dark';
-      applyTheme(next);
-      localStorage.setItem('theme', next);
+      const html = document.documentElement;
+      const btn = document.querySelector('.toggle');
+      const logo = document.getElementById('logo');
+      if (html.getAttribute('data-theme') === 'dark') {
+        html.setAttribute('data-theme', 'light');
+        btn.textContent = '☀️';
+        logo.src = 'Quaver lightmode1.PNG';
+        localStorage.setItem('theme', 'light');
+      } else {
+        html.setAttribute('data-theme', 'dark');
+        btn.textContent = '🌙';
+        logo.src = 'QuaverNightmode1.png';
+        localStorage.setItem('theme', 'dark');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('quaver_token');
+      localStorage.removeItem('quaver_user');
+      localStorage.removeItem('quaver_playlists');
+      window.location.href = 'login.html';
+    }
+
+    function updateAuthUI() {
+      const user = JSON.parse(localStorage.getItem('quaver_user') || 'null');
+      const logoutBtn = document.getElementById('nav-logout');
+      const usernameEl = document.getElementById('nav-username');
+      if (user) {
+        usernameEl.textContent = 'Hi, ' + user.username + '!';
+        logoutBtn.style.display = 'inline-block';
+      }
     }
 
     function playInApp(trackId, title) {
@@ -116,14 +145,15 @@
         return '<div class="profile-playlist-item" onclick="togglePlaylistSongs(' + i + ')">' +
           '<div><div class="profile-playlist-name">' + pl.name + '</div>' +
           '<div class="profile-playlist-meta">' + pl.songs.length + ' songs · ' + pl.mood + '</div></div>' +
+          '<span style="color:var(--accent);font-size:12px;flex-shrink:0;">▼</span>' +
         '</div>' +
-        '<div id="playlist-songs-' + i + '" style="display:none">' +
+        '<div id="playlist-songs-' + i + '" style="display:none;padding:8px 0 4px;">' +
           pl.songs.map(function(song) {
             const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
             return '<div class="profile-suggestion-item">' +
               (song.album_art ? '<img class="profile-suggestion-art" src="' + song.album_art + '" alt="art"/>' : '<div class="profile-suggestion-art"></div>') +
               '<div class="profile-suggestion-info"><div class="profile-suggestion-title">' + song.title + '</div><div class="profile-suggestion-artist">' + song.artist + '</div></div>' +
-              (trackId ? '<button class="profile-suggestion-play" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\')">&#9654;</button>' : '') +
+              (trackId ? '<button class="profile-suggestion-play" onclick="event.stopPropagation();playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\')">&#9654;</button>' : '') +
             '</div>';
           }).join('') +
         '</div>';
@@ -144,13 +174,13 @@
       const moodCounts = {};
       moods.forEach(function(m) { moodCounts[m.mood] = (moodCounts[m.mood] || 0) + 1; });
       const topMood = Object.keys(moodCounts).sort(function(a, b) { return moodCounts[b] - moodCounts[a]; })[0];
-      container.innerHTML = '<p class="box-empty">Loading suggestions for <strong>' + topMood + '</strong>...</p>';
+      container.innerHTML = '<p class="box-empty">Loading for <strong>' + topMood + '</strong>...</p>';
       try {
-        const res = await fetch('http://localhost:3000/api/music/recommend?mood=' + topMood + '&limit=5');
+        const res = await fetch(API + '/api/music/recommend?mood=' + topMood + '&limit=5');
         const data = await res.json();
         if (data.songs && data.songs.length > 0) {
           container.innerHTML =
-            '<div style="color: var(--text); font-family: Quicksand, sans-serif; font-size: 11px; opacity: 0.5; margin-bottom: 12px;">Based on your love of <strong>' + topMood + '</strong></div>' +
+            '<div style="font-family:Quicksand,sans-serif;font-size:11px;color:var(--text);opacity:0.5;margin-bottom:12px;">Based on your love of <strong>' + topMood + '</strong></div>' +
             data.songs.map(function(song) {
               const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
               return '<div class="profile-suggestion-item">' +
@@ -161,17 +191,44 @@
             }).join('');
         }
       } catch (err) {
-        container.innerHTML = '<p class="box-empty">Could not load suggestions. Is the server running?</p>';
+        container.innerHTML = '<p class="box-empty">Could not load suggestions.</p>';
       }
     }
 
-    window.addEventListener('DOMContentLoaded', function() {
-      applyTheme(localStorage.getItem('theme') || 'dark');
+    async function loadProfileData() {
+      const token = localStorage.getItem('quaver_token');
+      let playlists = JSON.parse(localStorage.getItem('quaver_playlists') || '[]');
+      if (token) {
+        try {
+          const res = await fetch(API + '/api/playlist', {
+            headers: { 'Authorization': 'Bearer ' + token }
+          });
+          const data = await res.json();
+          if (data.playlists) {
+            playlists = data.playlists;
+            localStorage.setItem('quaver_playlists', JSON.stringify(playlists));
+          }
+        } catch (e) {}
+      }
       const moods = JSON.parse(localStorage.getItem('quaver_moods') || '[]');
-      const playlists = JSON.parse(localStorage.getItem('quaver_playlists') || '[]');
       renderRecentMoods(moods);
       renderPlaylists(playlists);
       renderSuggestions(moods);
+    }
+
+    window.addEventListener('DOMContentLoaded', function() {
+      // Redirect to login if not logged in
+      if (!localStorage.getItem('quaver_token')) {
+        window.location.href = 'login.html';
+        return;
+      }
+      const saved = localStorage.getItem('theme');
+      const isDark = !saved || saved === 'dark';
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      document.querySelector('.toggle').textContent = isDark ? '🌙' : '☀️';
+      document.getElementById('logo').src = isDark ? 'QuaverNightmode1.png' : 'Quaver lightmode1.PNG';
+      updateAuthUI();
+      loadProfileData();
     });
   </script>
 </body>

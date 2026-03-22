@@ -8,15 +8,17 @@
   <link rel="stylesheet" href="HomePage.css">
 </head>
 <body>
-
   <nav>
+    <!-- Left: Logo -->
     <div class="nav-left">
       <a href="Index.html">
         <img class="logo" id="logo" src="QuaverNightmode1.PNG" alt="Quaver">
       </a>
     </div>
+
+    <!-- Right: theme toggle -->
     <div class="nav-right">
-      <button class="toggle" onclick="toggleTheme()">☀ Light</button>
+      <button class="toggle" onclick="toggleTheme()">🌙</button>
     </div>
   </nav>
 
@@ -24,15 +26,12 @@
     <div class="auth-box">
       <div class="auth-title">Quaver</div>
       <div class="auth-subtitle">Sign in to save your playlists</div>
-
       <div class="auth-tabs">
         <button class="auth-tab active" onclick="showTab('login')">Login</button>
         <button class="auth-tab" onclick="showTab('register')">Register</button>
       </div>
-
       <div id="error-msg" class="auth-error"></div>
       <div id="success-msg" class="auth-success"></div>
-
       <div id="login-form">
         <div class="auth-field">
           <label>Email</label>
@@ -44,7 +43,6 @@
         </div>
         <button class="auth-submit" onclick="login()">Sign In</button>
       </div>
-
       <div id="register-form" style="display:none">
         <div class="auth-field">
           <label>Username</label>
@@ -64,18 +62,20 @@
   </div>
 
   <script>
+    const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+
     function toggleTheme() {
       const html = document.documentElement;
       const btn = document.querySelector('.toggle');
       const logo = document.getElementById('logo');
       if (html.getAttribute('data-theme') === 'dark') {
         html.setAttribute('data-theme', 'light');
-        btn.textContent = '☾ Dark';
+        btn.textContent = '☀️';
         logo.src = 'Quaver lightmode1.PNG';
         localStorage.setItem('theme', 'light');
       } else {
         html.setAttribute('data-theme', 'dark');
-        btn.textContent = '☀ Light';
+        btn.textContent = '🌙';
         logo.src = 'QuaverNightmode1.PNG';
         localStorage.setItem('theme', 'dark');
       }
@@ -85,7 +85,7 @@
       const saved = localStorage.getItem('theme');
       if (saved === 'light') {
         document.documentElement.setAttribute('data-theme', 'light');
-        document.querySelector('.toggle').textContent = '☾ Dark';
+        document.querySelector('.toggle').textContent = '☀️';
         document.getElementById('logo').src = 'Quaver lightmode1.PNG';
       } else {
         document.getElementById('logo').src = 'QuaverNightmode1.PNG';
@@ -101,8 +101,7 @@
       document.querySelectorAll('.auth-tab').forEach(function(t, i) {
         t.classList.toggle('active', (tab === 'login' && i === 0) || (tab === 'register' && i === 1));
       });
-      showError('');
-      showSuccess('');
+      showError(''); showSuccess('');
     }
 
     function showError(msg) {
@@ -122,7 +121,7 @@
       const password = document.getElementById('login-password').value;
       if (!email || !password) { showError('Please fill in all fields.'); return; }
       try {
-        const res = await fetch('http://localhost:3000/api/auth/login', {
+        const res = await fetch(API + '/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password }),
@@ -144,7 +143,7 @@
       const password = document.getElementById('reg-password').value;
       if (!username || !email || !password) { showError('Please fill in all fields.'); return; }
       try {
-        const res = await fetch('http://localhost:3000/api/auth/register', {
+        const res = await fetch(API + '/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, email, password }),

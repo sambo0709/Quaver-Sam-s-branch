@@ -9,28 +9,39 @@
 <link rel="stylesheet" href="HomePage.css">
 </head>
 <body>
+
 <nav>
+  <!-- Left: Logo -->
   <div class="nav-left">
-    <img class="logo" id="logo" src="QuaverNightmode1.png" alt="Quaver Logo">
-  </div>
-  <div class="nav-right">
-    <button class="playlist-toggle" onclick="togglePlaylistPanel()">
-      My Playlist <span id="playlist-count" class="count-badge">0</span>
-    </button>
-    <div id="spotify-login-btn" style="display:none">
-      <a href="/spotify/login" class="spotify-connect-btn">Connect Spotify</a>
-    </div>
-    <div id="spotify-user-info" style="display:none">
-      <span class="spotify-user-badge" id="spotify-user-name"></span>
-    </div>
-    <button class="toggle" id="theme-btn" onclick="toggleTheme()">☀ Light</button>
-    <a href="profile.html" class="profile">
-      <svg viewBox="0 0 24 24">
-        <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-      </svg>
+    <a href="Index.html">
+      <img class="logo" id="logo" src="QuaverNightmode1.png" alt="Quaver Logo">
     </a>
   </div>
+
+  <!-- Center: Floating nav pill -->
+  <div class="nav-center">
+    <a class="nav-link active" href="Index.html">Home</a>
+    <button class="nav-link" onclick="togglePlaylistPanel()">Playlist <span id="playlist-count" class="count-badge">0</span></button>
+    <a class="nav-link" href="profile.html">Profile</a>
+    <div id="spotify-login-btn" style="display:none">
+      <a href="/spotify/login" class="nav-link spotify-nav-link">🎵 Spotify</a>
+    </div>
+    <div id="spotify-user-info" style="display:none">
+      <span class="nav-link spotify-connected-link" id="spotify-user-name"></span>
+    </div>
+  </div>
+
+  <!-- Right: Actions + theme toggle -->
+  <div class="nav-right">
+    <span id="nav-username" class="nav-username"></span>
+    <button id="nav-logout" class="logout-btn" onclick="logout()" style="display:none">Logout</button>
+    <a id="nav-login-link" href="login.html" class="login-nav-btn" style="display:none">Login</a>
+    <button class="toggle" id="theme-btn" onclick="toggleTheme()">🌙</button>
+  </div>
 </nav>
+
+<!-- Toast notification -->
+<div id="toast" class="toast"></div>
 
 <main>
   <h1>How are <span>you feeling?</span></h1>
@@ -60,6 +71,21 @@
   </div>
   <div id="results" class="results"></div>
 </main>
+
+<!-- Songs of the Day -->
+<section class="sotd-section" id="sotd">
+  <div class="sotd-header">
+    <div class="sotd-label">TODAY'S PICKS</div>
+    <h2 class="sotd-title">Songs of the Day</h2>
+    <p class="sotd-subtitle">Curated daily across every mood</p>
+  </div>
+  <div class="sotd-grid" id="sotd-grid">
+    <div class="sotd-loading">
+      <div class="loading-bar"></div>
+      <span>loading today's picks...</span>
+    </div>
+  </div>
+</section>
 
 <div id="spotify-player" class="spotify-player" style="display:none">
   <div class="player-header">
@@ -96,6 +122,8 @@
 </div>
 
 <script>
+  const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+
   const moods = ['happy', 'sad', 'energetic', 'calm', 'focused', 'angry', 'romantic'];
   let currentMood = null;
   let currentLimit = 5;
@@ -105,21 +133,54 @@
   let activePlaylistName = null;
   let spotifyToken = localStorage.getItem('quaver_spotify_token') || null;
 
+  // ── Toast notification ──
+  function showToast(msg, type) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.className = 'toast ' + (type || 'success') + ' show';
+    setTimeout(function() { toast.className = 'toast'; }, 3000);
+  }
+
   // ── Auth helper ──
   function requireLogin(msg) {
     const token = localStorage.getItem('quaver_token');
     if (!token) {
-      alert(msg || 'You need an account to do that! Redirecting to login...');
-      setTimeout(function() { window.location.href = 'login.html'; }, 800);
+      showToast(msg || 'You need an account to do that!', 'error');
+      setTimeout(function() { window.location.href = 'login.html'; }, 1200);
       return false;
     }
     return true;
   }
 
+  function logout() {
+    localStorage.removeItem('quaver_token');
+    localStorage.removeItem('quaver_user');
+    localStorage.removeItem('quaver_spotify_token');
+    localStorage.removeItem('quaver_spotify_name');
+    localStorage.removeItem('quaver_playlists');
+    window.location.href = 'login.html';
+  }
+
+  function updateAuthUI() {
+    const user = JSON.parse(localStorage.getItem('quaver_user') || 'null');
+    const logoutBtn = document.getElementById('nav-logout');
+    const loginLink = document.getElementById('nav-login-link');
+    const usernameEl = document.getElementById('nav-username');
+    if (user) {
+      usernameEl.textContent = 'Hi, ' + user.username + '!';
+      logoutBtn.style.display = 'inline-block';
+      loginLink.style.display = 'none';
+    } else {
+      usernameEl.textContent = '';
+      logoutBtn.style.display = 'none';
+      loginLink.style.display = 'inline-block';
+    }
+  }
+
   // ── Theme ──
   function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
-    document.getElementById('theme-btn').textContent = theme === 'dark' ? '☀ Light' : '☾ Dark';
+    document.getElementById('theme-btn').textContent = theme === 'dark' ? '🌙' : '☀️';
     document.getElementById('logo').src = theme === 'dark' ? 'QuaverNightmode1.png' : 'Quaver lightmode1.png';
   }
 
@@ -135,11 +196,17 @@
     const params = new URLSearchParams(window.location.search);
     const token = params.get('spotify_token');
     const name = params.get('spotify_name');
+    const error = params.get('error');
     if (token) {
       localStorage.setItem('quaver_spotify_token', token);
       localStorage.setItem('quaver_spotify_name', name || 'Spotify User');
       spotifyToken = token;
-      window.history.replaceState({}, '', '/Index.html');
+      window.history.replaceState({}, '', window.location.pathname);
+      showToast('Connected to Spotify as ' + (name || 'Spotify User') + '!', 'success');
+    }
+    if (error) {
+      showToast('Spotify connection failed. Try again.', 'error');
+      window.history.replaceState({}, '', window.location.pathname);
     }
   }
 
@@ -159,8 +226,28 @@
     applyTheme(localStorage.getItem('theme') || 'dark');
     checkSpotifyCallback();
     updateSpotifyUI();
-    renderSavedPlaylists();
+    updateAuthUI();
+    loadPlaylists();
+    loadSongsOfTheDay();
   });
+
+  // ── Load playlists from MongoDB if logged in ──
+  async function loadPlaylists() {
+    const token = localStorage.getItem('quaver_token');
+    if (token) {
+      try {
+        const res = await fetch(API + '/api/playlist', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        if (data.playlists) {
+          savedPlaylists = data.playlists;
+          localStorage.setItem('quaver_playlists', JSON.stringify(savedPlaylists));
+        }
+      } catch (e) {}
+    }
+    renderSavedPlaylists();
+  }
 
   // ── Mood ──
   function randomMood() {
@@ -192,7 +279,7 @@
     document.getElementById('loading').style.display = 'flex';
     document.getElementById('results').innerHTML = '';
     try {
-      const res = await fetch('http://localhost:3000/api/music/recommend?mood=' + currentMood + '&limit=' + currentLimit);
+      const res = await fetch(API + '/api/music/recommend?mood=' + currentMood + '&limit=' + currentLimit);
       const data = await res.json();
       document.getElementById('loading').style.display = 'none';
       if (data.songs && data.songs.length > 0) {
@@ -216,7 +303,7 @@
       }
     } catch (err) {
       document.getElementById('loading').style.display = 'none';
-      document.getElementById('results').innerHTML = '<p class="no-results">Could not connect to server. Make sure it\'s running on port 3000.</p>';
+      document.getElementById('results').innerHTML = '<p class="no-results">Could not connect to server.</p>';
     }
   }
 
@@ -233,15 +320,16 @@
     document.getElementById('spotify-player').style.display = 'none';
   }
 
-  // ── Playlist — requires login ──
+  // ── Playlist ──
   function addToPlaylist(song, btn) {
-    if (!requireLogin('You need an account to save songs! Redirecting to login...')) return;
+    if (!requireLogin('You need an account to save songs!')) return;
     if (playlistSongs.some(function(s) { return s.title === song.title; })) return;
     playlistSongs.push(song);
     btn.textContent = 'Added';
     btn.classList.add('added');
     updatePlaylistBadge();
     renderPanelSongs();
+    showToast(song.title + ' added to playlist!', 'success');
   }
 
   function removeFromPlaylist(index) {
@@ -296,20 +384,24 @@
   }
 
   function togglePlaylistPanel() {
-    if (!requireLogin('You need an account to use playlists! Redirecting to login...')) return;
+    if (!requireLogin('You need an account to use playlists!')) return;
     document.getElementById('playlist-panel').classList.toggle('open');
     document.getElementById('playlist-overlay').classList.toggle('open');
   }
 
   async function savePlaylist() {
-    if (!requireLogin('You need an account to save playlists! Redirecting to login...')) return;
+    if (!requireLogin('You need an account to save playlists!')) return;
     const name = document.getElementById('playlist-name').value.trim();
     if (!name) { document.getElementById('playlist-name').focus(); return; }
-    if (playlistSongs.length === 0) { alert('Add some songs first!'); return; }
+    if (playlistSongs.length === 0) { showToast('Add some songs first!', 'error'); return; }
     try {
-      const res = await fetch('http://localhost:3000/api/playlist', {
+      const token = localStorage.getItem('quaver_token');
+      const res = await fetch(API + '/api/playlist', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
         body: JSON.stringify({ name: name, mood: currentMood || 'mixed', songs: playlistSongs }),
       });
       const data = await res.json();
@@ -321,32 +413,34 @@
       updatePlaylistBadge();
       renderPanelSongs();
       renderSavedPlaylists();
+      showToast('Playlist "' + name + '" saved!', 'success');
     } catch (err) {
-      alert('Could not save. Is the server running?');
+      showToast('Could not save. Is the server running?', 'error');
     }
   }
 
   // ── Export to Spotify ──
   async function exportToSpotify(index) {
     if (!spotifyToken) {
-      alert('Connect your Spotify account first using the "Connect Spotify" button!');
+      showToast('Connect your Spotify account first!', 'error');
       return;
     }
     const pl = savedPlaylists[index];
     const trackUris = pl.songs
       .filter(function(s) { return s.spotify_url; })
       .map(function(s) { return 'spotify:track:' + s.spotify_url.split('/track/')[1]; });
-    if (trackUris.length === 0) { alert('No Spotify tracks found in this playlist.'); return; }
+    if (trackUris.length === 0) { showToast('No Spotify tracks found in this playlist.', 'error'); return; }
+    showToast('Exporting to Spotify...', 'success');
     try {
-      const res = await fetch('http://localhost:3000/spotify/export', {
+      const res = await fetch(API + '/spotify/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ playlistName: pl.name + ' (from Quaver)', trackUris, spotifyToken }),
       });
       const data = await res.json();
       if (res.ok) {
-        alert('Playlist exported to Spotify!');
-        window.open(data.playlist_url, '_blank');
+        showToast('Exported to Spotify! Opening...', 'success');
+        setTimeout(function() { window.open(data.playlist_url, '_blank'); }, 500);
       } else {
         if (data.error && data.error.includes('login')) {
           localStorage.removeItem('quaver_spotify_token');
@@ -354,10 +448,10 @@
           spotifyToken = null;
           updateSpotifyUI();
         }
-        alert(data.error || 'Export failed.');
+        showToast(data.error || 'Export failed.', 'error');
       }
     } catch (err) {
-      alert('Could not connect to server.');
+      showToast('Could not connect to server.', 'error');
     }
   }
 
@@ -379,12 +473,67 @@
     container.innerHTML = html;
   }
 
+  // ── Songs of the Day ──
+  async function loadSongsOfTheDay() {
+    const moodList = ['happy', 'sad', 'energetic', 'calm', 'focused', 'romantic'];
+    const grid = document.getElementById('sotd-grid');
+    try {
+      const picks = [];
+      for (let i = 0; i < moodList.length; i++) {
+        const mood = moodList[i];
+        const res = await fetch(API + '/api/music/recommend?mood=' + mood + '&limit=1');
+        const data = await res.json();
+        if (data.songs && data.songs[0]) {
+          const song = data.songs[0];
+          song.mood = mood;
+          picks.push(song);
+        }
+      }
+      if (picks.length === 0) {
+        grid.innerHTML = '<p class="no-results">Could not load picks.</p>';
+        return;
+      }
+      let html = '';
+      for (let i = 0; i < picks.length; i++) {
+        const song = picks[i];
+        const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
+        const safeTitle = song.title.replace(/'/g, "\'");
+        const songJson = JSON.stringify(song).replace(/'/g, "&#39;");
+        html += '<div class="sotd-card">';
+        html += '<span class="sotd-num">' + String(i + 1).padStart(2, '0') + '</span>';
+        html += song.album_art ? '<img class="sotd-art" src="' + song.album_art + '" alt="art"/>' : '<div class="sotd-art"></div>';
+        html += '<div class="sotd-info">';
+        html += '<div class="sotd-song-title">' + song.title + '</div>';
+        html += '<div class="sotd-song-artist">' + song.artist + '</div>';
+        html += '</div>';
+        html += '<div class="sotd-mood-tag">' + song.mood + '</div>';
+        html += '<div class="sotd-actions">';
+        if (trackId) {
+          html += '<button class="sotd-play-btn" onclick="playInApp(\'' + trackId + '\', \'' + safeTitle + '\')">&#9654;</button>';
+        }
+        html += '<button class="sotd-add-btn" onclick=\'addToPlaylist(' + songJson + ', this)\'>+ Add</button>';
+        html += '</div>';
+        html += '</div>';
+      }
+      grid.innerHTML = html;
+    } catch(e) {
+      grid.innerHTML = '<p class="no-results">Could not load picks. Is the server running?</p>';
+    }
+  }
+
   async function deletePlaylist(index) {
     const pl = savedPlaylists[index];
-    try { await fetch('http://localhost:3000/api/playlist/' + pl.id, { method: 'DELETE' }); } catch(e) {}
+    const token = localStorage.getItem('quaver_token');
+    try {
+      await fetch(API + '/api/playlist/' + pl.id, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+    } catch(e) {}
     savedPlaylists.splice(index, 1);
     localStorage.setItem('quaver_playlists', JSON.stringify(savedPlaylists));
     renderSavedPlaylists();
+    showToast('Playlist deleted.', 'success');
   }
 </script>
 </body>
