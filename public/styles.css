@@ -1595,13 +1595,115 @@ h1 span {
    RESPONSIVE
 ═══════════════════════════════════════ */
 
+/* ═══════════════════════════════════════
+   RESPONSIVE — TABLET (≤ 768px)
+═══════════════════════════════════════ */
 @media (max-width: 768px) {
-  nav, .top-nav { padding: 0.6rem 1rem; }
-  .logo { height: 80px; }
+  /* Nav: switch to 2-row stacked layout */
+  nav, .top-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 1rem;
+    gap: 0.5rem;
+    top: 8px;
+  }
+
+  .nav-left, .nav-brand { flex: 1; }
+  .logo { height: 36px; }
+
+  .nav-right, .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+  }
+
+  /* Nav pill: full-width second row */
+  .nav-center, .nav-links-pill {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 6px 8px;
+    border-radius: 16px;
+  }
+
+  .nav-link {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+
+  /* Hide username text on mobile to save space */
+  .nav-username { display: none; }
+
+  /* Main content */
+  main { padding: 40px 16px 120px; }
+
+  /* Dropdowns: stack vertically */
+  .dropdown-row {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    max-width: 340px;
+  }
+
+  .mood-select {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Song cards: hide track number on small screens */
+  .song-num { display: none; }
+
+  /* Song actions: tighter */
+  .song-actions { gap: 4px; }
+
+  /* Playlist panel */
+  .playlist-panel { width: 100%; right: 0; }
+
+  /* Auth box */
+  .auth-box { padding: 2rem 1.5rem; }
+
+  /* Content boxes */
   .content-boxes { flex-direction: column; align-items: center; }
   .box { width: 100%; max-width: 100%; min-height: 300px; }
-  .playlist-panel { width: 100%; }
-  .auth-box { padding: 2rem 1.5rem; }
+
+  /* SOTD section */
+  .sotd-section { padding: 0 12px; margin: 40px auto 60px; }
+
+  /* SOTD cards: wrap artist/title */
+  .sotd-card { flex-wrap: wrap; }
+}
+
+/* ═══════════════════════════════════════
+   RESPONSIVE — MOBILE (≤ 480px)
+═══════════════════════════════════════ */
+@media (max-width: 480px) {
+  nav, .top-nav { top: 4px; padding: 0.5rem 0.75rem; }
+  .logo { height: 30px; }
+
+  .nav-link { padding: 7px 10px; font-size: 0.75rem; }
+
+  h1 { font-size: clamp(2.2rem, 12vw, 3.5rem); }
+
+  main { padding: 30px 12px 100px; }
+
+  .mood-select { font-size: 0.9rem; padding: 0.65rem 1.2rem; }
+
+  /* Logout button: icon only on very small screens */
+  .logout-btn { padding: 0.4rem 0.7rem; font-size: 0.75rem; }
+
+  /* Song card: tighter padding */
+  .song-card { padding: 10px 12px; gap: 10px; }
+  .album-art { width: 40px; height: 40px; }
+  .song-title { font-size: 13px; }
+  .song-artist { font-size: 11px; }
+
+  /* Profile / auth */
+  .auth-box { padding: 1.5rem 1rem; margin: 1rem; }
 }
 
 /* ═══════════════════════════════════════
