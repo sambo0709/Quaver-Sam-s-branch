@@ -13,7 +13,7 @@
     <!-- Left: Logo -->
     <div class="nav-left">
       <a href="Index.html">
-        <img class="logo" id="logo" src="QuaverNightmode1.png" alt="Quaver Logo">
+        <img class="logo" id="logo" src="quaver_nightmode1.png" alt="Quaver Logo">
       </a>
     </div>
 
@@ -86,12 +86,12 @@
       if (html.getAttribute('data-theme') === 'dark') {
         html.setAttribute('data-theme', 'light');
         btn.textContent = '☀️';
-        logo.src = 'Quaver lightmode1.PNG';
+        logo.src = 'quaver_lightmode1.png';
         localStorage.setItem('theme', 'light');
       } else {
         html.setAttribute('data-theme', 'dark');
         btn.textContent = '🌙';
-        logo.src = 'QuaverNightmode1.png';
+        logo.src = 'quaver_nightmode1.png';
         localStorage.setItem('theme', 'dark');
       }
     }
@@ -226,7 +226,7 @@
       const isDark = !saved || saved === 'dark';
       document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
       document.querySelector('.toggle').textContent = isDark ? '🌙' : '☀️';
-      document.getElementById('logo').src = isDark ? 'QuaverNightmode1.png' : 'Quaver lightmode1.PNG';
+      document.getElementById('logo').src = isDark ? 'quaver_nightmode1.png' : 'quaver_lightmode1.png';
       updateAuthUI();
       loadProfileData();
     });

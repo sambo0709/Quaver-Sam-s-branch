@@ -5,20 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <link rel="icon" href="nightmode_logo.png">
 <title>Quaver</title>
-<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <nav>
-  <!-- Left: Logo -->
   <div class="nav-left">
     <a href="Index.html">
-      <img class="logo" id="logo" src="QuaverNightmode1.png" alt="Quaver Logo">
+      <img class="logo" id="logo" src="quaver_nightmode1.png" alt="Quaver Logo">
     </a>
   </div>
-
-  <!-- Center: Floating nav pill -->
   <div class="nav-center">
     <a class="nav-link active" href="Index.html">Home</a>
     <button class="nav-link" onclick="togglePlaylistPanel()">Playlist <span id="playlist-count" class="count-badge">0</span></button>
@@ -30,8 +27,6 @@
       <span class="nav-link spotify-connected-link" id="spotify-user-name"></span>
     </div>
   </div>
-
-  <!-- Right: Actions + theme toggle -->
   <div class="nav-right">
     <span id="nav-username" class="nav-username"></span>
     <button id="nav-logout" class="logout-btn" onclick="logout()" style="display:none">Logout</button>
@@ -40,7 +35,6 @@
   </div>
 </nav>
 
-<!-- Toast notification -->
 <div id="toast" class="toast"></div>
 
 <main>
@@ -72,7 +66,6 @@
   <div id="results" class="results"></div>
 </main>
 
-<!-- Songs of the Day -->
 <section class="sotd-section" id="sotd">
   <div class="sotd-header">
     <div class="sotd-label">TODAY'S PICKS</div>
@@ -133,7 +126,6 @@
   let activePlaylistName = null;
   let spotifyToken = localStorage.getItem('quaver_spotify_token') || null;
 
-  // ── Toast notification ──
   function showToast(msg, type) {
     const toast = document.getElementById('toast');
     toast.textContent = msg;
@@ -141,7 +133,6 @@
     setTimeout(function() { toast.className = 'toast'; }, 3000);
   }
 
-  // ── Auth helper ──
   function requireLogin(msg) {
     const token = localStorage.getItem('quaver_token');
     if (!token) {
@@ -177,11 +168,10 @@
     }
   }
 
-  // ── Theme ──
   function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     document.getElementById('theme-btn').textContent = theme === 'dark' ? '🌙' : '☀️';
-    document.getElementById('logo').src = theme === 'dark' ? 'QuaverNightmode1.png' : 'Quaver lightmode1.png';
+    document.getElementById('logo').src = theme === 'dark' ? 'quaver_nightmode1.png' : 'quaver_lightmode1.png';
   }
 
   function toggleTheme() {
@@ -191,7 +181,6 @@
     localStorage.setItem('theme', next);
   }
 
-  // ── Spotify OAuth callback ──
   function checkSpotifyCallback() {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('spotify_token');
@@ -231,7 +220,6 @@
     loadSongsOfTheDay();
   });
 
-  // ── Load playlists from MongoDB if logged in ──
   async function loadPlaylists() {
     const token = localStorage.getItem('quaver_token');
     if (token) {
@@ -249,7 +237,6 @@
     renderSavedPlaylists();
   }
 
-  // ── Mood ──
   function randomMood() {
     const random = moods[Math.floor(Math.random() * moods.length)];
     document.getElementById('mood-select').value = random;
@@ -274,7 +261,6 @@
     fetchSongs();
   }
 
-  // ── Fetch songs ──
   async function fetchSongs() {
     document.getElementById('loading').style.display = 'flex';
     document.getElementById('results').innerHTML = '';
@@ -307,7 +293,6 @@
     }
   }
 
-  // ── Spotify player ──
   function playInApp(trackId, title) {
     document.getElementById('spotify-iframe').src = 'https://open.spotify.com/embed/track/' + trackId + '?utm_source=generator&theme=0';
     document.getElementById('player-song-name').textContent = title;
@@ -320,7 +305,6 @@
     document.getElementById('spotify-player').style.display = 'none';
   }
 
-  // ── Playlist ──
   function addToPlaylist(song, btn) {
     if (!requireLogin('You need an account to save songs!')) return;
     if (playlistSongs.some(function(s) { return s.title === song.title; })) return;
@@ -398,10 +382,7 @@
       const token = localStorage.getItem('quaver_token');
       const res = await fetch(API + '/api/playlist', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + token
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify({ name: name, mood: currentMood || 'mixed', songs: playlistSongs }),
       });
       const data = await res.json();
@@ -419,12 +400,8 @@
     }
   }
 
-  // ── Export to Spotify ──
   async function exportToSpotify(index) {
-    if (!spotifyToken) {
-      showToast('Connect your Spotify account first!', 'error');
-      return;
-    }
+    if (!spotifyToken) { showToast('Connect your Spotify account first!', 'error'); return; }
     const pl = savedPlaylists[index];
     const trackUris = pl.songs
       .filter(function(s) { return s.spotify_url; })
@@ -473,7 +450,6 @@
     container.innerHTML = html;
   }
 
-  // ── Songs of the Day ──
   async function loadSongsOfTheDay() {
     const moodList = ['happy', 'sad', 'energetic', 'calm', 'focused', 'romantic'];
     const grid = document.getElementById('sotd-grid');
@@ -497,7 +473,7 @@
       for (let i = 0; i < picks.length; i++) {
         const song = picks[i];
         const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
-        const safeTitle = song.title.replace(/'/g, "\'");
+        const safeTitle = song.title.replace(/'/g, "\\'");
         const songJson = JSON.stringify(song).replace(/'/g, "&#39;");
         html += '<div class="sotd-card">';
         html += '<span class="sotd-num">' + String(i + 1).padStart(2, '0') + '</span>';

@@ -12,7 +12,7 @@
     <!-- Left: Logo -->
     <div class="nav-left">
       <a href="Index.html">
-        <img class="logo" id="logo" src="QuaverNightmode1.PNG" alt="Quaver">
+        <img class="logo" id="logo" src="quaver_nightmode1.png" alt="Quaver">
       </a>
     </div>
 
@@ -71,12 +71,12 @@
       if (html.getAttribute('data-theme') === 'dark') {
         html.setAttribute('data-theme', 'light');
         btn.textContent = '☀️';
-        logo.src = 'Quaver lightmode1.PNG';
+        logo.src = 'quaver_lightmode1.png';
         localStorage.setItem('theme', 'light');
       } else {
         html.setAttribute('data-theme', 'dark');
         btn.textContent = '🌙';
-        logo.src = 'QuaverNightmode1.PNG';
+        logo.src = 'quaver_nightmode1.png';
         localStorage.setItem('theme', 'dark');
       }
     }
@@ -86,9 +86,9 @@
       if (saved === 'light') {
         document.documentElement.setAttribute('data-theme', 'light');
         document.querySelector('.toggle').textContent = '☀️';
-        document.getElementById('logo').src = 'Quaver lightmode1.PNG';
+        document.getElementById('logo').src = 'quaver_lightmode1.png';
       } else {
-        document.getElementById('logo').src = 'QuaverNightmode1.PNG';
+        document.getElementById('logo').src = 'quaver_nightmode1.png';
       }
       if (localStorage.getItem('quaver_token')) {
         window.location.href = 'Index.html';
