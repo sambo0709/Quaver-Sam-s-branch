@@ -150,7 +150,7 @@
         const data = await res.json();
         if (data.songs && data.songs.length > 0) {
           container.innerHTML =
-            '<div style="font-family:Quicksand,sans-serif;font-size:11px;opacity:0.5;margin-bottom:12px;">Based on your love of <strong>' + topMood + '</strong></div>' +
+            '<div style="color: var(--text); font-family: Quicksand, sans-serif; font-size: 11px; opacity: 0.5; margin-bottom: 12px;">Based on your love of <strong>' + topMood + '</strong></div>' +
             data.songs.map(function(song) {
               const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
               return '<div class="profile-suggestion-item">' +

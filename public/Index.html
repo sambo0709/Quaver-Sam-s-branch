@@ -1,301 +1,391 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <link rel="icon" href="nightmode_logo.png">
-  <title>Quaver</title>
-  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="HomePage.css">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<link rel="icon" href="nightmode_logo.png">
+<title>Quaver</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="HomePage.css">
 </head>
 <body>
-
-  <nav>
-    <div class="nav-left">
-      <img class="logo" id="logo" src="QuaverNightmode1.png" alt="Quaver Logo">
-    </div>
-    <div class="nav-right">
-      <button class="playlist-toggle" onclick="togglePlaylistPanel()">
-        My Playlist <span id="playlist-count" class="count-badge">0</span>
-      </button>
-      <button class="toggle" id="theme-btn" onclick="toggleTheme()">☀ Light</button>
-      <a href="profile.html" class="profile">
-        <svg viewBox="0 0 24 24">
-          <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
-        </svg>
-      </a>
-    </div>
-  </nav>
-
-  <main>
-    <h1>How are <span>you feeling?</span></h1>
-    <p class="subtitle">Pick your mood and we'll choose a playlist for you.</p>
-
-    <div class="dropdown-row">
-      <select class="mood-select" id="mood-select" onchange="onMoodSelect(this.value)">
-        <option disabled selected value="">Select Mood</option>
-        <option value="happy">Happy</option>
-        <option value="sad">Sad</option>
-        <option value="energetic">Energetic</option>
-        <option value="calm">Chill</option>
-        <option value="focused">Focused</option>
-        <option value="angry">Angry</option>
-        <option value="romantic">Romantic</option>
-      </select>
-
-      <select class="mood-select" id="count-select" onchange="onCountSelect(this.value)">
-        <option disabled selected value="">How many songs?</option>
-        <option value="5">5 songs</option>
-        <option value="8">8 songs</option>
-        <option value="10">10 songs</option>
-      </select>
-    </div>
-
-    <button class="mood-select random-btn" onclick="randomMood()">Random Mood</button>
-
-    <div id="loading" class="loading" style="display:none">
-      <div class="loading-bar"></div>
-      <span>finding your sound...</span>
-    </div>
-
-    <div id="results" class="results"></div>
-  </main>
-
-  <div id="spotify-player" class="spotify-player" style="display:none">
-    <div class="player-header">
-      <span id="player-song-name">—</span>
-      <button class="player-close-btn" onclick="closePlayer()">✕</button>
-    </div>
-    <iframe id="spotify-iframe"
-      style="border-radius:12px"
-      src=""
-      width="100%"
-      height="80"
-      frameborder="0"
-      allowfullscreen=""
-      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-      loading="lazy">
-    </iframe>
+<nav>
+  <div class="nav-left">
+    <img class="logo" id="logo" src="QuaverNightmode1.png" alt="Quaver Logo">
   </div>
-
-  <div class="playlist-overlay" id="playlist-overlay" onclick="togglePlaylistPanel()"></div>
-
-  <div class="playlist-panel" id="playlist-panel">
-    <div class="panel-header">
-      <h2 class="panel-title">My Playlist</h2>
-      <button class="panel-close" onclick="togglePlaylistPanel()">✕</button>
+  <div class="nav-right">
+    <button class="playlist-toggle" onclick="togglePlaylistPanel()">
+      My Playlist <span id="playlist-count" class="count-badge">0</span>
+    </button>
+    <div id="spotify-login-btn" style="display:none">
+      <a href="/spotify/login" class="spotify-connect-btn">Connect Spotify</a>
     </div>
-    <div class="save-form">
-      <input type="text" id="playlist-name" class="playlist-input" placeholder="Playlist name..." />
-      <button class="save-btn" onclick="savePlaylist()">Save</button>
+    <div id="spotify-user-info" style="display:none">
+      <span class="spotify-user-badge" id="spotify-user-name"></span>
     </div>
-    <div id="panel-songs" class="panel-songs">
-      <p class="empty-msg">Add songs from your results.</p>
-    </div>
-    <div id="saved-playlists" class="saved-playlists"></div>
+    <button class="toggle" id="theme-btn" onclick="toggleTheme()">☀ Light</button>
+    <a href="profile.html" class="profile">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+      </svg>
+    </a>
   </div>
+</nav>
 
-  <script>
-    const moods = ['happy', 'sad', 'energetic', 'calm', 'focused', 'angry', 'romantic'];
-    let currentMood = null;
-    let currentLimit = 5;
-    let playlistSongs = [];
-    let savedPlaylists = JSON.parse(localStorage.getItem('quaver_playlists') || '[]');
-    let recentMoods = JSON.parse(localStorage.getItem('quaver_moods') || '[]');
-    let activePlaylistName = null;
+<main>
+  <h1>How are <span>you feeling?</span></h1>
+  <p class="subtitle">Pick your mood and we'll choose a playlist for you.</p>
+  <div class="dropdown-row">
+    <select class="mood-select" id="mood-select" onchange="onMoodSelect(this.value)">
+      <option disabled selected value="">Select Mood</option>
+      <option value="happy">Happy</option>
+      <option value="sad">Sad</option>
+      <option value="energetic">Energetic</option>
+      <option value="calm">Chill</option>
+      <option value="focused">Focused</option>
+      <option value="angry">Angry</option>
+      <option value="romantic">Romantic</option>
+    </select>
+    <select class="mood-select" id="count-select" onchange="onCountSelect(this.value)">
+      <option disabled selected value="">How many songs?</option>
+      <option value="5">5 songs</option>
+      <option value="8">8 songs</option>
+      <option value="10">10 songs</option>
+    </select>
+  </div>
+  <button class="mood-select random-btn" onclick="randomMood()">Random Mood</button>
+  <div id="loading" class="loading" style="display:none">
+    <div class="loading-bar"></div>
+    <span>finding your sound...</span>
+  </div>
+  <div id="results" class="results"></div>
+</main>
 
-    function applyTheme(theme) {
-      document.documentElement.setAttribute('data-theme', theme);
-      document.getElementById('theme-btn').textContent = theme === 'dark' ? '☀ Light' : '☾ Dark';
-      document.getElementById('logo').src = theme === 'dark' ? 'QuaverNightmode1.png' : 'Quaver lightmode1.png';
+<div id="spotify-player" class="spotify-player" style="display:none">
+  <div class="player-header">
+    <span id="player-song-name">—</span>
+    <button class="player-close-btn" onclick="closePlayer()">✕</button>
+  </div>
+  <iframe id="spotify-iframe"
+    style="border-radius:12px"
+    src=""
+    width="100%"
+    height="80"
+    frameborder="0"
+    allowfullscreen=""
+    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+    loading="lazy">
+  </iframe>
+</div>
+
+<div class="playlist-overlay" id="playlist-overlay" onclick="togglePlaylistPanel()"></div>
+
+<div class="playlist-panel" id="playlist-panel">
+  <div class="panel-header">
+    <h2 class="panel-title">My Playlist</h2>
+    <button class="panel-close" onclick="togglePlaylistPanel()">✕</button>
+  </div>
+  <div class="save-form">
+    <input type="text" id="playlist-name" class="playlist-input" placeholder="Playlist name..." />
+    <button class="save-btn" onclick="savePlaylist()">Save</button>
+  </div>
+  <div id="panel-songs" class="panel-songs">
+    <p class="empty-msg">Add songs from your results.</p>
+  </div>
+  <div id="saved-playlists" class="saved-playlists"></div>
+</div>
+
+<script>
+  const moods = ['happy', 'sad', 'energetic', 'calm', 'focused', 'angry', 'romantic'];
+  let currentMood = null;
+  let currentLimit = 5;
+  let playlistSongs = [];
+  let savedPlaylists = JSON.parse(localStorage.getItem('quaver_playlists') || '[]');
+  let recentMoods = JSON.parse(localStorage.getItem('quaver_moods') || '[]');
+  let activePlaylistName = null;
+  let spotifyToken = localStorage.getItem('quaver_spotify_token') || null;
+
+  // ── Auth helper ──
+  function requireLogin(msg) {
+    const token = localStorage.getItem('quaver_token');
+    if (!token) {
+      alert(msg || 'You need an account to do that! Redirecting to login...');
+      setTimeout(function() { window.location.href = 'login.html'; }, 800);
+      return false;
     }
+    return true;
+  }
 
-    function toggleTheme() {
-      const current = document.documentElement.getAttribute('data-theme') || 'dark';
-      const next = current === 'dark' ? 'light' : 'dark';
-      applyTheme(next);
-      localStorage.setItem('theme', next);
+  // ── Theme ──
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.getElementById('theme-btn').textContent = theme === 'dark' ? '☀ Light' : '☾ Dark';
+    document.getElementById('logo').src = theme === 'dark' ? 'QuaverNightmode1.png' : 'Quaver lightmode1.png';
+  }
+
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    localStorage.setItem('theme', next);
+  }
+
+  // ── Spotify OAuth callback ──
+  function checkSpotifyCallback() {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('spotify_token');
+    const name = params.get('spotify_name');
+    if (token) {
+      localStorage.setItem('quaver_spotify_token', token);
+      localStorage.setItem('quaver_spotify_name', name || 'Spotify User');
+      spotifyToken = token;
+      window.history.replaceState({}, '', '/Index.html');
     }
+  }
 
-    window.addEventListener('DOMContentLoaded', function() {
-      applyTheme(localStorage.getItem('theme') || 'dark');
-      renderSavedPlaylists();
+  function updateSpotifyUI() {
+    const name = localStorage.getItem('quaver_spotify_name');
+    if (spotifyToken && name) {
+      document.getElementById('spotify-login-btn').style.display = 'none';
+      document.getElementById('spotify-user-info').style.display = 'flex';
+      document.getElementById('spotify-user-name').textContent = '✓ ' + name;
+    } else {
+      document.getElementById('spotify-login-btn').style.display = 'flex';
+      document.getElementById('spotify-user-info').style.display = 'none';
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', function() {
+    applyTheme(localStorage.getItem('theme') || 'dark');
+    checkSpotifyCallback();
+    updateSpotifyUI();
+    renderSavedPlaylists();
+  });
+
+  // ── Mood ──
+  function randomMood() {
+    const random = moods[Math.floor(Math.random() * moods.length)];
+    document.getElementById('mood-select').value = random;
+    setMood(random);
+  }
+
+  function onMoodSelect(value) {
+    if (!value) return;
+    setMood(value);
+  }
+
+  function onCountSelect(value) {
+    currentLimit = parseInt(value);
+    if (currentMood) fetchSongs();
+  }
+
+  function setMood(mood) {
+    currentMood = mood;
+    recentMoods.unshift({ mood: mood, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+    if (recentMoods.length > 10) recentMoods.pop();
+    localStorage.setItem('quaver_moods', JSON.stringify(recentMoods));
+    fetchSongs();
+  }
+
+  // ── Fetch songs ──
+  async function fetchSongs() {
+    document.getElementById('loading').style.display = 'flex';
+    document.getElementById('results').innerHTML = '';
+    try {
+      const res = await fetch('http://localhost:3000/api/music/recommend?mood=' + currentMood + '&limit=' + currentLimit);
+      const data = await res.json();
+      document.getElementById('loading').style.display = 'none';
+      if (data.songs && data.songs.length > 0) {
+        let html = '<div class="results-header">' + data.songs.length + ' tracks — ' + currentMood + '</div>';
+        data.songs.forEach(function(song, i) {
+          const inPlaylist = playlistSongs.some(function(s) { return s.title === song.title; });
+          const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
+          html += '<div class="song-card" style="animation-delay:' + (i * 0.06) + 's">';
+          html += '<span class="song-num">' + String(i + 1).padStart(2, '0') + '</span>';
+          html += song.album_art ? '<img class="album-art" src="' + song.album_art + '" alt="art"/>' : '<div class="album-art"></div>';
+          html += '<div class="song-info"><div class="song-title">' + song.title + '</div><div class="song-artist">' + song.artist + '</div></div>';
+          html += '<div class="song-actions">';
+          if (trackId) html += '<button class="play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\')">&#9654;</button>';
+          html += '<span class="song-duration">' + song.duration + '</span>';
+          html += '<button class="add-btn' + (inPlaylist ? ' added' : '') + '" onclick=\'addToPlaylist(' + JSON.stringify(song).replace(/'/g, "&#39;") + ', this)\'>' + (inPlaylist ? 'Added' : '+ Add') + '</button>';
+          html += '</div></div>';
+        });
+        document.getElementById('results').innerHTML = html;
+      } else {
+        document.getElementById('results').innerHTML = '<p class="no-results">No songs found. Try another mood!</p>';
+      }
+    } catch (err) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('results').innerHTML = '<p class="no-results">Could not connect to server. Make sure it\'s running on port 3000.</p>';
+    }
+  }
+
+  // ── Spotify player ──
+  function playInApp(trackId, title) {
+    document.getElementById('spotify-iframe').src = 'https://open.spotify.com/embed/track/' + trackId + '?utm_source=generator&theme=0';
+    document.getElementById('player-song-name').textContent = title;
+    document.getElementById('spotify-player').style.display = 'block';
+    document.getElementById('spotify-player').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function closePlayer() {
+    document.getElementById('spotify-iframe').src = '';
+    document.getElementById('spotify-player').style.display = 'none';
+  }
+
+  // ── Playlist — requires login ──
+  function addToPlaylist(song, btn) {
+    if (!requireLogin('You need an account to save songs! Redirecting to login...')) return;
+    if (playlistSongs.some(function(s) { return s.title === song.title; })) return;
+    playlistSongs.push(song);
+    btn.textContent = 'Added';
+    btn.classList.add('added');
+    updatePlaylistBadge();
+    renderPanelSongs();
+  }
+
+  function removeFromPlaylist(index) {
+    const removed = playlistSongs[index];
+    playlistSongs.splice(index, 1);
+    updatePlaylistBadge();
+    renderPanelSongs();
+    document.querySelectorAll('.add-btn').forEach(function(btn) {
+      const titleEl = btn.closest('.song-card') && btn.closest('.song-card').querySelector('.song-title');
+      if (titleEl && titleEl.textContent === removed.title) {
+        btn.textContent = '+ Add';
+        btn.classList.remove('added');
+      }
     });
+  }
 
-    function randomMood() {
-      const random = moods[Math.floor(Math.random() * moods.length)];
-      document.getElementById('mood-select').value = random;
-      setMood(random);
+  function updatePlaylistBadge() {
+    document.getElementById('playlist-count').textContent = playlistSongs.length;
+  }
+
+  function renderPanelSongs() {
+    const container = document.getElementById('panel-songs');
+    let header = '';
+    if (activePlaylistName) {
+      header = '<div class="active-playlist-header"><button class="back-btn" onclick="clearActivePlaylist()">← Back</button><span class="active-playlist-name">' + activePlaylistName + '</span></div>';
     }
-
-    function onMoodSelect(value) {
-      if (!value) return;
-      setMood(value);
+    if (playlistSongs.length === 0) {
+      container.innerHTML = header + '<p class="empty-msg">Add songs from your results.</p>';
+      return;
     }
+    container.innerHTML = header + playlistSongs.map(function(song, i) {
+      const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
+      return '<div class="panel-song-item"><div class="panel-song-info"><div class="panel-song-title">' + song.title + '</div><div class="panel-song-artist">' + song.artist + '</div></div><div class="panel-song-actions">' +
+        (trackId ? '<button class="panel-play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\')">&#9654;</button>' : '') +
+        '<button class="remove-btn" onclick="removeFromPlaylist(' + i + ')">✕</button></div></div>';
+    }).join('');
+  }
 
-    function onCountSelect(value) {
-      currentLimit = parseInt(value);
-      if (currentMood) fetchSongs();
-    }
+  function openSavedPlaylist(index) {
+    const pl = savedPlaylists[index];
+    activePlaylistName = pl.name;
+    playlistSongs = pl.songs.slice();
+    updatePlaylistBadge();
+    renderPanelSongs();
+  }
 
-    function setMood(mood) {
-      currentMood = mood;
-      recentMoods.unshift({ mood: mood, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
-      if (recentMoods.length > 10) recentMoods.pop();
-      localStorage.setItem('quaver_moods', JSON.stringify(recentMoods));
-      fetchSongs();
-    }
+  function clearActivePlaylist() {
+    activePlaylistName = null;
+    playlistSongs = [];
+    updatePlaylistBadge();
+    renderPanelSongs();
+  }
 
-    async function fetchSongs() {
-      document.getElementById('loading').style.display = 'flex';
-      document.getElementById('results').innerHTML = '';
-      try {
-        const res = await fetch('http://localhost:3000/api/music/recommend?mood=' + currentMood + '&limit=' + currentLimit);
-        const data = await res.json();
-        document.getElementById('loading').style.display = 'none';
-        if (data.songs && data.songs.length > 0) {
-          let html = '<div class="results-header">' + data.songs.length + ' tracks — ' + currentMood + '</div>';
-          data.songs.forEach(function(song, i) {
-            const inPlaylist = playlistSongs.some(function(s) { return s.title === song.title; });
-            const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
-            html += '<div class="song-card" style="animation-delay:' + (i * 0.06) + 's">';
-            html += '<span class="song-num">' + String(i + 1).padStart(2, '0') + '</span>';
-            html += song.album_art ? '<img class="album-art" src="' + song.album_art + '" alt="art"/>' : '<div class="album-art"></div>';
-            html += '<div class="song-info"><div class="song-title">' + song.title + '</div><div class="song-artist">' + song.artist + '</div></div>';
-            html += '<div class="song-actions">';
-            if (trackId) html += '<button class="play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\')">&#9654;</button>';
-            html += '<span class="song-duration">' + song.duration + '</span>';
-            html += '<button class="add-btn' + (inPlaylist ? ' added' : '') + '" onclick=\'addToPlaylist(' + JSON.stringify(song).replace(/'/g, "&#39;") + ', this)\'>' + (inPlaylist ? 'Added' : '+ Add') + '</button>';
-            html += '</div></div>';
-          });
-          document.getElementById('results').innerHTML = html;
-        } else {
-          document.getElementById('results').innerHTML = '<p class="no-results">No songs found. Try another mood!</p>';
-        }
-      } catch (err) {
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('results').innerHTML = '<p class="no-results">Could not connect to server. Make sure it\'s running on port 3000.</p>';
-      }
-    }
+  function togglePlaylistPanel() {
+    if (!requireLogin('You need an account to use playlists! Redirecting to login...')) return;
+    document.getElementById('playlist-panel').classList.toggle('open');
+    document.getElementById('playlist-overlay').classList.toggle('open');
+  }
 
-    function playInApp(trackId, title) {
-      document.getElementById('spotify-iframe').src = 'https://open.spotify.com/embed/track/' + trackId + '?utm_source=generator&theme=0';
-      document.getElementById('player-song-name').textContent = title;
-      document.getElementById('spotify-player').style.display = 'block';
-      document.getElementById('spotify-player').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-
-    function closePlayer() {
-      document.getElementById('spotify-iframe').src = '';
-      document.getElementById('spotify-player').style.display = 'none';
-    }
-
-    function addToPlaylist(song, btn) {
-      if (playlistSongs.some(function(s) { return s.title === song.title; })) return;
-      playlistSongs.push(song);
-      btn.textContent = 'Added';
-      btn.classList.add('added');
-      updatePlaylistBadge();
-      renderPanelSongs();
-    }
-
-    function removeFromPlaylist(index) {
-      const removed = playlistSongs[index];
-      playlistSongs.splice(index, 1);
-      updatePlaylistBadge();
-      renderPanelSongs();
-      document.querySelectorAll('.add-btn').forEach(function(btn) {
-        const titleEl = btn.closest('.song-card') && btn.closest('.song-card').querySelector('.song-title');
-        if (titleEl && titleEl.textContent === removed.title) {
-          btn.textContent = '+ Add';
-          btn.classList.remove('added');
-        }
+  async function savePlaylist() {
+    if (!requireLogin('You need an account to save playlists! Redirecting to login...')) return;
+    const name = document.getElementById('playlist-name').value.trim();
+    if (!name) { document.getElementById('playlist-name').focus(); return; }
+    if (playlistSongs.length === 0) { alert('Add some songs first!'); return; }
+    try {
+      const res = await fetch('http://localhost:3000/api/playlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, mood: currentMood || 'mixed', songs: playlistSongs }),
       });
-    }
-
-    function updatePlaylistBadge() {
-      document.getElementById('playlist-count').textContent = playlistSongs.length;
-    }
-
-    function renderPanelSongs() {
-      const container = document.getElementById('panel-songs');
-      let header = '';
-      if (activePlaylistName) {
-        header = '<div class="active-playlist-header"><button class="back-btn" onclick="clearActivePlaylist()">← Back</button><span class="active-playlist-name">' + activePlaylistName + '</span></div>';
-      }
-      if (playlistSongs.length === 0) {
-        container.innerHTML = header + '<p class="empty-msg">Add songs from your results.</p>';
-        return;
-      }
-      container.innerHTML = header + playlistSongs.map(function(song, i) {
-        const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
-        return '<div class="panel-song-item"><div class="panel-song-info"><div class="panel-song-title">' + song.title + '</div><div class="panel-song-artist">' + song.artist + '</div></div><div class="panel-song-actions">' +
-          (trackId ? '<button class="panel-play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\')">&#9654;</button>' : '') +
-          '<button class="remove-btn" onclick="removeFromPlaylist(' + i + ')">✕</button></div></div>';
-      }).join('');
-    }
-
-    function openSavedPlaylist(index) {
-      const pl = savedPlaylists[index];
-      activePlaylistName = pl.name;
-      playlistSongs = pl.songs.slice();
-      updatePlaylistBadge();
-      renderPanelSongs();
-    }
-
-    function clearActivePlaylist() {
+      const data = await res.json();
+      savedPlaylists.push(data.playlist);
+      localStorage.setItem('quaver_playlists', JSON.stringify(savedPlaylists));
+      document.getElementById('playlist-name').value = '';
       activePlaylistName = null;
       playlistSongs = [];
       updatePlaylistBadge();
       renderPanelSongs();
-    }
-
-    async function savePlaylist() {
-      const name = document.getElementById('playlist-name').value.trim();
-      if (!name) { document.getElementById('playlist-name').focus(); return; }
-      if (playlistSongs.length === 0) { alert('Add some songs first!'); return; }
-      try {
-        const res = await fetch('http://localhost:3000/api/playlist', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: name, mood: currentMood || 'mixed', songs: playlistSongs }),
-        });
-        const data = await res.json();
-        savedPlaylists.push(data.playlist);
-        localStorage.setItem('quaver_playlists', JSON.stringify(savedPlaylists));
-        document.getElementById('playlist-name').value = '';
-        activePlaylistName = null;
-        playlistSongs = [];
-        updatePlaylistBadge();
-        renderPanelSongs();
-        renderSavedPlaylists();
-      } catch (err) {
-        alert('Could not save. Is the server running?');
-      }
-    }
-
-    function renderSavedPlaylists() {
-      const container = document.getElementById('saved-playlists');
-      if (savedPlaylists.length === 0) { container.innerHTML = ''; return; }
-      let html = '<div class="saved-section-label">Saved playlists</div>';
-      savedPlaylists.forEach(function(pl, i) {
-        html += '<div class="saved-playlist-item"><div class="saved-playlist-info" onclick="openSavedPlaylist(' + i + ')"><div class="saved-playlist-name">' + pl.name + '</div><div class="saved-playlist-meta">' + pl.songs.length + ' songs · ' + pl.mood + '</div></div><button class="delete-playlist-btn" onclick="deletePlaylist(' + i + ')">✕</button></div>';
-      });
-      container.innerHTML = html;
-    }
-
-    async function deletePlaylist(index) {
-      const pl = savedPlaylists[index];
-      try { await fetch('http://localhost:3000/api/playlist/' + pl.id, { method: 'DELETE' }); } catch(e) {}
-      savedPlaylists.splice(index, 1);
-      localStorage.setItem('quaver_playlists', JSON.stringify(savedPlaylists));
       renderSavedPlaylists();
+    } catch (err) {
+      alert('Could not save. Is the server running?');
     }
+  }
 
-    function togglePlaylistPanel() {
-      document.getElementById('playlist-panel').classList.toggle('open');
-      document.getElementById('playlist-overlay').classList.toggle('open');
+  // ── Export to Spotify ──
+  async function exportToSpotify(index) {
+    if (!spotifyToken) {
+      alert('Connect your Spotify account first using the "Connect Spotify" button!');
+      return;
     }
-  </script>
+    const pl = savedPlaylists[index];
+    const trackUris = pl.songs
+      .filter(function(s) { return s.spotify_url; })
+      .map(function(s) { return 'spotify:track:' + s.spotify_url.split('/track/')[1]; });
+    if (trackUris.length === 0) { alert('No Spotify tracks found in this playlist.'); return; }
+    try {
+      const res = await fetch('http://localhost:3000/spotify/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playlistName: pl.name + ' (from Quaver)', trackUris, spotifyToken }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('Playlist exported to Spotify!');
+        window.open(data.playlist_url, '_blank');
+      } else {
+        if (data.error && data.error.includes('login')) {
+          localStorage.removeItem('quaver_spotify_token');
+          localStorage.removeItem('quaver_spotify_name');
+          spotifyToken = null;
+          updateSpotifyUI();
+        }
+        alert(data.error || 'Export failed.');
+      }
+    } catch (err) {
+      alert('Could not connect to server.');
+    }
+  }
+
+  function renderSavedPlaylists() {
+    const container = document.getElementById('saved-playlists');
+    if (savedPlaylists.length === 0) { container.innerHTML = ''; return; }
+    let html = '<div class="saved-section-label">Saved playlists</div>';
+    savedPlaylists.forEach(function(pl, i) {
+      html += '<div class="saved-playlist-item">';
+      html += '<div class="saved-playlist-info" onclick="openSavedPlaylist(' + i + ')">';
+      html += '<div class="saved-playlist-name">' + pl.name + '</div>';
+      html += '<div class="saved-playlist-meta">' + pl.songs.length + ' songs · ' + pl.mood + '</div>';
+      html += '</div>';
+      html += '<div style="display:flex;gap:6px;align-items:center;">';
+      html += '<button class="export-spotify-btn" onclick="exportToSpotify(' + i + ')">▶ Spotify</button>';
+      html += '<button class="delete-playlist-btn" onclick="deletePlaylist(' + i + ')">✕</button>';
+      html += '</div></div>';
+    });
+    container.innerHTML = html;
+  }
+
+  async function deletePlaylist(index) {
+    const pl = savedPlaylists[index];
+    try { await fetch('http://localhost:3000/api/playlist/' + pl.id, { method: 'DELETE' }); } catch(e) {}
+    savedPlaylists.splice(index, 1);
+    localStorage.setItem('quaver_playlists', JSON.stringify(savedPlaylists));
+    renderSavedPlaylists();
+  }
+</script>
 </body>
 </html>
