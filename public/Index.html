@@ -458,9 +458,46 @@
     container.innerHTML = html;
   }
 
+  function renderSotd(picks, grid) {
+    let html = '';
+    for (let i = 0; i < picks.length; i++) {
+      const song = picks[i];
+      const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
+      const safeTitle = song.title.replace(/'/g, "\\'");
+      const songJson = JSON.stringify(song).replace(/'/g, "&#39;");
+      html += '<div class="sotd-card">';
+      html += '<span class="sotd-num">' + String(i + 1).padStart(2, '0') + '</span>';
+      html += song.album_art ? '<img class="sotd-art" src="' + song.album_art + '" alt="art"/>' : '<div class="sotd-art"></div>';
+      html += '<div class="sotd-info">';
+      html += '<div class="sotd-song-title">' + song.title + '</div>';
+      html += '<div class="sotd-song-artist">' + song.artist + '</div>';
+      html += '</div>';
+      html += '<div class="sotd-mood-tag">' + song.mood + '</div>';
+      html += '<div class="sotd-actions">';
+      if (trackId) {
+        html += '<button class="sotd-play-btn" onclick="playInApp(\'' + trackId + '\', \'' + safeTitle + '\')">&#9654;</button>';
+      }
+      html += '<button class="sotd-add-btn" onclick=\'addToPlaylist(' + songJson + ', this)\'>+ Add</button>';
+      html += '</div>';
+      html += '</div>';
+    }
+    grid.innerHTML = html;
+  }
+
   async function loadSongsOfTheDay() {
     const moodList = ['happy', 'sad', 'energetic', 'calm', 'focused', 'romantic'];
     const grid = document.getElementById('sotd-grid');
+    const CACHE_KEY = 'quaver_sotd';
+    const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+    try {
+      const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+      if (cached && Date.now() - cached.ts < CACHE_TTL && cached.picks.length > 0) {
+        renderSotd(cached.picks, grid);
+        return;
+      }
+    } catch(e) {}
+
     try {
       const picks = [];
       for (let i = 0; i < moodList.length; i++) {
@@ -477,29 +514,8 @@
         grid.innerHTML = '<p class="no-results">Could not load picks.</p>';
         return;
       }
-      let html = '';
-      for (let i = 0; i < picks.length; i++) {
-        const song = picks[i];
-        const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
-        const safeTitle = song.title.replace(/'/g, "\\'");
-        const songJson = JSON.stringify(song).replace(/'/g, "&#39;");
-        html += '<div class="sotd-card">';
-        html += '<span class="sotd-num">' + String(i + 1).padStart(2, '0') + '</span>';
-        html += song.album_art ? '<img class="sotd-art" src="' + song.album_art + '" alt="art"/>' : '<div class="sotd-art"></div>';
-        html += '<div class="sotd-info">';
-        html += '<div class="sotd-song-title">' + song.title + '</div>';
-        html += '<div class="sotd-song-artist">' + song.artist + '</div>';
-        html += '</div>';
-        html += '<div class="sotd-mood-tag">' + song.mood + '</div>';
-        html += '<div class="sotd-actions">';
-        if (trackId) {
-          html += '<button class="sotd-play-btn" onclick="playInApp(\'' + trackId + '\', \'' + safeTitle + '\')">&#9654;</button>';
-        }
-        html += '<button class="sotd-add-btn" onclick=\'addToPlaylist(' + songJson + ', this)\'>+ Add</button>';
-        html += '</div>';
-        html += '</div>';
-      }
-      grid.innerHTML = html;
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), picks })); } catch(e) {}
+      renderSotd(picks, grid);
     } catch(e) {
       grid.innerHTML = '<p class="no-results">Could not load picks. Is the server running?</p>';
     }
