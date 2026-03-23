@@ -133,6 +133,11 @@ router.post('/export', async (req, res) => {
     if (!addData.snapshot_id) {
       console.error('Spotify add tracks failed:', addRes.status, JSON.stringify(addData));
       console.error('Track URIs sent:', JSON.stringify(trackUris));
+      // Clean up the empty playlist so it doesn't litter the user's Spotify
+      await fetch('https://api.spotify.com/v1/playlists/' + playlist.id + '/followers', {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + accessToken },
+      }).catch(() => {});
       return res.status(500).json({ error: 'Failed to add tracks: ' + (addData.error?.message || addRes.status) });
     }
 
