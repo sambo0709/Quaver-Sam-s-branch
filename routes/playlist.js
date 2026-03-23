@@ -60,6 +60,58 @@ router.post('/', async (req, res) => {
   }
 });
 
+// PATCH /api/playlist/:id - rename a playlist
+router.patch('/:id', async (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
+  const { name } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'name required' });
+  try {
+    const db = await getDB();
+    await db.collection('users').updateOne(
+      { _id: new ObjectId(user.userId), 'playlists.id': req.params.id },
+      { $set: { 'playlists.$.name': name.trim() } }
+    );
+    res.json({ message: 'Playlist renamed' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// PATCH /api/playlist/:id/share - toggle public sharing
+router.patch('/:id/share', async (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
+  const { isPublic } = req.body;
+  try {
+    const db = await getDB();
+    await db.collection('users').updateOne(
+      { _id: new ObjectId(user.userId), 'playlists.id': req.params.id },
+      { $set: { 'playlists.$.isPublic': !!isPublic } }
+    );
+    res.json({ message: 'Updated', isPublic: !!isPublic });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// GET /api/playlist/public/:id - fetch a public playlist (no auth required)
+router.get('/public/:id', async (req, res) => {
+  try {
+    const db = await getDB();
+    const user = await db.collection('users').findOne(
+      { 'playlists.id': req.params.id, 'playlists.isPublic': true },
+      { projection: { 'playlists.$': 1, username: 1 } }
+    );
+    if (!user || !user.playlists || !user.playlists[0]) {
+      return res.status(404).json({ error: 'Playlist not found or not public' });
+    }
+    res.json({ playlist: user.playlists[0], owner: user.username });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // DELETE /api/playlist/:id
 router.delete('/:id', async (req, res) => {
   const user = getUser(req);

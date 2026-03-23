@@ -53,7 +53,11 @@
     <div class="content-boxes">
 
       <div class="box">
-        <h2>Recent Moods</h2>
+        <h2>Mood Stats</h2>
+        <div id="mood-analytics">
+          <p class="box-empty">No moods yet. Pick one on the home page!</p>
+        </div>
+        <h2 style="margin-top:1.5rem;">Recent Moods</h2>
         <div id="recent-moods-list">
           <p class="box-empty">No moods yet. Pick one on the home page!</p>
         </div>
@@ -124,6 +128,33 @@
     function closePlayer() {
       document.getElementById('spotify-iframe').src = '';
       document.getElementById('spotify-player').style.display = 'none';
+    }
+
+    const moodEmoji = { happy: '😊', sad: '😢', energetic: '⚡', calm: '😌', focused: '🎯', angry: '😤', romantic: '❤️' };
+
+    function renderMoodAnalytics(moods) {
+      const container = document.getElementById('mood-analytics');
+      if (!moods || moods.length === 0) {
+        container.innerHTML = '<p class="box-empty">No moods yet. Pick one on the home page!</p>';
+        return;
+      }
+      const counts = {};
+      moods.forEach(function(m) { counts[m.mood] = (counts[m.mood] || 0) + 1; });
+      const total = moods.length;
+      const sorted = Object.keys(counts).sort(function(a, b) { return counts[b] - counts[a]; });
+      let html = '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px;">' + total + ' total picks</div>';
+      sorted.forEach(function(mood) {
+        const pct = Math.round((counts[mood] / total) * 100);
+        html += '<div style="margin-bottom:10px;">';
+        html += '<div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px;">';
+        html += '<span>' + (moodEmoji[mood] || '') + ' ' + mood + '</span>';
+        html += '<span style="color:var(--text-muted);">' + counts[mood] + 'x &nbsp;' + pct + '%</span>';
+        html += '</div>';
+        html += '<div style="height:6px;background:var(--glass-border);border-radius:3px;">';
+        html += '<div style="height:6px;width:' + pct + '%;background:var(--gradient);border-radius:3px;transition:width 0.6s ease;"></div>';
+        html += '</div></div>';
+      });
+      container.innerHTML = html;
     }
 
     function renderRecentMoods(moods) {
@@ -222,6 +253,7 @@
           if (moodData.moods) moods = [...moodData.moods].reverse();
         } catch (e) {}
       }
+      renderMoodAnalytics(moods);
       renderRecentMoods(moods);
       renderPlaylists(playlists);
       renderSuggestions(moods);

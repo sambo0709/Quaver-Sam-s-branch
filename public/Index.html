@@ -121,7 +121,7 @@
   let currentMood = null;
   let currentLimit = 5;
   let playlistSongs = [];
-  let savedPlaylists = JSON.parse(localStorage.getItem('quaver_playlists') || '[]');
+  let savedPlaylists = [];
   let recentMoods = JSON.parse(localStorage.getItem('quaver_moods') || '[]');
   let activePlaylistName = null;
   let spotifyToken = localStorage.getItem('quaver_spotify_token') || null;
@@ -408,6 +408,48 @@
     }
   }
 
+  async function renamePlaylist(index) {
+    const pl = savedPlaylists[index];
+    const newName = window.prompt('Rename playlist:', pl.name);
+    if (!newName || !newName.trim() || newName.trim() === pl.name) return;
+    const token = localStorage.getItem('quaver_token');
+    try {
+      await fetch(API + '/api/playlist/' + pl.id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ name: newName.trim() }),
+      });
+      savedPlaylists[index].name = newName.trim();
+      localStorage.setItem('quaver_playlists', JSON.stringify(savedPlaylists));
+      renderSavedPlaylists();
+      showToast('Playlist renamed!', 'success');
+    } catch (err) {
+      showToast('Could not rename playlist.', 'error');
+    }
+  }
+
+  async function sharePlaylist(index) {
+    const pl = savedPlaylists[index];
+    const token = localStorage.getItem('quaver_token');
+    try {
+      await fetch(API + '/api/playlist/' + pl.id + '/share', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ isPublic: true }),
+      });
+      savedPlaylists[index].isPublic = true;
+      localStorage.setItem('quaver_playlists', JSON.stringify(savedPlaylists));
+      const shareUrl = window.location.origin + '/share.html?id=' + pl.id;
+      navigator.clipboard.writeText(shareUrl).then(function() {
+        showToast('Share link copied!', 'success');
+      }).catch(function() {
+        window.prompt('Copy this link:', shareUrl);
+      });
+    } catch (err) {
+      showToast('Could not create share link.', 'error');
+    }
+  }
+
   async function exportToSpotify(index) {
     if (!spotifyToken) { showToast('Connect your Spotify account first!', 'error'); return; }
     const pl = savedPlaylists[index];
@@ -454,6 +496,8 @@
       html += '</div>';
       html += '<div style="display:flex;gap:6px;align-items:center;">';
       html += '<button class="export-spotify-btn" onclick="exportToSpotify(' + i + ')">▶ Spotify</button>';
+      html += '<button class="rename-playlist-btn" onclick="renamePlaylist(' + i + ')" title="Rename">✏️</button>';
+      html += '<button class="share-playlist-btn" onclick="sharePlaylist(' + i + ')" title="' + (pl.isPublic ? 'Copy share link' : 'Share') + '">' + (pl.isPublic ? '🔗' : '↗') + '</button>';
       html += '<button class="delete-playlist-btn" onclick="deletePlaylist(' + i + ')">✕</button>';
       html += '</div></div>';
     });

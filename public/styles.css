@@ -1149,6 +1149,31 @@ h1 span {
   background: rgba(224, 85, 85, 0.1);
 }
 
+.rename-playlist-btn,
+.share-playlist-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  opacity: 0.5;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 8px;
+  transition: all 0.2s;
+  border-radius: 6px;
+}
+
+.rename-playlist-btn:hover {
+  opacity: 1;
+  background: var(--glass-hover);
+  color: var(--text);
+}
+
+.share-playlist-btn:hover {
+  opacity: 1;
+  background: rgba(0, 212, 255, 0.1);
+  color: var(--accent);
+}
+
 /* ═══════════════════════════════════════
    SPOTIFY BUTTONS
 ═══════════════════════════════════════ */
