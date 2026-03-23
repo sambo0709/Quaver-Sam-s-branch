@@ -87,10 +87,9 @@ router.post('/export', async (req, res) => {
       return res.status(401).json({ error: 'Spotify session expired. Please login with Spotify again.' });
     }
     const accessToken = decoded.spotify_access_token;
-    const userId = decoded.spotify_user_id;
 
     // Create the playlist
-    const createRes = await fetch('https://api.spotify.com/v1/users/' + userId + '/playlists', {
+    const createRes = await fetch('https://api.spotify.com/v1/me/playlists', {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer ' + accessToken,
