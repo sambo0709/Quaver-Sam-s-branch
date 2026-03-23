@@ -89,10 +89,11 @@ async function searchTracks(queries, token, limit) {
   let res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
 
   if (res.status === 429) {
-    // Respect Retry-After header, wait, then try once more
-    const wait = (parseInt(res.headers.get('Retry-After') || '10', 10) + 1) * 1000;
-    console.log('Spotify rate limited — waiting ' + (wait / 1000) + 's before retry');
-    await new Promise(r => setTimeout(r, wait));
+    const retryAfter = parseInt(res.headers.get('Retry-After') || '60', 10);
+    if (retryAfter > 15) {
+      throw new Error('Spotify rate limit active for ' + retryAfter + 's. Try again later.');
+    }
+    await new Promise(r => setTimeout(r, retryAfter * 1000));
     res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
   }
 
