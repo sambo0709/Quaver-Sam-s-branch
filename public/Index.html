@@ -148,6 +148,16 @@
 
 <div class="playlist-overlay" id="playlist-overlay" onclick="togglePlaylistPanel()"></div>
 
+<div class="rename-modal-overlay" id="rename-modal-overlay" onclick="closeRenameModal()"></div>
+<div class="rename-modal" id="rename-modal">
+  <div class="rename-modal-title">Rename playlist</div>
+  <input type="text" id="rename-modal-input" class="playlist-input" placeholder="Playlist name..." onkeydown="if(event.key==='Enter')confirmRename();if(event.key==='Escape')closeRenameModal();" />
+  <div class="rename-modal-actions">
+    <button class="rename-modal-cancel" onclick="closeRenameModal()">Cancel</button>
+    <button class="save-btn" onclick="confirmRename()">Save</button>
+  </div>
+</div>
+
 <div class="playlist-panel" id="playlist-panel">
   <div class="panel-header">
     <h2 class="panel-title">My Playlist</h2>
@@ -581,18 +591,39 @@
     return false;
   }
 
-  async function renamePlaylist(index) {
+  let renamingIndex = -1;
+
+  function renamePlaylist(index) {
+    renamingIndex = index;
     const pl = savedPlaylists[index];
-    const newName = window.prompt('Rename playlist:', pl.name);
-    if (!newName || !newName.trim() || newName.trim() === pl.name) return;
+    const input = document.getElementById('rename-modal-input');
+    input.value = pl.name;
+    document.getElementById('rename-modal-overlay').classList.add('open');
+    document.getElementById('rename-modal').classList.add('open');
+    setTimeout(function() { input.focus(); input.select(); }, 50);
+  }
+
+  function closeRenameModal() {
+    document.getElementById('rename-modal-overlay').classList.remove('open');
+    document.getElementById('rename-modal').classList.remove('open');
+    renamingIndex = -1;
+  }
+
+  async function confirmRename() {
+    if (renamingIndex === -1) return;
+    const newName = document.getElementById('rename-modal-input').value.trim();
+    const idx = renamingIndex;
+    const pl = savedPlaylists[idx];
+    if (!newName || newName === pl.name) { closeRenameModal(); return; }
     const token = localStorage.getItem('quaver_token');
+    closeRenameModal();
     try {
       await fetch(API + '/api/playlist/' + pl.id, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-        body: JSON.stringify({ name: newName.trim() }),
+        body: JSON.stringify({ name: newName }),
       });
-      savedPlaylists[index].name = newName.trim();
+      savedPlaylists[idx].name = newName;
       localStorage.setItem('quaver_playlists', JSON.stringify(savedPlaylists));
       renderSavedPlaylists();
       showToast('Playlist renamed!', 'success');
@@ -666,9 +697,11 @@
           showToast('Spotify session expired — please reconnect Spotify.', 'error');
         }
       } else {
+        console.error('Spotify export failed:', res.status, data);
         showToast(data.error || 'Export failed.', 'error');
       }
     } catch (err) {
+      console.error('Spotify export error:', err);
       showToast('Could not connect to server.', 'error');
     }
   }
