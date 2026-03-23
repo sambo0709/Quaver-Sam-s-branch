@@ -427,13 +427,15 @@
         showToast('Exported to Spotify! Opening...', 'success');
         setTimeout(function() { window.open(data.playlist_url, '_blank'); }, 500);
       } else {
-        if (data.error && data.error.includes('login')) {
+        if (res.status === 401 || (data.error && data.error.includes('login'))) {
           localStorage.removeItem('quaver_spotify_token');
           localStorage.removeItem('quaver_spotify_name');
           spotifyToken = null;
           updateSpotifyUI();
+          showToast('Spotify session expired — please reconnect Spotify.', 'error');
+        } else {
+          showToast(data.error || 'Export failed.', 'error');
         }
-        showToast(data.error || 'Export failed.', 'error');
       }
     } catch (err) {
       showToast('Could not connect to server.', 'error');

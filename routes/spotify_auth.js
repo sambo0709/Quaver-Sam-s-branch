@@ -100,7 +100,11 @@ router.post('/export', async (req, res) => {
 
     const playlist = await createRes.json();
     if (!playlist.id) {
-      return res.status(500).json({ error: 'Failed to create playlist on Spotify' });
+      console.error('Spotify create playlist failed:', JSON.stringify(playlist));
+      if (createRes.status === 401) {
+        return res.status(401).json({ error: 'Spotify session expired. Please login with Spotify again.' });
+      }
+      return res.status(500).json({ error: 'Failed to create playlist on Spotify: ' + (playlist.error?.message || 'unknown error') });
     }
 
     // Add tracks to playlist
