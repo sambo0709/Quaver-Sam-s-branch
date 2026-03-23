@@ -23,6 +23,10 @@
   --accent2-glow: rgba(123, 97, 255, 0.25);
   --gradient: linear-gradient(135deg, #00d4ff, #7b61ff);
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --orb1: rgba(0, 212, 255, 0.22);
+  --orb2: rgba(123, 97, 255, 0.26);
+  --orb3: rgba(180, 50, 255, 0.14);
+  --orb4: rgba(0, 160, 255, 0.12);
 }
 
 :root[data-theme="light"] {
@@ -40,6 +44,10 @@
   --accent2-glow: rgba(123, 97, 255, 0.2);
   --gradient: linear-gradient(135deg, #C95502, #7b61ff);
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --orb1: rgba(100, 180, 255, 0.30);
+  --orb2: rgba(160, 100, 255, 0.22);
+  --orb3: rgba(255, 120, 200, 0.16);
+  --orb4: rgba(80, 220, 220, 0.18);
 }
 
 /* ═══════════════════════════════════════
@@ -74,9 +82,10 @@ body::before {
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse at 20% 20%, rgba(0, 212, 255, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 80%, rgba(123, 97, 255, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 50%, rgba(0, 212, 255, 0.03) 0%, transparent 70%);
+    radial-gradient(ellipse at 15% 15%, var(--orb1) 0%, transparent 52%),
+    radial-gradient(ellipse at 85% 80%, var(--orb2) 0%, transparent 52%),
+    radial-gradient(ellipse at 78% 12%, var(--orb3) 0%, transparent 42%),
+    radial-gradient(ellipse at 20% 85%, var(--orb4) 0%, transparent 42%);
   pointer-events: none;
   z-index: 0;
 }
@@ -2560,4 +2569,28 @@ h1 span {
   background: linear-gradient(135deg, rgba(0,212,255,0.25), rgba(123,97,255,0.25));
   box-shadow: 0 0 20px rgba(0,212,255,0.25);
   transform: translateY(-1px);
+}
+/* ═══════════════════════════════════════
+   SPLASH SCREEN
+═══════════════════════════════════════ */
+
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg, #080c14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.6s ease;
+}
+
+.splash-screen.splash-hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.splash-logo {
+  width: 130px;
+  height: auto;
 }

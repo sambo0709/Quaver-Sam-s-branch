@@ -16,6 +16,11 @@
 </head>
 <body>
 
+<!-- Splash screen -->
+<div id="splash-screen" class="splash-screen">
+  <img id="splash-logo" class="splash-logo" src="quaver_nightmode1.png" alt="Quaver">
+</div>
+
 <nav>
   <div class="nav-left">
     <a href="Index.html">
@@ -218,6 +223,8 @@
     document.documentElement.setAttribute('data-theme', theme);
     document.getElementById('theme-btn').textContent = theme === 'dark' ? '🌙' : '☀️';
     document.getElementById('logo').src = theme === 'dark' ? 'quaver_nightmode1.png' : 'quaver_lightmode1.png';
+    const splashLogo = document.getElementById('splash-logo');
+    if (splashLogo) splashLogo.src = theme === 'dark' ? 'quaver_nightmode1.png' : 'quaver_lightmode1.png';
   }
 
   function toggleTheme() {
@@ -261,6 +268,19 @@
     const savedTheme = localStorage.getItem('theme');
     const systemTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
     applyTheme(savedTheme || systemTheme);
+
+    // Splash screen — only on first ever visit
+    const splash = document.getElementById('splash-screen');
+    if (localStorage.getItem('quaver_launched')) {
+      splash.style.display = 'none';
+    } else {
+      localStorage.setItem('quaver_launched', '1');
+      setTimeout(function() {
+        splash.classList.add('splash-hide');
+        splash.addEventListener('transitionend', function() { splash.style.display = 'none'; }, { once: true });
+      }, 3000);
+    }
+
     checkSpotifyCallback();
     updateSpotifyUI();
     updateAuthUI();
