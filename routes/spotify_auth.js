@@ -80,7 +80,12 @@ router.post('/export', async (req, res) => {
   }
 
   try {
-    const decoded = jwt.verify(spotifyToken, process.env.JWT_SECRET);
+    let decoded;
+    try {
+      decoded = jwt.verify(spotifyToken, process.env.JWT_SECRET);
+    } catch (jwtErr) {
+      return res.status(401).json({ error: 'Spotify session expired. Please login with Spotify again.' });
+    }
     const accessToken = decoded.spotify_access_token;
     const userId = decoded.spotify_user_id;
 

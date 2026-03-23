@@ -628,7 +628,7 @@
     const pl = savedPlaylists[index];
     const trackUris = pl.songs
       .filter(function(s) { return s.spotify_url; })
-      .map(function(s) { return 'spotify:track:' + s.spotify_url.split('/track/')[1]; });
+      .map(function(s) { return 'spotify:track:' + s.spotify_url.split('/track/')[1].split('?')[0]; });
     if (trackUris.length === 0) { showToast('No Spotify tracks found in this playlist.', 'error'); return; }
     showToast('Exporting to Spotify...', 'success');
     try {
