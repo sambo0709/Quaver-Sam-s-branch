@@ -36,6 +36,7 @@
     </div>
     <div id="spotify-user-info" style="display:none">
       <span class="nav-link spotify-connected-link" id="spotify-user-name"></span>
+      <button class="spotify-disconnect-btn" onclick="disconnectSpotify()" title="Disconnect Spotify">✕</button>
     </div>
   </div>
   <div class="nav-right">
@@ -260,6 +261,14 @@
       showToast('Spotify connection failed. Try again.', 'error');
       window.history.replaceState({}, '', window.location.pathname);
     }
+  }
+
+  function disconnectSpotify() {
+    localStorage.removeItem('quaver_spotify_token');
+    localStorage.removeItem('quaver_spotify_name');
+    spotifyToken = null;
+    updateSpotifyUI();
+    showToast('Disconnected from Spotify.', 'success');
   }
 
   function updateSpotifyUI() {
@@ -661,6 +670,7 @@
       .filter(function(s) { return s.spotify_url; })
       .map(function(s) { return 'spotify:track:' + s.spotify_url.split('/track/')[1].split('?')[0]; });
     if (trackUris.length === 0) { showToast('No Spotify tracks found in this playlist.', 'error'); return; }
+    console.log('Exporting track URIs:', trackUris);
     showToast('Exporting to Spotify...', 'success');
     try {
       const res = await fetch(API + '/spotify/export', {

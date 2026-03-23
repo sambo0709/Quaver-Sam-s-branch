@@ -216,6 +216,18 @@ nav,
 
 .spotify-nav-link { color: #1db954 !important; }
 .spotify-connected-link { color: #1db954 !important; font-size: 0.8rem; }
+.spotify-disconnect-btn {
+  background: none;
+  border: none;
+  color: #1db954;
+  opacity: 0.5;
+  cursor: pointer;
+  font-size: 10px;
+  padding: 2px 4px;
+  line-height: 1;
+  transition: opacity 0.2s;
+}
+.spotify-disconnect-btn:hover { opacity: 1; }
 
 /* Actions — right */
 .nav-right,
