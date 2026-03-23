@@ -6,24 +6,20 @@
   <title>Profile - Quaver</title>
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="styles.css">
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </head>
 <body>
 
   <nav class="top-nav">
-    <!-- Left: Logo -->
     <div class="nav-left">
       <a href="Index.html">
         <img class="logo" id="logo" src="quaver_nightmode1.png" alt="Quaver Logo">
       </a>
     </div>
-
-    <!-- Center: Floating nav pill -->
     <div class="nav-center">
       <a class="nav-link" href="Index.html">Home</a>
       <a class="nav-link active" href="profile.html">Profile</a>
     </div>
-
-    <!-- Right: Actions + theme toggle -->
     <div class="nav-right">
       <span id="nav-username" class="nav-username"></span>
       <button id="nav-logout" class="logout-btn" onclick="logout()" style="display:none">Logout</button>
@@ -48,8 +44,50 @@
     </iframe>
   </div>
 
+  <!-- Quaver Wrapped Modal -->
+  <div id="wrapped-modal" class="wrapped-modal" style="display:none">
+    <div class="wrapped-overlay" onclick="closeWrapped()"></div>
+    <div class="wrapped-container">
+      <div id="wrapped-card" class="wrapped-card">
+        <div class="wrapped-hd">
+          <span class="wrapped-logo-text">♬ Quaver</span>
+          <span class="wrapped-year-text" id="wrapped-year">2025</span>
+        </div>
+        <div class="wrapped-hero">
+          <div class="wrapped-hero-lbl">Your top mood</div>
+          <div class="wrapped-hero-emoji" id="wrapped-top-emoji">🎵</div>
+          <div class="wrapped-hero-mood" id="wrapped-top-mood">—</div>
+        </div>
+        <div class="wrapped-stats">
+          <div class="wrapped-stat">
+            <div class="wrapped-stat-num" id="wrapped-total-moods">0</div>
+            <div class="wrapped-stat-lbl">mood picks</div>
+          </div>
+          <div class="wrapped-stat">
+            <div class="wrapped-stat-num" id="wrapped-total-songs">0</div>
+            <div class="wrapped-stat-lbl">songs played</div>
+          </div>
+          <div class="wrapped-stat">
+            <div class="wrapped-stat-num" id="wrapped-streak">0</div>
+            <div class="wrapped-stat-lbl">best streak</div>
+          </div>
+        </div>
+        <div class="wrapped-artist">
+          <div class="wrapped-artist-lbl">Top Artist</div>
+          <div class="wrapped-artist-name" id="wrapped-top-artist">—</div>
+        </div>
+        <div class="wrapped-footer-text">quaver.onrender.com</div>
+      </div>
+      <div class="wrapped-actions">
+        <button class="wrapped-download-btn" onclick="downloadWrapped()">⬇ Save as Image</button>
+        <button class="wrapped-close-btn" onclick="closeWrapped()">Close</button>
+      </div>
+    </div>
+  </div>
+
   <main class="profile-main">
     <h1 class="profile-title">Profile</h1>
+    <button class="wrapped-open-btn" onclick="openWrapped()">🎁 Your Wrapped</button>
     <div class="content-boxes">
 
       <div class="box">
@@ -309,6 +347,7 @@
           if (moodData.moods) moods = [...moodData.moods].reverse();
         } catch (e) {}
       }
+      window._profileMoods = moods;
       renderMoodAnalytics(moods);
       renderRecentMoods(moods);
       renderRecentlyPlayed();
@@ -316,8 +355,62 @@
       renderSuggestions(moods);
     }
 
+    function openWrapped() {
+      const moods = window._profileMoods || [];
+      const recent = JSON.parse(localStorage.getItem('quaver_recently_played') || '[]');
+
+      const moodCounts = {};
+      moods.forEach(function(m) { moodCounts[m.mood] = (moodCounts[m.mood] || 0) + 1; });
+      const topMood = Object.keys(moodCounts).sort(function(a, b) { return moodCounts[b] - moodCounts[a]; })[0];
+
+      const artistCounts = {};
+      recent.forEach(function(s) {
+        if (s.artist) {
+          s.artist.split(', ').forEach(function(a) { artistCounts[a] = (artistCounts[a] || 0) + 1; });
+        }
+      });
+      const topArtist = Object.keys(artistCounts).sort(function(a, b) { return artistCounts[b] - artistCounts[a]; })[0];
+
+      let bestStreak = 0, runCount = 0, runMood = null;
+      moods.forEach(function(m) {
+        if (m.mood === runMood) { runCount++; if (runCount > bestStreak) bestStreak = runCount; }
+        else { runMood = m.mood; runCount = 1; }
+      });
+
+      document.getElementById('wrapped-year').textContent = new Date().getFullYear();
+      document.getElementById('wrapped-top-emoji').textContent = topMood ? (moodEmoji[topMood] || '🎵') : '🎵';
+      document.getElementById('wrapped-top-mood').textContent = topMood || 'No moods yet';
+      document.getElementById('wrapped-total-moods').textContent = moods.length;
+      document.getElementById('wrapped-total-songs').textContent = recent.length;
+      document.getElementById('wrapped-streak').textContent = bestStreak;
+      document.getElementById('wrapped-top-artist').textContent = topArtist || 'No songs yet';
+
+      document.getElementById('wrapped-modal').style.display = 'flex';
+    }
+
+    function closeWrapped() {
+      document.getElementById('wrapped-modal').style.display = 'none';
+    }
+
+    async function downloadWrapped() {
+      const btn = document.querySelector('.wrapped-download-btn');
+      btn.textContent = 'Generating...';
+      btn.disabled = true;
+      try {
+        const card = document.getElementById('wrapped-card');
+        const canvas = await html2canvas(card, { scale: 2, useCORS: true, backgroundColor: '#0d1225', logging: false });
+        const link = document.createElement('a');
+        link.download = 'quaver-wrapped.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch(e) {
+        alert('Could not generate image. Try a screenshot instead!');
+      }
+      btn.textContent = '⬇ Save as Image';
+      btn.disabled = false;
+    }
+
     window.addEventListener('DOMContentLoaded', function() {
-      // Redirect to login if not logged in
       if (!localStorage.getItem('quaver_token')) {
         window.location.href = 'login.html';
         return;

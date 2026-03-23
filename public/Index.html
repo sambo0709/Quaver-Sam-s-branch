@@ -102,9 +102,9 @@
 
 <section class="sotd-section" id="sotd">
   <div class="sotd-header">
-    <div class="sotd-label">TODAY'S PICKS</div>
-    <h2 class="sotd-title">Songs of the Day</h2>
-    <p class="sotd-subtitle">Curated daily across every mood</p>
+    <div class="sotd-label">TODAY'S MOOD</div>
+    <h2 class="sotd-title">Mood of the Day</h2>
+    <p class="sotd-subtitle" id="sotd-mood-subtitle">Loading today's vibe...</p>
   </div>
   <div class="sotd-grid" id="sotd-grid">
     <div class="sotd-loading">
@@ -114,7 +114,7 @@
         <span class="music-note">♫</span>
         <span class="music-note">♬</span>
       </div>
-      <span>loading today's picks...</span>
+      <span>loading today's mood...</span>
     </div>
   </div>
 </section>
@@ -673,10 +673,15 @@
     container.innerHTML = html;
   }
 
-  function renderSotd(picks, grid) {
+  const moodEmoji = { happy: '😊', sad: '😢', energetic: '⚡', calm: '😌', focused: '🎯', angry: '😤', romantic: '❤️', nostalgic: '🌅', party: '🎉', sleepy: '😴', anxious: '🌀' };
+
+  function renderMotd(data, grid) {
+    const { mood, songs } = data;
+    const emoji = moodEmoji[mood] || '🎵';
+    document.getElementById('sotd-mood-subtitle').textContent = emoji + ' ' + mood.charAt(0).toUpperCase() + mood.slice(1) + ' — ' + songs.length + ' picks for today';
     let html = '';
-    for (let i = 0; i < picks.length; i++) {
-      const song = picks[i];
+    for (let i = 0; i < songs.length; i++) {
+      const song = songs[i];
       const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
       const safeTitle = song.title.replace(/'/g, "\\'");
       const songJson = JSON.stringify(song).replace(/'/g, "&#39;");
@@ -687,10 +692,9 @@
       html += '<div class="sotd-song-title">' + song.title + '</div>';
       html += '<div class="sotd-song-artist">' + song.artist + '</div>';
       html += '</div>';
-      html += '<div class="sotd-mood-tag">' + song.mood + '</div>';
       html += '<div class="sotd-actions">';
       if (trackId) {
-        html += '<button class="sotd-play-btn" onclick="playInApp(\'' + trackId + '\', \'' + safeTitle + '\')">&#9654;</button>';
+        html += '<button class="sotd-play-btn" onclick="playInApp(\'' + trackId + '\', \'' + safeTitle + '\', \'' + (song.artist || '').replace(/'/g, "\\'") + '\', \'' + (song.album_art || '') + '\')">&#9654;</button>';
       }
       html += '<button class="sotd-add-btn" onclick=\'addToPlaylist(' + songJson + ', this)\'>+ Add</button>';
       html += '</div>';
@@ -701,13 +705,13 @@
 
   async function loadSongsOfTheDay() {
     const grid = document.getElementById('sotd-grid');
-    const CACHE_KEY = 'quaver_sotd';
-    const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+    const CACHE_KEY = 'quaver_motd';
+    const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours — matches server
 
     try {
       const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-      if (cached && Date.now() - cached.ts < CACHE_TTL && cached.picks.length > 0) {
-        renderSotd(cached.picks, grid);
+      if (cached && Date.now() - cached.ts < CACHE_TTL && cached.data && cached.data.songs && cached.data.songs.length > 0) {
+        renderMotd(cached.data, grid);
         return;
       }
     } catch(e) {}
@@ -715,15 +719,14 @@
     try {
       const res = await fetch(API + '/api/music/sotd');
       const data = await res.json();
-      const picks = data.picks || [];
-      if (picks.length === 0) {
-        grid.innerHTML = '<p class="no-results">Could not load picks.</p>';
+      if (!data.songs || data.songs.length === 0) {
+        grid.innerHTML = '<p class="no-results">Could not load today\'s mood.</p>';
         return;
       }
-      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), picks })); } catch(e) {}
-      renderSotd(picks, grid);
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data })); } catch(e) {}
+      renderMotd(data, grid);
     } catch(e) {
-      grid.innerHTML = '<div class="error-state"><p>Could not load picks.</p><button class="retry-btn" onclick="loadSongsOfTheDay()">Try again</button></div>';
+      grid.innerHTML = '<div class="error-state"><p>Could not load today\'s mood.</p><button class="retry-btn" onclick="loadSongsOfTheDay()">Try again</button></div>';
     }
   }
 

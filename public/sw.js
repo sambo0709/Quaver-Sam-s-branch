@@ -1,13 +1,9 @@
-const CACHE = 'quaver-v1';
+const CACHE = 'quaver-v3';
+// Only cache images — HTML and CSS are always served fresh from the network
 const ASSETS = [
-  '/Index.html',
-  '/login.html',
-  '/profile.html',
-  '/share.html',
-  '/styles.css',
-  '/manifest.json',
   '/quaver_nightmode1.png',
   '/quaver_lightmode1.png',
+  '/manifest.json',
 ];
 
 self.addEventListener('install', function(e) {
@@ -31,16 +27,24 @@ self.addEventListener('activate', function(e) {
 });
 
 self.addEventListener('fetch', function(e) {
-  // Only cache GET requests for same-origin static assets
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
+
+  // Never intercept API or auth calls
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/spotify/')) return;
 
+  // HTML and CSS: always network-first so updates are instant
+  if (url.pathname.endsWith('.html') || url.pathname.endsWith('.css') || url.pathname === '/') {
+    e.respondWith(
+      fetch(e.request).catch(function() { return caches.match(e.request); })
+    );
+    return;
+  }
+
+  // Images/manifest: cache-first
   e.respondWith(
     caches.match(e.request).then(function(cached) {
-      return cached || fetch(e.request).then(function(res) {
-        return res;
-      });
+      return cached || fetch(e.request);
     })
   );
 });

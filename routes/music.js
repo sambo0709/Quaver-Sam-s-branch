@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { getDB } = require('./db');
 
 const moodToSearch = {
   happy:      ['happy pop upbeat', 'feel good hits', 'happy dance music'],
@@ -20,6 +21,45 @@ let tokenExpiresAt = 0;
 
 let sotdCache = null;
 let sotdExpiresAt = 0;
+
+// Per-mood pool cache — avoids hitting Spotify on every recommend request
+const moodPoolCache = {};
+const POOL_TTL = 2 * 60 * 60 * 1000; // 2 hours
+
+async function getMoodPool(mood, token) {
+  const entry = moodPoolCache[mood];
+  if (entry && Date.now() < entry.expiresAt) {
+    return entry.songs;
+  }
+  // Fetch a full pool of 10; all requests for this mood share it for 2 hours
+  const songs = await searchTracks(moodToSearch[mood], token, 10);
+  moodPoolCache[mood] = { songs, expiresAt: Date.now() + POOL_TTL };
+  return songs;
+}
+
+const SOTD_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+async function loadSotdFromDB() {
+  try {
+    const db = await getDB();
+    const doc = await db.collection('sotd_cache').findOne({ _id: 'sotd' });
+    if (doc && doc.expiresAt > Date.now()) {
+      sotdCache = doc.picks;
+      sotdExpiresAt = doc.expiresAt;
+    }
+  } catch (_) {}
+}
+
+async function saveSotdToDB(picks, expiresAt) {
+  try {
+    const db = await getDB();
+    await db.collection('sotd_cache').updateOne(
+      { _id: 'sotd' },
+      { $set: { picks, expiresAt } },
+      { upsert: true }
+    );
+  } catch (_) {}
+}
 
 async function getSpotifyToken() {
   if (cachedToken && Date.now() < tokenExpiresAt) {
@@ -46,9 +86,16 @@ async function getSpotifyToken() {
 async function searchTracks(queries, token, limit) {
   const query = queries[Math.floor(Math.random() * queries.length)];
   const url = 'https://api.spotify.com/v1/search?q=' + encodeURIComponent(query) + '&type=track&limit=10';
-  const res = await fetch(url, {
-    headers: { 'Authorization': 'Bearer ' + token }
-  });
+  let res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+
+  if (res.status === 429) {
+    // Respect Retry-After header, wait, then try once more
+    const wait = (parseInt(res.headers.get('Retry-After') || '10', 10) + 1) * 1000;
+    console.log('Spotify rate limited — waiting ' + (wait / 1000) + 's before retry');
+    await new Promise(r => setTimeout(r, wait));
+    res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+  }
+
   if (res.status === 429) {
     throw new Error('Spotify rate limit reached. Please try again in a moment.');
   }
@@ -91,7 +138,8 @@ router.get('/recommend', async function(req, res) {
 
   try {
     const token = await getSpotifyToken();
-    const songs = await searchTracks(moodToSearch[mood.toLowerCase()], token, songLimit);
+    const pool = await getMoodPool(mood.toLowerCase(), token);
+    const songs = pool.slice().sort(() => Math.random() - 0.5).slice(0, songLimit);
     res.json({ mood: mood, count: songs.length, songs: songs });
   } catch (err) {
     console.error('Spotify error:', err.message);
@@ -127,30 +175,41 @@ router.get('/search', async function(req, res) {
   }
 });
 
-// GET /api/music/sotd — one song per mood, cached server-side for 1 hour
+// Pick today's mood deterministically from the date (same mood for all users all day)
+function getTodayMood() {
+  const all = ['happy', 'sad', 'energetic', 'calm', 'focused', 'angry', 'romantic', 'nostalgic', 'party', 'sleepy', 'anxious'];
+  const d = new Date();
+  const dayNum = d.getFullYear() * 366 + d.getMonth() * 31 + d.getDate();
+  return all[dayNum % all.length];
+}
+
+// GET /api/music/sotd — mood of the day: 3 songs from one mood, cached in MongoDB for 24 hours
 router.get('/sotd', async function(_req, res) {
+  // 1. Fast path: in-memory cache still valid
   if (sotdCache && Date.now() < sotdExpiresAt) {
-    return res.json({ picks: sotdCache });
+    return res.json(sotdCache);
   }
 
-  const moodList = ['happy', 'sad', 'energetic', 'calm', 'focused', 'romantic'];
+  // 2. Try loading from MongoDB (survives server restarts)
+  await loadSotdFromDB();
+  if (sotdCache && Date.now() < sotdExpiresAt) {
+    return res.json(sotdCache);
+  }
+
+  // 3. Cache expired or missing — one Spotify call for today's mood
+  const mood = getTodayMood();
   try {
     const token = await getSpotifyToken();
-    const picks = [];
-    for (let i = 0; i < moodList.length; i++) {
-      const mood = moodList[i];
-      const songs = await searchTracks(moodToSearch[mood], token, 1);
-      if (songs[0]) {
-        songs[0].mood = mood;
-        picks.push(songs[0]);
-      }
-    }
-    sotdCache = picks;
-    sotdExpiresAt = Date.now() + 60 * 60 * 1000; // 1 hour
-    res.json({ picks });
+    const songs = await searchTracks(moodToSearch[mood], token, 3);
+    const payload = { mood, songs };
+    const expiresAt = Date.now() + SOTD_TTL_MS;
+    sotdCache = payload;
+    sotdExpiresAt = expiresAt;
+    await saveSotdToDB(payload, expiresAt);
+    res.json(payload);
   } catch (err) {
-    console.error('SOTD error:', err.message);
-    if (sotdCache) return res.json({ picks: sotdCache }); // serve stale cache on error
+    console.error('MOTD error:', err.message);
+    if (sotdCache) return res.json(sotdCache); // serve stale on error
     res.status(500).json({ error: err.message });
   }
 });
