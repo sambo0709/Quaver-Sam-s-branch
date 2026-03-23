@@ -257,7 +257,7 @@
         container.innerHTML = '<p class="box-empty">No moods yet. Pick one on the home page!</p>';
         return;
       }
-      container.innerHTML = moods.map(function(item) {
+      container.innerHTML = moods.slice(0, 5).map(function(item) {
         return '<div class="profile-mood-item"><span class="profile-mood-badge">' + item.mood + '</span><span class="profile-mood-time">' + item.time + '</span></div>';
       }).join('');
     }

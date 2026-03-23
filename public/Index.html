@@ -269,12 +269,12 @@
     const systemTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
     applyTheme(savedTheme || systemTheme);
 
-    // Splash screen — only on first ever visit
+    // Splash screen — show once per session (each time app is freshly opened)
     const splash = document.getElementById('splash-screen');
-    if (localStorage.getItem('quaver_launched')) {
+    if (sessionStorage.getItem('quaver_launched')) {
       splash.style.display = 'none';
     } else {
-      localStorage.setItem('quaver_launched', '1');
+      sessionStorage.setItem('quaver_launched', '1');
       setTimeout(function() {
         splash.classList.add('splash-hide');
         splash.addEventListener('transitionend', function() { splash.style.display = 'none'; }, { once: true });
