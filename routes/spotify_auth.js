@@ -111,6 +111,12 @@ router.post('/export', async (req, res) => {
       return res.status(500).json({ error: 'Failed to create playlist on Spotify: ' + (playlist.error?.message || 'unknown error') });
     }
 
+    // Sanitize URIs — strip any query params (e.g. ?si=...) that Spotify rejects
+    const cleanUris = trackUris.map(function(uri) {
+      const parts = uri.split('?');
+      return parts[0];
+    });
+
     // Add tracks to playlist
     const addRes = await fetch('https://api.spotify.com/v1/playlists/' + playlist.id + '/tracks', {
       method: 'POST',
@@ -118,12 +124,14 @@ router.post('/export', async (req, res) => {
         'Authorization': 'Bearer ' + accessToken,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ uris: trackUris }),
+      body: JSON.stringify({ uris: cleanUris }),
     });
 
     const addData = await addRes.json();
     if (!addData.snapshot_id) {
-      return res.status(500).json({ error: 'Failed to add tracks' });
+      console.error('Spotify add tracks failed:', addRes.status, JSON.stringify(addData));
+      console.error('Track URIs sent:', JSON.stringify(trackUris));
+      return res.status(500).json({ error: 'Failed to add tracks: ' + (addData.error?.message || addRes.status) });
     }
 
     res.json({
