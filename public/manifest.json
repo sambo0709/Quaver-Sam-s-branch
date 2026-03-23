@@ -1,0 +1,17 @@
+{
+  "name": "Quaver",
+  "short_name": "Quaver",
+  "description": "Mood-based music discovery",
+  "start_url": "/Index.html",
+  "display": "standalone",
+  "background_color": "#080c14",
+  "theme_color": "#00d4ff",
+  "icons": [
+    {
+      "src": "quaver_nightmode1.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

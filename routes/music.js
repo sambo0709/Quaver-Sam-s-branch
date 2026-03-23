@@ -2,13 +2,17 @@ const express = require('express');
 const router = express.Router();
 
 const moodToSearch = {
-  happy:     ['happy pop upbeat', 'feel good hits', 'happy dance music'],
-  sad:       ['sad emotional acoustic', 'heartbreak songs', 'melancholy indie'],
-  angry:     ['angry rock intense', 'metal aggressive', 'punk rock energy'],
-  calm:      ['calm peaceful ambient', 'chill acoustic', 'soft piano'],
-  energetic: ['energetic edm workout', 'pump up hits', 'hype songs'],
-  romantic:  ['romantic love songs', 'smooth r&b romance', 'slow dance'],
-  focused:   ['lofi study beats', 'concentration music', 'deep focus instrumental'],
+  happy:      ['happy pop upbeat', 'feel good hits', 'happy dance music'],
+  sad:        ['sad emotional acoustic', 'heartbreak songs', 'melancholy indie'],
+  angry:      ['angry rock intense', 'metal aggressive', 'punk rock energy'],
+  calm:       ['calm peaceful ambient', 'chill acoustic', 'soft piano'],
+  energetic:  ['energetic edm workout', 'pump up hits', 'hype songs'],
+  romantic:   ['romantic love songs', 'smooth r&b romance', 'slow dance'],
+  focused:    ['lofi study beats', 'concentration music', 'deep focus instrumental'],
+  nostalgic:  ['90s throwback hits', 'classic 2000s pop', 'retro nostalgia oldies'],
+  party:      ['party anthems dance floor', 'club bangers 2024', 'party hits top 40'],
+  sleepy:     ['sleep music gentle', 'calm lullaby ambient', 'night time relaxing'],
+  anxious:    ['anxiety relief calm music', 'soothing stress relief', 'mindful meditation music'],
 };
 
 let cachedToken = null;
@@ -91,6 +95,34 @@ router.get('/recommend', async function(req, res) {
     res.json({ mood: mood, count: songs.length, songs: songs });
   } catch (err) {
     console.error('Spotify error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/music/search?q=... - search for specific songs/artists
+router.get('/search', async function(req, res) {
+  const q = (req.query.q || '').trim();
+  if (!q) return res.status(400).json({ error: 'Query required' });
+  try {
+    const token = await getSpotifyToken();
+    const url = 'https://api.spotify.com/v1/search?q=' + encodeURIComponent(q) + '&type=track&limit=10';
+    const searchRes = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+    if (searchRes.status === 429) throw new Error('Spotify rate limit reached. Please try again in a moment.');
+    if (!searchRes.ok) throw new Error('Spotify API error: ' + searchRes.status);
+    const data = await searchRes.json();
+    const songs = (data.tracks?.items || []).map(function(track) {
+      return {
+        title: track.name,
+        artist: track.artists.map(function(a) { return a.name; }).join(', '),
+        duration: msToMinSec(track.duration_ms),
+        preview_url: track.preview_url,
+        spotify_url: track.external_urls.spotify,
+        album_art: track.album.images[1] ? track.album.images[1].url : null,
+      };
+    });
+    res.json({ query: q, count: songs.length, songs });
+  } catch (err) {
+    console.error('Search error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

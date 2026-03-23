@@ -83,13 +83,11 @@
 
     window.addEventListener('DOMContentLoaded', function() {
       const saved = localStorage.getItem('theme');
-      if (saved === 'light') {
-        document.documentElement.setAttribute('data-theme', 'light');
-        document.querySelector('.toggle').textContent = '☀️';
-        document.getElementById('logo').src = 'quaver_lightmode1.png';
-      } else {
-        document.getElementById('logo').src = 'quaver_nightmode1.png';
-      }
+      const systemTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      const theme = saved || systemTheme;
+      document.documentElement.setAttribute('data-theme', theme);
+      document.querySelector('.toggle').textContent = theme === 'light' ? '☀️' : '🌙';
+      document.getElementById('logo').src = theme === 'light' ? 'quaver_lightmode1.png' : 'quaver_nightmode1.png';
       if (localStorage.getItem('quaver_token')) {
         window.location.href = 'Index.html';
       }

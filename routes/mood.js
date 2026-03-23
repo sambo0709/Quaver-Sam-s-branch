@@ -22,6 +22,10 @@ const moodMap = {
   energetic: { energy: 'high',   tempo: 'fast',   genre: 'electronic' },
   romantic:  { energy: 'medium', tempo: 'medium', genre: 'jazz' },
   focused:   { energy: 'medium', tempo: 'medium', genre: 'lo-fi' },
+  nostalgic: { energy: 'medium', tempo: 'medium', genre: 'retro' },
+  party:     { energy: 'high',   tempo: 'fast',   genre: 'dance' },
+  sleepy:    { energy: 'low',    tempo: 'slow',   genre: 'ambient' },
+  anxious:   { energy: 'low',    tempo: 'slow',   genre: 'meditation' },
 };
 
 router.get('/', (_, res) => {

@@ -133,4 +133,49 @@ router.post('/export', async (req, res) => {
   }
 });
 
+// POST /spotify/refresh - silently get a new access token using the refresh token
+router.post('/refresh', async (req, res) => {
+  const { spotifyToken } = req.body;
+  if (!spotifyToken) return res.status(400).json({ error: 'Missing token' });
+
+  try {
+    const decoded = jwt.verify(spotifyToken, process.env.JWT_SECRET, { ignoreExpiration: true });
+    const refreshToken = decoded.spotify_refresh_token;
+    if (!refreshToken) return res.status(400).json({ error: 'No refresh token available' });
+
+    const credentials = Buffer.from(
+      process.env.SPOTIFY_CLIENT_ID + ':' + process.env.SPOTIFY_CLIENT_SECRET
+    ).toString('base64');
+
+    const tokenRes = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Basic ' + credentials,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+      }),
+    });
+
+    const tokenData = await tokenRes.json();
+    if (!tokenData.access_token) {
+      return res.status(401).json({ error: 'Could not refresh. Please login with Spotify again.' });
+    }
+
+    const newSpotifyToken = jwt.sign({
+      spotify_access_token: tokenData.access_token,
+      spotify_refresh_token: tokenData.refresh_token || refreshToken,
+      spotify_user_id: decoded.spotify_user_id,
+      spotify_display_name: decoded.spotify_display_name,
+    }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    res.json({ spotifyToken: newSpotifyToken });
+  } catch (err) {
+    console.error('Refresh error:', err);
+    res.status(401).json({ error: 'Session expired. Please login with Spotify again.' });
+  }
+});
+
 module.exports = router;

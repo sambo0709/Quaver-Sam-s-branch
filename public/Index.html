@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#00d4ff"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Quaver"/>
+<link rel="manifest" href="/manifest.json"/>
+<link rel="apple-touch-icon" href="quaver_nightmode1.png"/>
 <link rel="icon" href="nightmode_logo.png">
 <title>Quaver</title>
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
@@ -37,6 +43,20 @@
 
 <div id="toast" class="toast"></div>
 
+<div id="onboarding-overlay" class="onboarding-overlay" style="display:none">
+  <div class="onboarding-card">
+    <div class="onboarding-logo">♬</div>
+    <h2 class="onboarding-title">Welcome to Quaver</h2>
+    <p class="onboarding-sub">Mood-based music discovery in 3 steps</p>
+    <div class="onboarding-steps">
+      <div class="onboarding-step"><span class="onboarding-num">1</span><span>Pick how you're feeling</span></div>
+      <div class="onboarding-step"><span class="onboarding-num">2</span><span>Get a personalised playlist</span></div>
+      <div class="onboarding-step"><span class="onboarding-num">3</span><span>Save &amp; export to Spotify</span></div>
+    </div>
+    <button class="onboarding-btn" onclick="dismissOnboarding()">Let's go</button>
+  </div>
+</div>
+
 <main>
   <h1>How are <span>you feeling?</span></h1>
   <p class="subtitle">Pick your mood and we'll choose a playlist for you.</p>
@@ -50,6 +70,10 @@
       <option value="focused">Focused</option>
       <option value="angry">Angry</option>
       <option value="romantic">Romantic</option>
+      <option value="nostalgic">Nostalgic</option>
+      <option value="party">Party</option>
+      <option value="sleepy">Sleepy</option>
+      <option value="anxious">Anxious</option>
     </select>
     <select class="mood-select" id="count-select" onchange="onCountSelect(this.value)">
       <option disabled selected value="">How many songs?</option>
@@ -59,8 +83,18 @@
     </select>
   </div>
   <button class="mood-select random-btn" onclick="randomMood()">Random Mood</button>
+  <div class="search-divider"><span>or search directly</span></div>
+  <div class="search-row">
+    <input type="text" id="search-input" class="search-input" placeholder="Song, artist, album..." onkeydown="if(event.key==='Enter')searchSongs()"/>
+    <button class="search-btn" onclick="searchSongs()">&#9906; Search</button>
+  </div>
   <div id="loading" class="loading" style="display:none">
-    <div class="loading-bar"></div>
+    <div class="music-notes-loader">
+      <span class="music-note">♩</span>
+      <span class="music-note">♪</span>
+      <span class="music-note">♫</span>
+      <span class="music-note">♬</span>
+    </div>
     <span>finding your sound...</span>
   </div>
   <div id="results" class="results"></div>
@@ -74,7 +108,12 @@
   </div>
   <div class="sotd-grid" id="sotd-grid">
     <div class="sotd-loading">
-      <div class="loading-bar"></div>
+      <div class="music-notes-loader">
+        <span class="music-note">♩</span>
+        <span class="music-note">♪</span>
+        <span class="music-note">♫</span>
+        <span class="music-note">♬</span>
+      </div>
       <span>loading today's picks...</span>
     </div>
   </div>
@@ -83,7 +122,12 @@
 <div id="spotify-player" class="spotify-player" style="display:none">
   <div class="player-header">
     <span id="player-song-name">—</span>
-    <button class="player-close-btn" onclick="closePlayer()">✕</button>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <button class="player-prev-btn" onclick="playFromQueue(-1)" title="Previous">&#9664;</button>
+      <button class="player-next-btn" onclick="playFromQueue(1)" title="Next">&#9654;&#9654;</button>
+      <span id="queue-counter" class="queue-counter" style="display:none"></span>
+      <button class="player-close-btn" onclick="closePlayer()">✕</button>
+    </div>
   </div>
   <iframe id="spotify-iframe"
     style="border-radius:12px"
@@ -117,7 +161,7 @@
 <script>
   const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
 
-  const moods = ['happy', 'sad', 'energetic', 'calm', 'focused', 'angry', 'romantic'];
+  const moods = ['happy', 'sad', 'energetic', 'calm', 'focused', 'angry', 'romantic', 'nostalgic', 'party', 'sleepy', 'anxious'];
   let currentMood = null;
   let currentLimit = 5;
   let playlistSongs = [];
@@ -125,6 +169,8 @@
   let recentMoods = JSON.parse(localStorage.getItem('quaver_moods') || '[]');
   let activePlaylistName = null;
   let spotifyToken = localStorage.getItem('quaver_spotify_token') || null;
+  let songQueue = [];
+  let queueIndex = -1;
 
   function showToast(msg, type) {
     const toast = document.getElementById('toast');
@@ -212,13 +258,28 @@
   }
 
   window.addEventListener('DOMContentLoaded', function() {
-    applyTheme(localStorage.getItem('theme') || 'dark');
+    const savedTheme = localStorage.getItem('theme');
+    const systemTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    applyTheme(savedTheme || systemTheme);
     checkSpotifyCallback();
     updateSpotifyUI();
     updateAuthUI();
     loadPlaylists();
     loadSongsOfTheDay();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(function() {});
+    }
+    if (!localStorage.getItem('quaver_onboarded')) {
+      document.getElementById('onboarding-overlay').style.display = 'flex';
+    }
   });
+
+  function dismissOnboarding() {
+    localStorage.setItem('quaver_onboarded', '1');
+    const el = document.getElementById('onboarding-overlay');
+    el.style.opacity = '0';
+    setTimeout(function() { el.style.display = 'none'; }, 300);
+  }
 
   async function loadPlaylists() {
     const token = localStorage.getItem('quaver_token');
@@ -286,7 +347,8 @@
           html += song.album_art ? '<img class="album-art" src="' + song.album_art + '" alt="art"/>' : '<div class="album-art"></div>';
           html += '<div class="song-info"><div class="song-title">' + song.title + '</div><div class="song-artist">' + song.artist + '</div></div>';
           html += '<div class="song-actions">';
-          if (trackId) html += '<button class="play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\')">&#9654;</button>';
+          if (trackId) html += '<button class="play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\', \'' + (song.artist || '').replace(/'/g, "\\'") + '\', \'' + (song.album_art || '') + '\')">&#9654;</button>';
+          html += '<button class="queue-btn" onclick=\'addToQueue(' + JSON.stringify(song).replace(/'/g, "&#39;") + ')\' title="Add to queue">+Q</button>';
           html += '<span class="song-duration">' + song.duration + '</span>';
           html += '<button class="add-btn' + (inPlaylist ? ' added' : '') + '" onclick=\'addToPlaylist(' + JSON.stringify(song).replace(/'/g, "&#39;") + ', this)\'>' + (inPlaylist ? 'Added' : '+ Add') + '</button>';
           html += '</div></div>';
@@ -297,15 +359,54 @@
       }
     } catch (err) {
       document.getElementById('loading').style.display = 'none';
-      document.getElementById('results').innerHTML = '<p class="no-results">Could not connect to server.</p>';
+      document.getElementById('results').innerHTML = '<div class="error-state"><p>Could not load songs.</p><button class="retry-btn" onclick="fetchSongs()">Try again</button></div>';
     }
   }
 
-  function playInApp(trackId, title) {
+  function playInApp(trackId, title, artist, albumArt) {
     document.getElementById('spotify-iframe').src = 'https://open.spotify.com/embed/track/' + trackId + '?utm_source=generator&theme=0';
     document.getElementById('player-song-name').textContent = title;
     document.getElementById('spotify-player').style.display = 'block';
     document.getElementById('spotify-player').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    updateQueueCounter();
+    // Track recently played
+    try {
+      const recent = JSON.parse(localStorage.getItem('quaver_recently_played') || '[]');
+      recent.unshift({ trackId, title, artist: artist || '', albumArt: albumArt || '', playedAt: Date.now() });
+      const seen = new Set();
+      const deduped = recent.filter(function(s) { if (seen.has(s.trackId)) return false; seen.add(s.trackId); return true; });
+      localStorage.setItem('quaver_recently_played', JSON.stringify(deduped.slice(0, 20)));
+    } catch(e) {}
+  }
+
+  function addToQueue(song) {
+    songQueue.push(song);
+    if (queueIndex === -1) {
+      queueIndex = 0;
+      const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
+      if (trackId) playInApp(trackId, song.title, song.artist, song.album_art);
+    } else {
+      showToast('"' + song.title + '" added to queue', 'success');
+    }
+    updateQueueCounter();
+  }
+
+  function playFromQueue(direction) {
+    if (songQueue.length === 0) return;
+    queueIndex = Math.max(0, Math.min(songQueue.length - 1, queueIndex + direction));
+    const song = songQueue[queueIndex];
+    const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
+    if (trackId) playInApp(trackId, song.title, song.artist, song.album_art);
+  }
+
+  function updateQueueCounter() {
+    const counter = document.getElementById('queue-counter');
+    if (songQueue.length > 1) {
+      counter.textContent = (queueIndex + 1) + '/' + songQueue.length;
+      counter.style.display = 'inline';
+    } else {
+      counter.style.display = 'none';
+    }
   }
 
   function closePlayer() {
@@ -408,6 +509,58 @@
     }
   }
 
+  async function searchSongs() {
+    const q = document.getElementById('search-input').value.trim();
+    if (!q) return;
+    document.getElementById('loading').style.display = 'flex';
+    document.getElementById('results').innerHTML = '';
+    try {
+      const res = await fetch(API + '/api/music/search?q=' + encodeURIComponent(q));
+      const data = await res.json();
+      document.getElementById('loading').style.display = 'none';
+      if (data.songs && data.songs.length > 0) {
+        let html = '<div class="results-header">' + data.songs.length + ' results for "' + q + '"</div>';
+        data.songs.forEach(function(song, i) {
+          const inPlaylist = playlistSongs.some(function(s) { return s.title === song.title; });
+          const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
+          html += '<div class="song-card" style="animation-delay:' + (i * 0.06) + 's">';
+          html += '<span class="song-num">' + String(i + 1).padStart(2, '0') + '</span>';
+          html += song.album_art ? '<img class="album-art" src="' + song.album_art + '" alt="art"/>' : '<div class="album-art"></div>';
+          html += '<div class="song-info"><div class="song-title">' + song.title + '</div><div class="song-artist">' + song.artist + '</div></div>';
+          html += '<div class="song-actions">';
+          if (trackId) html += '<button class="play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\', \'' + (song.artist || '').replace(/'/g, "\\'") + '\', \'' + (song.album_art || '') + '\')">&#9654;</button>';
+          html += '<button class="queue-btn" onclick=\'addToQueue(' + JSON.stringify(song).replace(/'/g, "&#39;") + ')\' title="Add to queue">+Q</button>';
+          html += '<span class="song-duration">' + song.duration + '</span>';
+          html += '<button class="add-btn' + (inPlaylist ? ' added' : '') + '" onclick=\'addToPlaylist(' + JSON.stringify(song).replace(/'/g, "&#39;") + ', this)\'>' + (inPlaylist ? 'Added' : '+ Add') + '</button>';
+          html += '</div></div>';
+        });
+        document.getElementById('results').innerHTML = html;
+      } else {
+        document.getElementById('results').innerHTML = '<p class="no-results">No results for "' + q + '"</p>';
+      }
+    } catch(err) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('results').innerHTML = '<p class="no-results">Search failed. Try again.</p>';
+    }
+  }
+
+  async function refreshSpotifyToken() {
+    try {
+      const res = await fetch(API + '/spotify/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ spotifyToken }),
+      });
+      const data = await res.json();
+      if (res.ok && data.spotifyToken) {
+        spotifyToken = data.spotifyToken;
+        localStorage.setItem('quaver_spotify_token', spotifyToken);
+        return true;
+      }
+    } catch(e) {}
+    return false;
+  }
+
   async function renamePlaylist(index) {
     const pl = savedPlaylists[index];
     const newName = window.prompt('Rename playlist:', pl.name);
@@ -468,16 +621,32 @@
       if (res.ok) {
         showToast('Exported to Spotify! Opening...', 'success');
         setTimeout(function() { window.open(data.playlist_url, '_blank'); }, 500);
-      } else {
-        if (res.status === 401 || (data.error && data.error.includes('login'))) {
+      } else if (res.status === 401 || (data.error && data.error.includes('login'))) {
+        showToast('Refreshing Spotify session...', 'success');
+        const refreshed = await refreshSpotifyToken();
+        if (refreshed) {
+          showToast('Retrying export...', 'success');
+          const retry = await fetch(API + '/spotify/export', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ playlistName: pl.name + ' (from Quaver)', trackUris, spotifyToken }),
+          });
+          const retryData = await retry.json();
+          if (retry.ok) {
+            showToast('Exported to Spotify! Opening...', 'success');
+            setTimeout(function() { window.open(retryData.playlist_url, '_blank'); }, 500);
+          } else {
+            showToast(retryData.error || 'Export failed.', 'error');
+          }
+        } else {
           localStorage.removeItem('quaver_spotify_token');
           localStorage.removeItem('quaver_spotify_name');
           spotifyToken = null;
           updateSpotifyUI();
           showToast('Spotify session expired — please reconnect Spotify.', 'error');
-        } else {
-          showToast(data.error || 'Export failed.', 'error');
         }
+      } else {
+        showToast(data.error || 'Export failed.', 'error');
       }
     } catch (err) {
       showToast('Could not connect to server.', 'error');
@@ -554,7 +723,7 @@
       try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), picks })); } catch(e) {}
       renderSotd(picks, grid);
     } catch(e) {
-      grid.innerHTML = '<p class="no-results">Could not load picks. Is the server running?</p>';
+      grid.innerHTML = '<div class="error-state"><p>Could not load picks.</p><button class="retry-btn" onclick="loadSongsOfTheDay()">Try again</button></div>';
     }
   }
 
