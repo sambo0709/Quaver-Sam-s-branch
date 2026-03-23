@@ -14,6 +14,9 @@ const moodToSearch = {
 let cachedToken = null;
 let tokenExpiresAt = 0;
 
+let sotdCache = null;
+let sotdExpiresAt = 0;
+
 async function getSpotifyToken() {
   if (cachedToken && Date.now() < tokenExpiresAt) {
     return cachedToken;
@@ -88,6 +91,34 @@ router.get('/recommend', async function(req, res) {
     res.json({ mood: mood, count: songs.length, songs: songs });
   } catch (err) {
     console.error('Spotify error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/music/sotd — one song per mood, cached server-side for 1 hour
+router.get('/sotd', async function(_req, res) {
+  if (sotdCache && Date.now() < sotdExpiresAt) {
+    return res.json({ picks: sotdCache });
+  }
+
+  const moodList = ['happy', 'sad', 'energetic', 'calm', 'focused', 'romantic'];
+  try {
+    const token = await getSpotifyToken();
+    const picks = [];
+    for (let i = 0; i < moodList.length; i++) {
+      const mood = moodList[i];
+      const songs = await searchTracks(moodToSearch[mood], token, 1);
+      if (songs[0]) {
+        songs[0].mood = mood;
+        picks.push(songs[0]);
+      }
+    }
+    sotdCache = picks;
+    sotdExpiresAt = Date.now() + 60 * 60 * 1000; // 1 hour
+    res.json({ picks });
+  } catch (err) {
+    console.error('SOTD error:', err.message);
+    if (sotdCache) return res.json({ picks: sotdCache }); // serve stale cache on error
     res.status(500).json({ error: err.message });
   }
 });

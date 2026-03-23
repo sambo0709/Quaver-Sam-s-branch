@@ -485,7 +485,6 @@
   }
 
   async function loadSongsOfTheDay() {
-    const moodList = ['happy', 'sad', 'energetic', 'calm', 'focused', 'romantic'];
     const grid = document.getElementById('sotd-grid');
     const CACHE_KEY = 'quaver_sotd';
     const CACHE_TTL = 60 * 60 * 1000; // 1 hour
@@ -499,17 +498,9 @@
     } catch(e) {}
 
     try {
-      const picks = [];
-      for (let i = 0; i < moodList.length; i++) {
-        const mood = moodList[i];
-        const res = await fetch(API + '/api/music/recommend?mood=' + mood + '&limit=1');
-        const data = await res.json();
-        if (data.songs && data.songs[0]) {
-          const song = data.songs[0];
-          song.mood = mood;
-          picks.push(song);
-        }
-      }
+      const res = await fetch(API + '/api/music/sotd');
+      const data = await res.json();
+      const picks = data.picks || [];
       if (picks.length === 0) {
         grid.innerHTML = '<p class="no-results">Could not load picks.</p>';
         return;
