@@ -119,14 +119,14 @@ router.post('/export', async (req, res) => {
       return parts[0];
     });
 
-    // Add tracks to playlist
-    const addRes = await fetch('https://api.spotify.com/v1/playlists/' + playlist.id + '/tracks', {
+    // Add tracks to playlist (using query params - more compatible across Spotify API versions)
+    const addRes = await fetch('https://api.spotify.com/v1/playlists/' + playlist.id + '/items?uris=' + cleanUris.join(','), {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer ' + accessToken,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ uris: cleanUris }),
+      body: JSON.stringify({}),
     });
 
     const addData = await addRes.json();
