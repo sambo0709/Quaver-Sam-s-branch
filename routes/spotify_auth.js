@@ -48,6 +48,7 @@ router.get('/callback', async (req, res) => {
     if (!tokenData.access_token) {
       return res.redirect('/Index.html?error=spotify_token_failed');
     }
+    console.log('Spotify scopes granted:', tokenData.scope);
 
     // Get Spotify user info
     const userRes = await fetch('https://api.spotify.com/v1/me', {
@@ -98,11 +99,12 @@ router.post('/export', async (req, res) => {
       body: JSON.stringify({
         name: playlistName,
         description: 'Created with Quaver 🎵',
-        public: false,
+        public: true,
       }),
     });
 
     const playlist = await createRes.json();
+    console.log('Playlist created:', playlist.id, 'owner:', playlist.owner?.id);
     if (!playlist.id) {
       console.error('Spotify create playlist failed:', JSON.stringify(playlist));
       if (createRes.status === 401) {
