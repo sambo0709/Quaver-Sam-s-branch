@@ -60,7 +60,7 @@
   }
 
   function playInApp(trackId, title) {
-    document.getElementById('spotify-iframe').src = 'https://open.spotify.com/embed/track/' + trackId + '?utm_source=generator&theme=0';
+    document.getElementById('spotify-iframe').src = 'https://open.spotify.com/embed/track/' + trackId + '?utm_source=generator&theme=0&autoplay=1';
     document.getElementById('player-song-name').textContent = title;
     document.getElementById('spotify-player').style.display = 'block';
   }
