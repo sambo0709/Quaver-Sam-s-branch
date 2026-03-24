@@ -26,15 +26,33 @@ let sotdExpiresAt = 0;
 const moodPoolCache = {};
 const POOL_TTL = 2 * 60 * 60 * 1000; // 2 hours
 
+// Tracks recently served song IDs per mood to avoid repeats
+const recentlyServed = {};
+const MAX_SEEN = 8; // remember last 8 served per mood
+
 async function getMoodPool(mood, token) {
   const entry = moodPoolCache[mood];
   if (entry && Date.now() < entry.expiresAt) {
     return entry.songs;
   }
-  // Fetch a full pool of 10; all requests for this mood share it for 2 hours
   const songs = await searchTracks(moodToSearch[mood], token, 10);
   moodPoolCache[mood] = { songs, expiresAt: Date.now() + POOL_TTL };
   return songs;
+}
+
+function pickUnseenSongs(pool, mood, limit) {
+  const seen = recentlyServed[mood] || [];
+  let unseen = pool.filter(function(s) { return !seen.includes(s.spotify_url); });
+  // If not enough unseen songs, reset and use full pool
+  if (unseen.length < limit) {
+    recentlyServed[mood] = [];
+    unseen = pool.slice();
+  }
+  const picked = unseen.sort(function() { return Math.random() - 0.5; }).slice(0, limit);
+  // Record served songs
+  const ids = picked.map(function(s) { return s.spotify_url; });
+  recentlyServed[mood] = (recentlyServed[mood] || []).concat(ids).slice(-MAX_SEEN);
+  return picked;
 }
 
 const SOTD_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -140,7 +158,7 @@ router.get('/recommend', async function(req, res) {
   try {
     const token = await getSpotifyToken();
     const pool = await getMoodPool(mood.toLowerCase(), token);
-    const songs = pool.slice().sort(() => Math.random() - 0.5).slice(0, songLimit);
+    const songs = pickUnseenSongs(pool, mood.toLowerCase(), songLimit);
     res.json({ mood: mood, count: songs.length, songs: songs });
   } catch (err) {
     console.error('Spotify error:', err.message);
@@ -148,13 +166,18 @@ router.get('/recommend', async function(req, res) {
   }
 });
 
-// GET /api/music/search?q=... - search for specific songs/artists
+// GET /api/music/search?q=...&genre=...&year=... - search for specific songs/artists
 router.get('/search', async function(req, res) {
   const q = (req.query.q || '').trim();
   if (!q) return res.status(400).json({ error: 'Query required' });
+  const genre = (req.query.genre || '').trim();
+  const year = (req.query.year || '').trim();
+  let query = q;
+  if (genre) query += ' genre:' + genre;
+  if (year) query += ' year:' + year;
   try {
     const token = await getSpotifyToken();
-    const url = 'https://api.spotify.com/v1/search?q=' + encodeURIComponent(q) + '&type=track&limit=10';
+    const url = 'https://api.spotify.com/v1/search?q=' + encodeURIComponent(query) + '&type=track&limit=10';
     const searchRes = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
     if (searchRes.status === 429) throw new Error('Spotify rate limit reached. Please try again in a moment.');
     if (!searchRes.ok) throw new Error('Spotify API error: ' + searchRes.status);

@@ -51,7 +51,7 @@ router.post('/history', async (req, res) => {
   if (!user) return res.status(401).json({ error: 'Not logged in' });
   const { mood } = req.body;
   if (!mood) return res.status(400).json({ error: 'mood required' });
-  const entry = { mood, time: new Date().toLocaleString() };
+  const entry = { mood, time: new Date().toLocaleString(), ts: Date.now() };
   try {
     const db = await getDB();
     await db.collection('users').updateOne(
@@ -59,6 +59,36 @@ router.post('/history', async (req, res) => {
       { $push: { recentMoods: { $each: [entry], $slice: -20 } } }
     );
     res.status(201).json({ message: 'Mood saved' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// GET /api/mood/trending - top moods across all users in last 24h
+router.get('/trending', async (req, res) => {
+  try {
+    const db = await getDB();
+    const users = await db.collection('users').find(
+      { 'recentMoods.0': { $exists: true } },
+      { projection: { recentMoods: 1 } }
+    ).toArray();
+
+    const since = Date.now() - 24 * 60 * 60 * 1000;
+    const counts = {};
+    users.forEach(function(user) {
+      (user.recentMoods || []).forEach(function(entry) {
+        if (entry.mood && entry.ts && entry.ts > since) {
+          counts[entry.mood] = (counts[entry.mood] || 0) + 1;
+        }
+      });
+    });
+
+    const trending = Object.entries(counts)
+      .sort(function(a, b) { return b[1] - a[1]; })
+      .slice(0, 5)
+      .map(function([mood, count]) { return { mood, count }; });
+
+    res.json({ trending });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

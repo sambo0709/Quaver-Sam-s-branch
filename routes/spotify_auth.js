@@ -48,8 +48,6 @@ router.get('/callback', async (req, res) => {
     if (!tokenData.access_token) {
       return res.redirect('/Index.html?error=spotify_token_failed');
     }
-    console.log('Spotify scopes granted:', tokenData.scope);
-
     // Get Spotify user info
     const userRes = await fetch('https://api.spotify.com/v1/me', {
       headers: { 'Authorization': 'Bearer ' + tokenData.access_token }
@@ -104,7 +102,6 @@ router.post('/export', async (req, res) => {
     });
 
     const playlist = await createRes.json();
-    console.log('Playlist created:', playlist.id, 'owner:', playlist.owner?.id);
     if (!playlist.id) {
       console.error('Spotify create playlist failed:', JSON.stringify(playlist));
       if (createRes.status === 401) {
@@ -131,8 +128,6 @@ router.post('/export', async (req, res) => {
 
     const addData = await addRes.json();
     if (!addData.snapshot_id) {
-      console.error('Spotify add tracks failed:', addRes.status, JSON.stringify(addData));
-      console.error('Track URIs sent:', JSON.stringify(trackUris));
       // Clean up the empty playlist so it doesn't litter the user's Spotify
       await fetch('https://api.spotify.com/v1/playlists/' + playlist.id + '/followers', {
         method: 'DELETE',

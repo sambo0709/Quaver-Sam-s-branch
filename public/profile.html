@@ -128,6 +128,31 @@
   <script>
     const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
 
+    const moodColors = {
+      happy:     { accent: '#FFD700', accent2: '#FF9500' },
+      sad:       { accent: '#4A90D9', accent2: '#9B59B6' },
+      energetic: { accent: '#FF4E50', accent2: '#F9D423' },
+      calm:      { accent: '#43B89C', accent2: '#6BC5F8' },
+      focused:   { accent: '#7B61FF', accent2: '#00D4FF' },
+      angry:     { accent: '#FF2D2D', accent2: '#FF6B35' },
+      romantic:  { accent: '#FF6B9D', accent2: '#FF4E50' },
+      nostalgic: { accent: '#F7971E', accent2: '#FFD200' },
+      party:     { accent: '#FF006E', accent2: '#FB5607' },
+      sleepy:    { accent: '#4776E6', accent2: '#8E54E9' },
+      anxious:   { accent: '#11998E', accent2: '#38EF7D' },
+    };
+
+    function applyMoodColors(mood) {
+      const colors = moodColors[mood];
+      if (!colors) return;
+      const root = document.documentElement;
+      root.style.setProperty('--accent', colors.accent);
+      root.style.setProperty('--accent2', colors.accent2);
+      root.style.setProperty('--gradient', 'linear-gradient(135deg, ' + colors.accent + ', ' + colors.accent2 + ')');
+      root.style.setProperty('--accent-glow', colors.accent + '40');
+      root.style.setProperty('--accent2-glow', colors.accent2 + '40');
+    }
+
     function toggleTheme() {
       const html = document.documentElement;
       const btn = document.querySelector('.toggle');
@@ -168,6 +193,9 @@
       document.getElementById('spotify-iframe').src = 'https://open.spotify.com/embed/track/' + trackId + '?utm_source=generator&theme=0';
       document.getElementById('player-song-name').textContent = title;
       document.getElementById('spotify-player').style.display = 'block';
+      // Shift to most recent mood color on play
+      const moods = window._profileMoods;
+      if (moods && moods.length > 0) applyMoodColors(moods[0].mood);
       try {
         const recent = JSON.parse(localStorage.getItem('quaver_recently_played') || '[]');
         recent.unshift({ trackId, title, artist: artist || '', albumArt: albumArt || '', playedAt: Date.now() });
@@ -258,7 +286,7 @@
         return;
       }
       container.innerHTML = moods.slice(0, 5).map(function(item) {
-        return '<div class="profile-mood-item"><span class="profile-mood-badge">' + item.mood + '</span><span class="profile-mood-time">' + item.time + '</span></div>';
+        return '<div class="profile-mood-item" onclick="applyMoodColors(\'' + item.mood + '\')" style="cursor:pointer;" title="Apply ' + item.mood + ' theme"><span class="profile-mood-badge">' + item.mood + '</span><span class="profile-mood-time">' + item.time + '</span></div>';
       }).join('');
     }
 
@@ -348,6 +376,15 @@
         } catch (e) {}
       }
       window._profileMoods = moods;
+
+      // C: apply top mood color on load
+      if (moods.length > 0) {
+        const moodCounts = {};
+        moods.forEach(function(m) { moodCounts[m.mood] = (moodCounts[m.mood] || 0) + 1; });
+        const topMood = Object.keys(moodCounts).sort(function(a, b) { return moodCounts[b] - moodCounts[a]; })[0];
+        applyMoodColors(topMood);
+      }
+
       renderMoodAnalytics(moods);
       renderRecentMoods(moods);
       renderRecentlyPlayed();
@@ -410,7 +447,19 @@
       btn.disabled = false;
     }
 
-    window.addEventListener('DOMContentLoaded', function() {
+    (function() {
+    var lastY = 0, nav = null;
+    window.addEventListener('scroll', function() {
+      if (window.innerWidth > 768) return;
+      if (!nav) nav = document.querySelector('nav, .top-nav');
+      var y = window.scrollY;
+      if (y > lastY && y > 60) nav.classList.add('nav-hidden');
+      else nav.classList.remove('nav-hidden');
+      lastY = y;
+    }, { passive: true });
+  })();
+
+  window.addEventListener('DOMContentLoaded', function() {
       if (!localStorage.getItem('quaver_token')) {
         window.location.href = 'login.html';
         return;

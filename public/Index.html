@@ -48,6 +48,7 @@
 </nav>
 
 <div id="toast" class="toast"></div>
+<canvas id="confetti-canvas"></canvas>
 
 <div id="onboarding-overlay" class="onboarding-overlay" style="display:none">
   <div class="onboarding-card">
@@ -88,12 +89,44 @@
       <option value="10">10 songs</option>
     </select>
   </div>
-  <button class="mood-select random-btn" onclick="randomMood()">Random Mood</button>
+  <button class="mood-select random-btn" onclick="randomMood()">✨ Surprise Me</button>
   <div class="search-divider"><span>or search directly</span></div>
   <div class="search-row">
-    <input type="text" id="search-input" class="search-input" placeholder="Song, artist, album..." onkeydown="if(event.key==='Enter')searchSongs()"/>
+    <div class="search-input-wrap">
+      <input type="text" id="search-input" class="search-input" placeholder="Song, artist, album..."
+        onkeydown="if(event.key==='Enter')searchSongs()"
+        oninput="document.getElementById('search-clear').style.display=this.value?'flex':'none'"
+        onfocus="document.getElementById('search-filters').classList.add('visible')"
+        onblur="if(!this.value.trim())document.getElementById('search-filters').classList.remove('visible')"/>
+      <button class="search-clear-btn" id="search-clear" onclick="clearSearch()" style="display:none" title="Clear">✕</button>
+    </div>
     <button class="search-btn" onclick="searchSongs()">&#9906; Search</button>
   </div>
+  <div class="search-filters" id="search-filters">
+    <select class="filter-select" id="filter-genre">
+      <option value="">Any genre</option>
+      <option value="pop">Pop</option>
+      <option value="hip-hop">Hip-Hop</option>
+      <option value="rock">Rock</option>
+      <option value="r-n-b">R&amp;B</option>
+      <option value="electronic">Electronic</option>
+      <option value="jazz">Jazz</option>
+      <option value="classical">Classical</option>
+      <option value="country">Country</option>
+      <option value="lo-fi">Lo-Fi</option>
+      <option value="afrobeats">Afrobeats</option>
+    </select>
+    <select class="filter-select" id="filter-year">
+      <option value="">Any era</option>
+      <option value="2020-2025">2020s</option>
+      <option value="2010-2019">2010s</option>
+      <option value="2000-2009">2000s</option>
+      <option value="1990-1999">90s</option>
+      <option value="1980-1989">80s</option>
+      <option value="1970-1979">70s</option>
+    </select>
+  </div>
+  <div id="streak-banner" class="streak-banner" style="display:none"></div>
   <div id="loading" class="loading" style="display:none">
     <div class="music-notes-loader">
       <span class="music-note">♩</span>
@@ -105,6 +138,12 @@
   </div>
   <div id="results" class="results"></div>
 </main>
+
+<section class="trending-section" id="trending-section">
+  <div class="trending-label">COMMUNITY</div>
+  <h2 class="trending-title">Trending Moods</h2>
+  <div class="trending-pills" id="trending-pills"></div>
+</section>
 
 <section class="sotd-section" id="sotd">
   <div class="sotd-header">
@@ -131,7 +170,8 @@
     <div style="display:flex;gap:6px;align-items:center;">
       <button class="player-prev-btn" onclick="playFromQueue(-1)" title="Previous">&#9664;</button>
       <button class="player-next-btn" onclick="playFromQueue(1)" title="Next">&#9654;&#9654;</button>
-      <span id="queue-counter" class="queue-counter" style="display:none"></span>
+      <button id="shuffle-btn" class="player-shuffle-btn" onclick="shuffleQueue()" title="Shuffle remaining">⇄</button>
+      <button id="queue-counter" class="queue-counter" onclick="toggleQueuePanel()" style="display:none" title="View queue"></button>
       <button class="player-close-btn" onclick="closePlayer()">✕</button>
     </div>
   </div>
@@ -147,7 +187,30 @@
   </iframe>
 </div>
 
+<div class="queue-overlay" id="queue-overlay" onclick="toggleQueuePanel()"></div>
+<div class="queue-panel" id="queue-panel">
+  <div class="queue-panel-header">
+    <span class="queue-panel-title">Up Next</span>
+    <div class="queue-panel-actions">
+      <button class="queue-clear-btn" onclick="shuffleQueue()">⇄ Shuffle</button>
+      <button class="queue-clear-btn" onclick="clearQueue()">Clear all</button>
+      <button class="queue-panel-close" onclick="toggleQueuePanel()">✕</button>
+    </div>
+  </div>
+  <div id="queue-list" class="queue-list"></div>
+</div>
+
 <div class="playlist-overlay" id="playlist-overlay" onclick="togglePlaylistPanel()"></div>
+
+<div class="rename-modal-overlay" id="confirm-overlay" onclick="closeConfirmModal()"></div>
+<div class="rename-modal" id="confirm-modal">
+  <div class="rename-modal-title" id="confirm-title">Delete playlist?</div>
+  <p id="confirm-message" style="color:var(--text-muted);font-size:0.85rem;margin:0 0 18px;line-height:1.5;"></p>
+  <div class="rename-modal-actions">
+    <button class="rename-modal-cancel" onclick="closeConfirmModal()">Cancel</button>
+    <button class="save-btn" id="confirm-ok-btn" onclick="confirmAction()" style="background:linear-gradient(135deg,#ff4e50,#e02020);border-color:transparent;">Delete</button>
+  </div>
+</div>
 
 <div class="rename-modal-overlay" id="rename-modal-overlay" onclick="closeRenameModal()"></div>
 <div class="rename-modal" id="rename-modal">
@@ -178,6 +241,31 @@
   const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
 
   const moods = ['happy', 'sad', 'energetic', 'calm', 'focused', 'angry', 'romantic', 'nostalgic', 'party', 'sleepy', 'anxious'];
+
+  const moodColors = {
+    happy:     { accent: '#FFD700', accent2: '#FF9500' },
+    sad:       { accent: '#4A90D9', accent2: '#9B59B6' },
+    energetic: { accent: '#FF4E50', accent2: '#F9D423' },
+    calm:      { accent: '#43B89C', accent2: '#6BC5F8' },
+    focused:   { accent: '#7B61FF', accent2: '#00D4FF' },
+    angry:     { accent: '#FF2D2D', accent2: '#FF6B35' },
+    romantic:  { accent: '#FF6B9D', accent2: '#FF4E50' },
+    nostalgic: { accent: '#F7971E', accent2: '#FFD200' },
+    party:     { accent: '#FF006E', accent2: '#FB5607' },
+    sleepy:    { accent: '#4776E6', accent2: '#8E54E9' },
+    anxious:   { accent: '#11998E', accent2: '#38EF7D' },
+  };
+
+  function applyMoodColors(mood) {
+    const colors = moodColors[mood];
+    if (!colors) return;
+    const root = document.documentElement;
+    root.style.setProperty('--accent', colors.accent);
+    root.style.setProperty('--accent2', colors.accent2);
+    root.style.setProperty('--gradient', 'linear-gradient(135deg, ' + colors.accent + ', ' + colors.accent2 + ')');
+    root.style.setProperty('--accent-glow', colors.accent + '40');
+    root.style.setProperty('--accent2-glow', colors.accent2 + '40');
+  }
   let currentMood = null;
   let currentLimit = 5;
   let playlistSongs = [];
@@ -283,6 +371,18 @@
     }
   }
 
+  (function() {
+    var lastY = 0, nav = null;
+    window.addEventListener('scroll', function() {
+      if (window.innerWidth > 768) return;
+      if (!nav) nav = document.querySelector('nav, .top-nav');
+      var y = window.scrollY;
+      if (y > lastY && y > 60) nav.classList.add('nav-hidden');
+      else nav.classList.remove('nav-hidden');
+      lastY = y;
+    }, { passive: true });
+  })();
+
   window.addEventListener('DOMContentLoaded', function() {
     const savedTheme = localStorage.getItem('theme');
     const systemTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
@@ -304,6 +404,8 @@
     updateSpotifyUI();
     updateAuthUI();
     loadPlaylists();
+    renderTrendingPills();
+    loadTrendingMoods();
     loadSongsOfTheDay();
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(function() {});
@@ -339,7 +441,11 @@
 
   function randomMood() {
     const random = moods[Math.floor(Math.random() * moods.length)];
+    const counts = [5, 8, 10];
+    const randomCount = counts[Math.floor(Math.random() * counts.length)];
+    currentLimit = randomCount;
     document.getElementById('mood-select').value = random;
+    document.getElementById('count-select').value = String(randomCount);
     setMood(random);
   }
 
@@ -353,11 +459,32 @@
     if (currentMood) fetchSongs();
   }
 
+  function checkMoodStreak(mood) {
+    let streak = 0;
+    for (let i = 0; i < recentMoods.length; i++) {
+      if (recentMoods[i].mood === mood) streak++;
+      else break;
+    }
+    const banner = document.getElementById('streak-banner');
+    if (streak >= 2) {
+      const label = streak >= 5 ? '🔥' : streak >= 3 ? '✨' : '💫';
+      banner.textContent = label + ' ' + streak + '-pick ' + mood + ' streak!';
+      banner.style.display = 'block';
+      void banner.offsetWidth;
+      banner.classList.add('streak-banner-show');
+    } else {
+      banner.style.display = 'none';
+      banner.classList.remove('streak-banner-show');
+    }
+  }
+
   function setMood(mood) {
     currentMood = mood;
+    applyMoodColors(mood);
     recentMoods.unshift({ mood: mood, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
     if (recentMoods.length > 10) recentMoods.pop();
     localStorage.setItem('quaver_moods', JSON.stringify(recentMoods));
+    checkMoodStreak(mood);
     const token = localStorage.getItem('quaver_token');
     if (token) {
       fetch(API + '/api/mood/history', {
@@ -369,25 +496,31 @@
     fetchSongs();
   }
 
+  function showSkeletons(count) {
+    const card = '<div class="skeleton-card"><div class="skeleton-art"></div><div class="skeleton-lines"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div></div>';
+    document.getElementById('results').innerHTML = card.repeat(count);
+  }
+
   async function fetchSongs() {
-    document.getElementById('loading').style.display = 'flex';
-    document.getElementById('results').innerHTML = '';
+    document.getElementById('loading').style.display = 'none';
+    showSkeletons(currentLimit);
     try {
       const res = await fetch(API + '/api/music/recommend?mood=' + currentMood + '&limit=' + currentLimit);
       const data = await res.json();
-      document.getElementById('loading').style.display = 'none';
       if (data.songs && data.songs.length > 0) {
-        let html = '<div class="results-header">' + data.songs.length + ' tracks — ' + currentMood + '</div>';
+        window._lastResults = data.songs;
+        let html = '<div class="results-header"><span>' + data.songs.length + ' tracks — ' + currentMood + '</span><button class="play-all-btn" onclick="playAll(window._lastResults)">▶ Play All</button></div>';
         data.songs.forEach(function(song, i) {
           const inPlaylist = playlistSongs.some(function(s) { return s.title === song.title; });
           const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
-          html += '<div class="song-card" style="animation-delay:' + (i * 0.06) + 's">';
+          html += '<div class="song-card" style="animation-delay:' + (i * 0.07) + 's">';
           html += '<span class="song-num">' + String(i + 1).padStart(2, '0') + '</span>';
           html += song.album_art ? '<img class="album-art" src="' + song.album_art + '" alt="art"/>' : '<div class="album-art"></div>';
           html += '<div class="song-info"><div class="song-title">' + song.title + '</div><div class="song-artist">' + song.artist + '</div></div>';
           html += '<div class="song-actions">';
           if (trackId) html += '<button class="play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\', \'' + (song.artist || '').replace(/'/g, "\\'") + '\', \'' + (song.album_art || '') + '\')">&#9654;</button>';
           html += '<button class="queue-btn" onclick=\'addToQueue(' + JSON.stringify(song).replace(/'/g, "&#39;") + ')\' title="Add to queue">+Q</button>';
+          html += '<button class="more-btn" data-title="' + song.title.replace(/"/g, '&quot;') + '" data-artist="' + (song.artist || '').replace(/"/g, '&quot;') + '" onclick="moreLikeThis(this.dataset.title,this.dataset.artist)" title="More like this">\u2248</button>';
           html += '<span class="song-duration">' + song.duration + '</span>';
           html += '<button class="add-btn' + (inPlaylist ? ' added' : '') + '" onclick=\'addToPlaylist(' + JSON.stringify(song).replace(/'/g, "&#39;") + ', this)\'>' + (inPlaylist ? 'Added' : '+ Add') + '</button>';
           html += '</div></div>';
@@ -397,7 +530,6 @@
         document.getElementById('results').innerHTML = '<p class="no-results">No songs found. Try another mood!</p>';
       }
     } catch (err) {
-      document.getElementById('loading').style.display = 'none';
       document.getElementById('results').innerHTML = '<div class="error-state"><p>Could not load songs.</p><button class="retry-btn" onclick="fetchSongs()">Try again</button></div>';
     }
   }
@@ -408,6 +540,8 @@
     document.getElementById('spotify-player').style.display = 'block';
     document.getElementById('spotify-player').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     updateQueueCounter();
+    const qp = document.getElementById('queue-panel');
+    if (qp && qp.classList.contains('open')) renderQueuePanel();
     // Track recently played
     try {
       const recent = JSON.parse(localStorage.getItem('quaver_recently_played') || '[]');
@@ -424,8 +558,15 @@
       queueIndex = 0;
       const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
       if (trackId) playInApp(trackId, song.title, song.artist, song.album_art);
+      showToast('Now playing: "' + song.title + '"', 'success');
     } else {
       showToast('"' + song.title + '" added to queue', 'success');
+      const counter = document.getElementById('queue-counter');
+      if (counter) {
+        counter.classList.remove('queue-counter-pop');
+        void counter.offsetWidth;
+        counter.classList.add('queue-counter-pop');
+      }
     }
     updateQueueCounter();
   }
@@ -440,12 +581,14 @@
 
   function updateQueueCounter() {
     const counter = document.getElementById('queue-counter');
-    if (songQueue.length > 1) {
+    if (songQueue.length > 0) {
       counter.textContent = (queueIndex + 1) + '/' + songQueue.length;
-      counter.style.display = 'inline';
+      counter.style.display = 'inline-block';
     } else {
       counter.style.display = 'none';
     }
+    const panel = document.getElementById('queue-panel');
+    if (panel && panel.classList.contains('open')) renderQueuePanel();
   }
 
   function closePlayer() {
@@ -455,7 +598,10 @@
 
   function addToPlaylist(song, btn) {
     if (!requireLogin('You need an account to save songs!')) return;
-    if (playlistSongs.some(function(s) { return s.title === song.title; })) return;
+    const isDupe = playlistSongs.some(function(s) {
+      return song.spotify_url ? s.spotify_url === song.spotify_url : s.title === song.title;
+    });
+    if (isDupe) { showToast(song.title + ' is already in your playlist!', 'error'); return; }
     playlistSongs.push(song);
     btn.textContent = 'Added';
     btn.classList.add('added');
@@ -551,24 +697,31 @@
   async function searchSongs() {
     const q = document.getElementById('search-input').value.trim();
     if (!q) return;
-    document.getElementById('loading').style.display = 'flex';
-    document.getElementById('results').innerHTML = '';
+    document.getElementById('search-filters').classList.add('visible');
+    const genre = document.getElementById('filter-genre').value;
+    const year = document.getElementById('filter-year').value;
+    document.getElementById('loading').style.display = 'none';
+    showSkeletons(5);
     try {
-      const res = await fetch(API + '/api/music/search?q=' + encodeURIComponent(q));
+      let url = API + '/api/music/search?q=' + encodeURIComponent(q);
+      if (genre) url += '&genre=' + encodeURIComponent(genre);
+      if (year) url += '&year=' + encodeURIComponent(year);
+      const res = await fetch(url);
       const data = await res.json();
-      document.getElementById('loading').style.display = 'none';
       if (data.songs && data.songs.length > 0) {
-        let html = '<div class="results-header">' + data.songs.length + ' results for "' + q + '"</div>';
+        window._lastResults = data.songs;
+        let html = '<div class="results-header"><span>' + data.songs.length + ' results for "' + q + '"</span><button class="play-all-btn" onclick="playAll(window._lastResults)">▶ Play All</button></div>';
         data.songs.forEach(function(song, i) {
           const inPlaylist = playlistSongs.some(function(s) { return s.title === song.title; });
           const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
-          html += '<div class="song-card" style="animation-delay:' + (i * 0.06) + 's">';
+          html += '<div class="song-card" style="animation-delay:' + (i * 0.07) + 's">';
           html += '<span class="song-num">' + String(i + 1).padStart(2, '0') + '</span>';
           html += song.album_art ? '<img class="album-art" src="' + song.album_art + '" alt="art"/>' : '<div class="album-art"></div>';
           html += '<div class="song-info"><div class="song-title">' + song.title + '</div><div class="song-artist">' + song.artist + '</div></div>';
           html += '<div class="song-actions">';
           if (trackId) html += '<button class="play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\', \'' + (song.artist || '').replace(/'/g, "\\'") + '\', \'' + (song.album_art || '') + '\')">&#9654;</button>';
           html += '<button class="queue-btn" onclick=\'addToQueue(' + JSON.stringify(song).replace(/'/g, "&#39;") + ')\' title="Add to queue">+Q</button>';
+          html += '<button class="more-btn" data-title="' + song.title.replace(/"/g, '&quot;') + '" data-artist="' + (song.artist || '').replace(/"/g, '&quot;') + '" onclick="moreLikeThis(this.dataset.title,this.dataset.artist)" title="More like this">\u2248</button>';
           html += '<span class="song-duration">' + song.duration + '</span>';
           html += '<button class="add-btn' + (inPlaylist ? ' added' : '') + '" onclick=\'addToPlaylist(' + JSON.stringify(song).replace(/'/g, "&#39;") + ', this)\'>' + (inPlaylist ? 'Added' : '+ Add') + '</button>';
           html += '</div></div>';
@@ -578,7 +731,6 @@
         document.getElementById('results').innerHTML = '<p class="no-results">No results for "' + q + '"</p>';
       }
     } catch(err) {
-      document.getElementById('loading').style.display = 'none';
       document.getElementById('results').innerHTML = '<p class="no-results">Search failed. Try again.</p>';
     }
   }
@@ -598,6 +750,27 @@
       }
     } catch(e) {}
     return false;
+  }
+
+  let _confirmCallback = null;
+
+  function showConfirm(title, message, onConfirm) {
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-message').textContent = message;
+    _confirmCallback = onConfirm;
+    document.getElementById('confirm-overlay').classList.add('open');
+    document.getElementById('confirm-modal').classList.add('open');
+  }
+
+  function closeConfirmModal() {
+    document.getElementById('confirm-overlay').classList.remove('open');
+    document.getElementById('confirm-modal').classList.remove('open');
+    _confirmCallback = null;
+  }
+
+  function confirmAction() {
+    if (_confirmCallback) _confirmCallback();
+    closeConfirmModal();
   }
 
   let renamingIndex = -1;
@@ -670,7 +843,6 @@
       .filter(function(s) { return s.spotify_url; })
       .map(function(s) { return 'spotify:track:' + s.spotify_url.split('/track/')[1].split('?')[0]; });
     if (trackUris.length === 0) { showToast('No Spotify tracks found in this playlist.', 'error'); return; }
-    console.log('Exporting track URIs:', trackUris);
     showToast('Exporting to Spotify...', 'success');
     try {
       const res = await fetch(API + '/spotify/export', {
@@ -680,6 +852,7 @@
       });
       const data = await res.json();
       if (res.ok) {
+        fireConfetti();
         showToast('Exported to Spotify! Opening...', 'success');
         setTimeout(function() { window.open(data.playlist_url, '_blank'); }, 500);
       } else if (res.status === 401 || (data.error && data.error.includes('login'))) {
@@ -694,6 +867,7 @@
           });
           const retryData = await retry.json();
           if (retry.ok) {
+            fireConfetti();
             showToast('Exported to Spotify! Opening...', 'success');
             setTimeout(function() { window.open(retryData.playlist_url, '_blank'); }, 500);
           } else {
@@ -721,10 +895,14 @@
     if (savedPlaylists.length === 0) { container.innerHTML = ''; return; }
     let html = '<div class="saved-section-label">Saved playlists</div>';
     savedPlaylists.forEach(function(pl, i) {
+      const coverArt = pl.songs && pl.songs.find(function(s) { return s.album_art; });
       html += '<div class="saved-playlist-item">';
       html += '<div class="saved-playlist-info" onclick="openSavedPlaylist(' + i + ')">';
-      html += '<div class="saved-playlist-name">' + pl.name + '</div>';
-      html += '<div class="saved-playlist-meta">' + pl.songs.length + ' songs · ' + pl.mood + '</div>';
+      html += coverArt
+        ? '<img class="saved-playlist-art" src="' + coverArt.album_art + '" alt="cover"/>'
+        : '<div class="saved-playlist-art saved-playlist-art-empty">' + (moodEmoji[pl.mood] || '🎵') + '</div>';
+      html += '<div><div class="saved-playlist-name">' + pl.name + '</div>';
+      html += '<div class="saved-playlist-meta">' + pl.songs.length + ' songs · ' + pl.mood + '</div></div>';
       html += '</div>';
       html += '<div style="display:flex;gap:6px;align-items:center;">';
       html += '<button class="export-spotify-btn" onclick="exportToSpotify(' + i + ')">▶ Spotify</button>';
@@ -748,7 +926,7 @@
       const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
       const safeTitle = song.title.replace(/'/g, "\\'");
       const songJson = JSON.stringify(song).replace(/'/g, "&#39;");
-      html += '<div class="sotd-card">';
+      html += '<div class="sotd-card" style="animation-delay:' + (i * 0.1) + 's">';
       html += '<span class="sotd-num">' + String(i + 1).padStart(2, '0') + '</span>';
       html += song.album_art ? '<img class="sotd-art" src="' + song.album_art + '" alt="art"/>' : '<div class="sotd-art"></div>';
       html += '<div class="sotd-info">';
@@ -759,11 +937,53 @@
       if (trackId) {
         html += '<button class="sotd-play-btn" onclick="playInApp(\'' + trackId + '\', \'' + safeTitle + '\', \'' + (song.artist || '').replace(/'/g, "\\'") + '\', \'' + (song.album_art || '') + '\')">&#9654;</button>';
       }
-      html += '<button class="sotd-add-btn" onclick=\'addToPlaylist(' + songJson + ', this)\'>+ Add</button>';
+      const inPlaylist = playlistSongs.some(function(s) { return song.spotify_url ? s.spotify_url === song.spotify_url : s.title === song.title; });
+      html += '<button class="sotd-add-btn' + (inPlaylist ? ' added' : '') + '" onclick=\'addToPlaylist(' + songJson + ', this)\'>' + (inPlaylist ? 'Added' : '+ Add') + '</button>';
       html += '</div>';
       html += '</div>';
     }
     grid.innerHTML = html;
+  }
+
+  function animateCount(el, target) {
+    const duration = 900;
+    const start = Date.now();
+    (function tick() {
+      const elapsed = Date.now() - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.round(eased * target);
+      if (progress < 1) requestAnimationFrame(tick);
+    })();
+  }
+
+  function renderTrendingPills() {
+    const allMoods = ['happy', 'sad', 'energetic', 'calm', 'focused', 'angry', 'romantic', 'nostalgic', 'party', 'sleepy', 'anxious'];
+    const shuffled = allMoods.slice().sort(function() { return Math.random() - 0.5; });
+    const picks = shuffled.slice(0, 5);
+    document.getElementById('trending-pills').innerHTML = picks.map(function(mood) {
+      return '<button class="trending-pill" onclick="document.getElementById(\'mood-select\').value=\'' + mood + '\';onMoodSelect(\'' + mood + '\')">' +
+        (moodEmoji[mood] || '') + ' ' + mood +
+      '</button>';
+    }).join('');
+  }
+
+  async function loadTrendingMoods() {
+    try {
+      const res = await fetch(API + '/api/mood/trending');
+      const data = await res.json();
+      if (!data.trending || data.trending.length === 0) return; // leave skeletons showing
+      document.getElementById('trending-pills').innerHTML = data.trending.map(function(item, i) {
+        return '<button class="trending-pill' + (i === 0 ? ' trending-pill-top' : '') + '" id="trending-pill-' + item.mood + '" onclick="document.getElementById(\'mood-select\').value=\'' + item.mood + '\';onMoodSelect(\'' + item.mood + '\')">' +
+          (moodEmoji[item.mood] || '') + ' ' + item.mood +
+          '<span class="trending-count" id="trending-count-' + item.mood + '">0</span>' +
+        '</button>';
+      }).join('');
+      data.trending.forEach(function(item, i) {
+        const countEl = document.getElementById('trending-count-' + item.mood);
+        if (countEl) setTimeout(function() { animateCount(countEl, item.count); }, i * 120);
+      });
+    } catch (e) {} // leave skeletons on error too
   }
 
   async function loadSongsOfTheDay() {
@@ -793,19 +1013,177 @@
     }
   }
 
+  function playAll(songs) {
+    if (!songs || songs.length === 0) return;
+    songQueue = songs.filter(function(s) { return s.spotify_url; });
+    queueIndex = 0;
+    const first = songQueue[0];
+    const trackId = first.spotify_url.split('/track/')[1];
+    playInApp(trackId, first.title, first.artist, first.album_art);
+    showToast('Playing all ' + songQueue.length + ' tracks', 'success');
+  }
+
+  function toggleQueuePanel() {
+    const panel = document.getElementById('queue-panel');
+    const overlay = document.getElementById('queue-overlay');
+    const isOpen = panel.classList.contains('open');
+    if (isOpen) {
+      panel.classList.remove('open');
+      overlay.classList.remove('open');
+    } else {
+      renderQueuePanel();
+      panel.classList.add('open');
+      overlay.classList.add('open');
+    }
+  }
+
+  function renderQueuePanel() {
+    const list = document.getElementById('queue-list');
+    if (!list) return;
+    if (songQueue.length === 0) {
+      list.innerHTML = '<p class="queue-empty">No songs queued yet.<br>Use +Q on any song to add it.</p>';
+      return;
+    }
+    list.innerHTML = songQueue.map(function(song, i) {
+      const isActive = i === queueIndex;
+      return '<div class="queue-item' + (isActive ? ' active' : '') + '" onclick="jumpToQueue(' + i + ')">' +
+        (song.album_art ? '<img class="queue-item-art" src="' + song.album_art + '" alt=""/>' : '<div class="queue-item-art"></div>') +
+        '<div class="queue-item-info">' +
+          '<div class="queue-item-title">' + song.title + '</div>' +
+          '<div class="queue-item-artist">' + song.artist + '</div>' +
+        '</div>' +
+        (isActive ? '<span class="queue-now-playing">▶</span>' : '') +
+        '<button class="queue-remove-btn" onclick="event.stopPropagation();removeFromQueue(' + i + ')" title="Remove">✕</button>' +
+      '</div>';
+    }).join('');
+    // scroll active item into view
+    const activeEl = list.querySelector('.queue-item.active');
+    if (activeEl) activeEl.scrollIntoView({ block: 'nearest' });
+  }
+
+  function jumpToQueue(index) {
+    queueIndex = index;
+    const song = songQueue[index];
+    const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
+    if (trackId) playInApp(trackId, song.title, song.artist, song.album_art);
+  }
+
+  function removeFromQueue(index) {
+    songQueue.splice(index, 1);
+    if (queueIndex >= songQueue.length) queueIndex = Math.max(0, songQueue.length - 1);
+    if (songQueue.length === 0) {
+      queueIndex = -1;
+      closePlayer();
+      document.getElementById('queue-panel').classList.remove('open');
+      document.getElementById('queue-overlay').classList.remove('open');
+    }
+    updateQueueCounter();
+    renderQueuePanel();
+  }
+
+  function shuffleQueue() {
+    const remaining = songQueue.length - (queueIndex + 1);
+    if (remaining < 2) { showToast('Not enough songs to shuffle', 'error'); return; }
+    const played = songQueue.slice(0, queueIndex + 1);
+    const rest = songQueue.slice(queueIndex + 1);
+    for (let i = rest.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = rest[i]; rest[i] = rest[j]; rest[j] = tmp;
+    }
+    songQueue = played.concat(rest);
+    updateQueueCounter();
+    renderQueuePanel();
+    showToast('Queue shuffled!', 'success');
+  }
+
+  function clearQueue() {
+    songQueue = [];
+    queueIndex = -1;
+    updateQueueCounter();
+    closePlayer();
+    document.getElementById('queue-panel').classList.remove('open');
+    document.getElementById('queue-overlay').classList.remove('open');
+  }
+
+  function clearSearch() {
+    const input = document.getElementById('search-input');
+    input.value = '';
+    document.getElementById('search-clear').style.display = 'none';
+    document.getElementById('search-filters').classList.remove('visible');
+    document.getElementById('results').innerHTML = '';
+    input.focus();
+  }
+
+  function moreLikeThis(title, artist) {
+    const q = artist ? title + ' ' + artist : title;
+    const input = document.getElementById('search-input');
+    input.value = q;
+    document.getElementById('search-filters').classList.add('visible');
+    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    showToast('Finding songs like "' + title + '"...', 'success');
+    searchSongs();
+  }
+
+  function fireConfetti() {
+    const canvas = document.getElementById('confetti-canvas');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    canvas.style.display = 'block';
+    const ctx = canvas.getContext('2d');
+    const colors = ['#FF006E','#FB5607','#FFBE0B','#3A86FF','#8338EC','#06D6A0','#FF4E50'];
+    const pieces = Array.from({ length: 130 }, function() {
+      return {
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height - canvas.height,
+        w: Math.random() * 10 + 6,
+        h: Math.random() * 6 + 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rot: Math.random() * Math.PI * 2,
+        rotSpeed: (Math.random() - 0.5) * 0.18,
+        vx: (Math.random() - 0.5) * 3,
+        vy: Math.random() * 3.5 + 1.5,
+      };
+    });
+    let frame;
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = false;
+      pieces.forEach(function(p) {
+        p.x += p.vx; p.y += p.vy; p.rot += p.rotSpeed;
+        if (p.y < canvas.height + 20) alive = true;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      });
+      if (alive) { frame = requestAnimationFrame(draw); }
+      else { canvas.style.display = 'none'; }
+    }
+    draw();
+    setTimeout(function() { cancelAnimationFrame(frame); canvas.style.display = 'none'; ctx.clearRect(0,0,canvas.width,canvas.height); }, 4000);
+  }
+
   async function deletePlaylist(index) {
     const pl = savedPlaylists[index];
-    const token = localStorage.getItem('quaver_token');
-    try {
-      await fetch(API + '/api/playlist/' + pl.id, {
-        method: 'DELETE',
-        headers: { 'Authorization': 'Bearer ' + token }
-      });
-    } catch(e) {}
-    savedPlaylists.splice(index, 1);
-    localStorage.setItem('quaver_playlists', JSON.stringify(savedPlaylists));
-    renderSavedPlaylists();
-    showToast('Playlist deleted.', 'success');
+    showConfirm(
+      'Delete "' + pl.name + '"?',
+      'This playlist and all its songs will be permanently removed.',
+      async function() {
+        const token = localStorage.getItem('quaver_token');
+        try {
+          await fetch(API + '/api/playlist/' + pl.id, {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + token }
+          });
+        } catch(e) {}
+        savedPlaylists.splice(index, 1);
+        localStorage.setItem('quaver_playlists', JSON.stringify(savedPlaylists));
+        renderSavedPlaylists();
+        showToast('Playlist deleted.', 'success');
+      }
+    );
   }
 </script>
 </body>
