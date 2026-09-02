@@ -56,7 +56,7 @@ router.post('/history', async (req, res) => {
     const db = await getDB();
     await db.collection('users').updateOne(
       { _id: new ObjectId(user.userId) },
-      { $push: { recentMoods: { $each: [entry], $slice: -20 } } }
+      { $push: { recentMoods: { $each: [entry], $slice: -365 } } }
     );
     res.status(201).json({ message: 'Mood saved' });
   } catch (err) {

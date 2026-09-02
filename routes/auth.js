@@ -27,6 +27,7 @@ router.post('/register', async (req, res) => {
       password: hashedPassword,
       playlists: [],
       recentMoods: [],
+      listeningHistory: [],
       createdAt: new Date(),
     });
 

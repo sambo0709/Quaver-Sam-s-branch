@@ -515,7 +515,7 @@
           html += '<div class="song-card" style="animation-delay:' + (i * 0.07) + 's">';
           html += '<span class="song-num">' + String(i + 1).padStart(2, '0') + '</span>';
           html += song.album_art ? '<img class="album-art" src="' + song.album_art + '" alt="art"/>' : '<div class="album-art"></div>';
-          html += '<div class="song-info"><div class="song-title">' + song.title + '</div><div class="song-artist">' + song.artist + '</div></div>';
+          html += '<div class="song-info"><div class="song-title">' + song.title + '</div><div class="song-artist">' + song.artist + '</div><div class="recommendation-reason">Fits your ' + currentMood + ' mood</div></div>';
           html += '<div class="song-actions">';
           if (trackId) html += '<button class="play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\', \'' + (song.artist || '').replace(/'/g, "\\'") + '\', \'' + (song.album_art || '') + '\')">&#9654;</button>';
           html += '<button class="queue-btn" onclick=\'addToQueue(' + JSON.stringify(song).replace(/'/g, "&#39;") + ')\' title="Add to queue">+Q</button>';
@@ -549,6 +549,14 @@
       const deduped = recent.filter(function(s) { if (seen.has(s.trackId)) return false; seen.add(s.trackId); return true; });
       localStorage.setItem('quaver_recently_played', JSON.stringify(deduped.slice(0, 20)));
     } catch(e) {}
+    const token = localStorage.getItem('quaver_token');
+    if (token) {
+      fetch(API + '/api/listening/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ trackId: trackId, title: title, artist: artist || '', albumArt: albumArt || '', mood: currentMood || '' })
+      }).catch(function() {});
+    }
   }
 
   function addToQueue(song) {
@@ -931,6 +939,7 @@
       html += '<div class="sotd-info">';
       html += '<div class="sotd-song-title">' + song.title + '</div>';
       html += '<div class="sotd-song-artist">' + song.artist + '</div>';
+      html += '<div class="recommendation-reason">Selected for today\'s ' + mood + ' mood</div>';
       html += '</div>';
       html += '<div class="sotd-actions">';
       if (trackId) {

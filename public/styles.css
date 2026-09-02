@@ -2308,6 +2308,89 @@ h1 span {
   opacity: 0.6;
 }
 
+.box-empty p { margin-bottom: 12px; }
+
+.box-empty a {
+  display: inline-block;
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1px solid var(--accent);
+  padding-bottom: 2px;
+}
+
+.recommendation-reason {
+  margin-top: 3px;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+.mix-intro {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin-bottom: 14px;
+}
+
+.mix-intro strong { color: var(--text); text-transform: capitalize; }
+
+.timeline-list {
+  position: relative;
+  display: grid;
+  gap: 0;
+}
+
+.timeline-list::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 7px;
+  bottom: 7px;
+  width: 1px;
+  background: var(--glass-border);
+}
+
+.timeline-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+}
+
+.timeline-dot {
+  width: 11px;
+  height: 11px;
+  flex: 0 0 11px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: #171c2b;
+  z-index: 1;
+}
+
+:root[data-theme="light"] .timeline-dot { background: #f8f9fc; }
+
+.timeline-item div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
+
+.timeline-item strong {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.timeline-item div span {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
 .profile-mood-item {
   display: flex;
   align-items: center;
