@@ -26,7 +26,7 @@ export class HomePage {
   }
 
   async goto() {
-    await this.page.goto('https://quaver.onrender.com', {
+    await this.page.goto('/', {
       waitUntil: 'networkidle',
       timeout: 60000
     });

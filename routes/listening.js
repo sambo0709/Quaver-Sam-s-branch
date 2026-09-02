@@ -52,4 +52,17 @@ router.post('/history', async function(req, res) {
   }
 });
 
+router.delete('/history', async function(req, res) {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
+  try {
+    const db = await getDB();
+    await db.collection('users').updateOne(
+      { _id: new ObjectId(user.userId) },
+      { $set: { listeningHistory: [] } }
+    );
+    res.json({ message: 'Listening history cleared' });
+  } catch (_) { res.status(500).json({ error: 'Server error' }); }
+});
+
 module.exports = router;

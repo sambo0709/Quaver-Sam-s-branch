@@ -50,8 +50,9 @@ router.post('/history', async (req, res) => {
   const user = getUser(req);
   if (!user) return res.status(401).json({ error: 'Not logged in' });
   const { mood } = req.body;
+  const note = String(req.body.note || '').trim().slice(0, 160);
   if (!mood) return res.status(400).json({ error: 'mood required' });
-  const entry = { mood, time: new Date().toLocaleString(), ts: Date.now() };
+  const entry = { mood, note, time: new Date().toLocaleString(), ts: Date.now() };
   try {
     const db = await getDB();
     await db.collection('users').updateOne(

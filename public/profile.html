@@ -28,8 +28,8 @@
 
   <div id="spotify-player" class="spotify-player" style="display:none">
     <div class="player-header">
-      <span id="player-song-name">—</span>
-      <button class="player-close-btn" onclick="closePlayer()">✕</button>
+      <div class="player-identity"><img id="player-art" alt=""/><div><span id="player-song-name">—</span><small id="player-song-artist"></small></div></div>
+      <div style="display:flex;gap:8px;align-items:center"><a id="player-spotify-link" class="player-spotify-link" href="https://open.spotify.com" target="_blank" rel="noopener">Open Spotify</a><button class="player-close-btn" onclick="closePlayer()" aria-label="Close player">✕</button></div>
     </div>
     <iframe id="spotify-iframe"
       style="border-radius:12px"
@@ -86,10 +86,13 @@
 
   <main class="profile-main">
     <h1 class="profile-title">Profile</h1>
-    <button class="wrapped-open-btn" onclick="openWrapped()">Your Sound Story</button>
+    <section class="story-feature" onclick="openWrapped()" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openWrapped();}">
+      <div><span>Weekly recap</span><h2>Your Sound Story</h2><p>See and share the moods and music that shaped your week.</p></div>
+      <button class="wrapped-open-btn" tabindex="-1">Open story</button>
+    </section>
     <div class="content-boxes">
 
-      <div class="box">
+      <div class="box box-wide">
         <h2>Mood Stats</h2>
         <div id="mood-analytics">
           <p class="box-empty">No moods yet. Pick one on the home page!</p>
@@ -117,14 +120,14 @@
         </div>
       </div>
 
-      <div class="box">
+      <div class="box box-wide">
         <h2>Weekly Mood Mix</h2>
         <div id="weekly-mix-list">
           <p class="box-empty">Choose a mood this week to create your mix.</p>
         </div>
       </div>
 
-      <div class="box">
+      <div class="box box-wide">
         <h2>30-Day Mood Timeline</h2>
         <div id="mood-timeline">
           <p class="box-empty">Your mood timeline will appear here.</p>
@@ -138,6 +141,22 @@
         </div>
       </div>
 
+      <div class="box">
+        <h2>Account Settings</h2>
+        <form class="settings-form" onsubmit="saveSettings(event)">
+          <label for="settings-name">Display name</label>
+          <input id="settings-name" maxlength="40" required/>
+          <label for="settings-theme">Default theme</label>
+          <select id="settings-theme"><option value="system">System</option><option value="dark">Dark</option><option value="light">Light</option></select>
+          <button type="submit">Save settings</button>
+        </form>
+        <div class="settings-danger">
+          <button onclick="clearListeningHistory()">Clear listening history</button>
+          <button onclick="deleteAccount()">Delete account</button>
+        </div>
+        <p class="privacy-note">Your moods and listening history are stored only to personalize your Quaver experience.</p>
+      </div>
+
     </div>
   </main>
 
@@ -147,6 +166,11 @@
       return theme === 'light'
         ? '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>'
         : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>';
+    }
+    function escapeHTML(value) {
+      return String(value == null ? '' : value).replace(/[&<>"']/g, function(char) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char];
+      });
     }
 
     const moodColors = {
@@ -207,12 +231,47 @@
       if (user) {
         usernameEl.textContent = 'Hi, ' + user.username + '!';
         logoutBtn.style.display = 'inline-block';
+        const settingsName = document.getElementById('settings-name');
+        if (settingsName) settingsName.value = user.username || '';
       }
+    }
+
+    async function saveSettings(event) {
+      event.preventDefault();
+      const token = localStorage.getItem('quaver_token');
+      const displayName = document.getElementById('settings-name').value.trim();
+      const defaultTheme = document.getElementById('settings-theme').value;
+      const res = await fetch(API + '/api/auth/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ displayName, defaultTheme }) });
+      const data = await res.json();
+      if (!res.ok) return alert(data.error || 'Could not save settings.');
+      const user = JSON.parse(localStorage.getItem('quaver_user') || '{}');
+      user.username = data.username;
+      localStorage.setItem('quaver_user', JSON.stringify(user));
+      localStorage.setItem('theme', defaultTheme === 'system' ? '' : defaultTheme);
+      updateAuthUI();
+    }
+
+    async function clearListeningHistory() {
+      if (!confirm('Clear your complete listening history?')) return;
+      const token = localStorage.getItem('quaver_token');
+      const res = await fetch(API + '/api/listening/history', { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+      if (res.ok) { localStorage.removeItem('quaver_recently_played'); window._profilePlays = []; renderRecentlyPlayed(); }
+    }
+
+    async function deleteAccount() {
+      if (!confirm('Permanently delete your Quaver account and all of its data?')) return;
+      const token = localStorage.getItem('quaver_token');
+      const res = await fetch(API + '/api/auth/account', { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+      if (res.ok) logout();
     }
 
     function playInApp(trackId, title, artist, albumArt) {
       document.getElementById('spotify-iframe').src = 'https://open.spotify.com/embed/track/' + trackId + '?utm_source=generator&theme=0&autoplay=1';
       document.getElementById('player-song-name').textContent = title;
+      document.getElementById('player-song-artist').textContent = artist || '';
+      document.getElementById('player-art').src = albumArt || '';
+      document.getElementById('player-art').style.display = albumArt ? 'block' : 'none';
+      document.getElementById('player-spotify-link').href = 'https://open.spotify.com/track/' + trackId;
       document.getElementById('spotify-player').style.display = 'block';
       // Shift to most recent mood color on play
       const moods = window._profileMoods;
@@ -323,7 +382,7 @@
       }
       container.innerHTML = playlists.map(function(pl, i) {
         return '<div class="profile-playlist-item" onclick="togglePlaylistSongs(' + i + ')">' +
-          '<div><div class="profile-playlist-name">' + pl.name + '</div>' +
+          '<div><div class="profile-playlist-name">' + escapeHTML(pl.name) + '</div>' +
           '<div class="profile-playlist-meta">' + pl.songs.length + ' songs · ' + pl.mood + '</div></div>' +
           '<span style="color:var(--accent);font-size:12px;flex-shrink:0;">▼</span>' +
         '</div>' +
@@ -419,7 +478,7 @@
       }
       container.innerHTML = '<div class="timeline-list">' + recent.map(function(item) {
         const date = new Date(item.ts);
-        return '<div class="timeline-item"><span class="timeline-dot"></span><div><strong>' + item.mood + '</strong><span>' + date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + '</span></div></div>';
+        return '<div class="timeline-item"><span class="timeline-dot"></span><div class="timeline-content"><div><strong>' + escapeHTML(item.mood) + '</strong><span>' + date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + '</span></div>' + (item.note ? '<small>' + escapeHTML(item.note) + '</small>' : '') + '</div></div>';
       }).join('') + '</div>';
     }
 
@@ -561,6 +620,7 @@
       const systemTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
       const theme = saved || systemTheme;
       document.documentElement.setAttribute('data-theme', theme);
+      document.getElementById('settings-theme').value = saved || 'system';
       document.querySelector('.toggle').innerHTML = themeIcon(theme);
       document.getElementById('logo').src = theme === 'light' ? 'quaver_lightmode1.png' : 'quaver_nightmode1.png';
       updateAuthUI();

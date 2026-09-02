@@ -30,6 +30,13 @@ const POOL_TTL = 2 * 60 * 60 * 1000; // 2 hours
 const recentlyServed = {};
 const MAX_SEEN = 8; // remember last 8 served per mood
 
+function getUser(req) {
+  const header = req.headers.authorization;
+  if (!header) return null;
+  try { return require('jsonwebtoken').verify(header.split(' ')[1], process.env.JWT_SECRET); }
+  catch (_) { return null; }
+}
+
 async function spotifyApiError(response, context) {
   let details = '';
   try {
@@ -175,6 +182,21 @@ router.get('/recommend', async function(req, res) {
     console.error('Spotify error:', err.message);
     res.status(500).json({ error: err.message });
   }
+});
+
+router.post('/feedback', async function(req, res) {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
+  const { trackId, mood, helpful } = req.body;
+  if (!trackId || typeof helpful !== 'boolean') return res.status(400).json({ error: 'trackId and helpful required' });
+  try {
+    const db = await getDB();
+    await db.collection('users').updateOne(
+      { _id: new (require('mongodb').ObjectId)(user.userId) },
+      { $push: { recommendationFeedback: { trackId, mood: mood || '', helpful, createdAt: Date.now() } } }
+    );
+    res.status(201).json({ message: 'Feedback saved' });
+  } catch (_) { res.status(500).json({ error: 'Server error' }); }
 });
 
 // GET /api/music/search?q=...&genre=...&year=... - search for specific songs/artists

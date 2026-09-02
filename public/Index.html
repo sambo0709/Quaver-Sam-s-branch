@@ -89,6 +89,7 @@
     </select>
   </div>
   <button class="mood-select random-btn" onclick="randomMood()">✨ Surprise Me</button>
+  <input class="mood-note-input" id="mood-note" maxlength="160" placeholder="Add an optional note about how you feel" aria-label="Optional mood note"/>
   <div class="search-divider"><span>or search directly</span></div>
   <div class="search-row">
     <div class="search-input-wrap">
@@ -165,8 +166,9 @@
 
 <div id="spotify-player" class="spotify-player" style="display:none">
   <div class="player-header">
-    <span id="player-song-name">—</span>
+    <div class="player-identity"><img id="player-art" alt=""/><div><span id="player-song-name">—</span><small id="player-song-artist"></small></div></div>
     <div style="display:flex;gap:6px;align-items:center;">
+      <a id="player-spotify-link" class="player-spotify-link" href="https://open.spotify.com" target="_blank" rel="noopener">Open Spotify</a>
       <button class="player-prev-btn" onclick="playFromQueue(-1)" title="Previous">&#9664;</button>
       <button class="player-next-btn" onclick="playFromQueue(1)" title="Next">&#9654;&#9654;</button>
       <button id="shuffle-btn" class="player-shuffle-btn" onclick="shuffleQueue()" title="Shuffle remaining">⇄</button>
@@ -246,6 +248,11 @@
     trash: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>'
   };
   function uiIcon(name) { return UI_ICONS[name] || ''; }
+  function escapeHTML(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function(char) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char];
+    });
+  }
 
   const moods = ['happy', 'sad', 'energetic', 'calm', 'focused', 'angry', 'romantic', 'nostalgic', 'party', 'sleepy', 'anxious'];
 
@@ -494,11 +501,14 @@
     checkMoodStreak(mood);
     const token = localStorage.getItem('quaver_token');
     if (token) {
+      const noteInput = document.getElementById('mood-note');
+      const note = noteInput ? noteInput.value.trim() : '';
       fetch(API + '/api/mood/history', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-        body: JSON.stringify({ mood: mood })
+        body: JSON.stringify({ mood: mood, note: note })
       }).catch(function() {});
+      if (noteInput) noteInput.value = '';
     }
     fetchSongs();
   }
@@ -523,13 +533,15 @@
           html += '<div class="song-card" style="animation-delay:' + (i * 0.07) + 's">';
           html += '<span class="song-num">' + String(i + 1).padStart(2, '0') + '</span>';
           html += song.album_art ? '<img class="album-art" src="' + song.album_art + '" alt="art"/>' : '<div class="album-art"></div>';
-          html += '<div class="song-info"><div class="song-title">' + song.title + '</div><div class="song-artist">' + song.artist + '</div><div class="recommendation-reason">Fits your ' + currentMood + ' mood</div></div>';
+          html += '<div class="song-info"><div class="song-title">' + escapeHTML(song.title) + '</div><div class="song-artist">' + escapeHTML(song.artist) + '</div><div class="recommendation-reason">Fits your ' + escapeHTML(currentMood) + ' mood</div></div>';
           html += '<div class="song-actions">';
           if (trackId) html += '<button class="play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\', \'' + (song.artist || '').replace(/'/g, "\\'") + '\', \'' + (song.album_art || '') + '\')">&#9654;</button>';
           html += '<button class="queue-btn" onclick=\'addToQueue(' + JSON.stringify(song).replace(/'/g, "&#39;") + ')\' title="Add to queue">+Q</button>';
           html += '<button class="more-btn" data-title="' + song.title.replace(/"/g, '&quot;') + '" data-artist="' + (song.artist || '').replace(/"/g, '&quot;') + '" onclick="moreLikeThis(this.dataset.title,this.dataset.artist)" title="More like this">\u2248</button>';
           html += '<span class="song-duration">' + song.duration + '</span>';
+          if (song.spotify_url) html += '<a class="spotify-source" href="' + song.spotify_url + '" target="_blank" rel="noopener" aria-label="Open ' + song.title.replace(/"/g, '&quot;') + ' on Spotify">Spotify</a>';
           html += '<button class="add-btn' + (inPlaylist ? ' added' : '') + '" onclick=\'addToPlaylist(' + JSON.stringify(song).replace(/'/g, "&#39;") + ', this)\'>' + (inPlaylist ? 'Added' : '+ Add') + '</button>';
+          if (trackId) html += '<div class="feedback-actions"><button onclick="sendRecommendationFeedback(\'' + trackId + '\',true,this)" aria-label="Recommendation fits my mood">Yes</button><button onclick="sendRecommendationFeedback(\'' + trackId + '\',false,this)" aria-label="Recommendation does not fit my mood">No</button></div>';
           html += '</div></div>';
         });
         document.getElementById('results').innerHTML = html;
@@ -544,6 +556,10 @@
   function playInApp(trackId, title, artist, albumArt) {
     document.getElementById('spotify-iframe').src = 'https://open.spotify.com/embed/track/' + trackId + '?utm_source=generator&theme=0&autoplay=1';
     document.getElementById('player-song-name').textContent = title;
+    document.getElementById('player-song-artist').textContent = artist || '';
+    document.getElementById('player-art').src = albumArt || '';
+    document.getElementById('player-art').style.display = albumArt ? 'block' : 'none';
+    document.getElementById('player-spotify-link').href = 'https://open.spotify.com/track/' + trackId;
     document.getElementById('spotify-player').style.display = 'block';
     document.getElementById('spotify-player').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     updateQueueCounter();
@@ -565,6 +581,21 @@
         body: JSON.stringify({ trackId: trackId, title: title, artist: artist || '', albumArt: albumArt || '', mood: currentMood || '' })
       }).catch(function() {});
     }
+  }
+
+  function sendRecommendationFeedback(trackId, helpful, button) {
+    const token = localStorage.getItem('quaver_token');
+    if (!token) return showToast('Log in to save recommendation feedback.', 'error');
+    fetch(API + '/api/music/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ trackId: trackId, mood: currentMood || '', helpful: helpful })
+    }).then(function(res) {
+      if (!res.ok) throw new Error('Feedback failed');
+      button.parentElement.querySelectorAll('button').forEach(function(item) { item.classList.remove('selected'); });
+      button.classList.add('selected');
+      showToast('Thanks — this will improve your recommendations.', 'success');
+    }).catch(function() { showToast('Could not save feedback.', 'error'); });
   }
 
   function addToQueue(song) {
@@ -732,12 +763,13 @@
           html += '<div class="song-card" style="animation-delay:' + (i * 0.07) + 's">';
           html += '<span class="song-num">' + String(i + 1).padStart(2, '0') + '</span>';
           html += song.album_art ? '<img class="album-art" src="' + song.album_art + '" alt="art"/>' : '<div class="album-art"></div>';
-          html += '<div class="song-info"><div class="song-title">' + song.title + '</div><div class="song-artist">' + song.artist + '</div></div>';
+          html += '<div class="song-info"><div class="song-title">' + escapeHTML(song.title) + '</div><div class="song-artist">' + escapeHTML(song.artist) + '</div></div>';
           html += '<div class="song-actions">';
           if (trackId) html += '<button class="play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\', \'' + (song.artist || '').replace(/'/g, "\\'") + '\', \'' + (song.album_art || '') + '\')">&#9654;</button>';
           html += '<button class="queue-btn" onclick=\'addToQueue(' + JSON.stringify(song).replace(/'/g, "&#39;") + ')\' title="Add to queue">+Q</button>';
           html += '<button class="more-btn" data-title="' + song.title.replace(/"/g, '&quot;') + '" data-artist="' + (song.artist || '').replace(/"/g, '&quot;') + '" onclick="moreLikeThis(this.dataset.title,this.dataset.artist)" title="More like this">\u2248</button>';
           html += '<span class="song-duration">' + song.duration + '</span>';
+          if (song.spotify_url) html += '<a class="spotify-source" href="' + song.spotify_url + '" target="_blank" rel="noopener" aria-label="Open on Spotify">Spotify</a>';
           html += '<button class="add-btn' + (inPlaylist ? ' added' : '') + '" onclick=\'addToPlaylist(' + JSON.stringify(song).replace(/'/g, "&#39;") + ', this)\'>' + (inPlaylist ? 'Added' : '+ Add') + '</button>';
           html += '</div></div>';
         });
@@ -945,14 +977,15 @@
       html += '<span class="sotd-num">' + String(i + 1).padStart(2, '0') + '</span>';
       html += song.album_art ? '<img class="sotd-art" src="' + song.album_art + '" alt="art"/>' : '<div class="sotd-art"></div>';
       html += '<div class="sotd-info">';
-      html += '<div class="sotd-song-title">' + song.title + '</div>';
-      html += '<div class="sotd-song-artist">' + song.artist + '</div>';
+      html += '<div class="sotd-song-title">' + escapeHTML(song.title) + '</div>';
+      html += '<div class="sotd-song-artist">' + escapeHTML(song.artist) + '</div>';
       html += '<div class="recommendation-reason">Selected for today\'s ' + mood + ' mood</div>';
       html += '</div>';
       html += '<div class="sotd-actions">';
       if (trackId) {
         html += '<button class="sotd-play-btn" onclick="playInApp(\'' + trackId + '\', \'' + safeTitle + '\', \'' + (song.artist || '').replace(/'/g, "\\'") + '\', \'' + (song.album_art || '') + '\')">&#9654;</button>';
       }
+      if (song.spotify_url) html += '<a class="spotify-source" href="' + song.spotify_url + '" target="_blank" rel="noopener">Spotify</a>';
       const inPlaylist = playlistSongs.some(function(s) { return song.spotify_url ? s.spotify_url === song.spotify_url : s.title === song.title; });
       html += '<button class="sotd-add-btn' + (inPlaylist ? ' added' : '') + '" onclick=\'addToPlaylist(' + songJson + ', this)\'>' + (inPlaylist ? 'Added' : '+ Add') + '</button>';
       html += '</div>';
