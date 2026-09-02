@@ -22,7 +22,7 @@
     <div class="nav-right">
       <span id="nav-username" class="nav-username"></span>
       <button id="nav-logout" class="logout-btn" onclick="logout()" style="display:none">Logout</button>
-      <button class="toggle" onclick="toggleTheme()">🌙</button>
+      <button class="toggle" onclick="toggleTheme()" aria-label="Toggle color theme"></button>
     </div>
   </nav>
 
@@ -143,6 +143,11 @@
 
   <script>
     const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+    function themeIcon(theme) {
+      return theme === 'light'
+        ? '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>'
+        : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>';
+    }
 
     const moodColors = {
       happy:     { accent: '#FFD700', accent2: '#FF9500' },
@@ -175,12 +180,12 @@
       const logo = document.getElementById('logo');
       if (html.getAttribute('data-theme') === 'dark') {
         html.setAttribute('data-theme', 'light');
-        btn.textContent = '☀️';
+        btn.innerHTML = themeIcon('light');
         logo.src = 'quaver_lightmode1.png';
         localStorage.setItem('theme', 'light');
       } else {
         html.setAttribute('data-theme', 'dark');
-        btn.textContent = '🌙';
+        btn.innerHTML = themeIcon('dark');
         logo.src = 'quaver_nightmode1.png';
         localStorage.setItem('theme', 'dark');
       }
@@ -556,7 +561,7 @@
       const systemTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
       const theme = saved || systemTheme;
       document.documentElement.setAttribute('data-theme', theme);
-      document.querySelector('.toggle').textContent = theme === 'light' ? '☀️' : '🌙';
+      document.querySelector('.toggle').innerHTML = themeIcon(theme);
       document.getElementById('logo').src = theme === 'light' ? 'quaver_lightmode1.png' : 'quaver_nightmode1.png';
       updateAuthUI();
       loadProfileData();

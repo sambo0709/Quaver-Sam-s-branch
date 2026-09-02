@@ -18,7 +18,7 @@
     <a class="nav-link" href="Index.html">Home</a>
   </div>
   <div class="nav-right">
-    <button class="toggle" onclick="toggleTheme()">🌙</button>
+    <button class="toggle" onclick="toggleTheme()" aria-label="Toggle color theme"></button>
   </div>
 </nav>
 
@@ -46,6 +46,11 @@
 
 <script>
   const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+  function themeIcon(theme) {
+    return theme === 'light'
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>';
+  }
 
   function toggleTheme() {
     const html = document.documentElement;
@@ -53,7 +58,7 @@
     const logo = document.getElementById('logo');
     const isDark = html.getAttribute('data-theme') === 'dark';
     html.setAttribute('data-theme', isDark ? 'light' : 'dark');
-    btn.textContent = isDark ? '☀️' : '🌙';
+    btn.innerHTML = themeIcon(isDark ? 'light' : 'dark');
     logo.src = isDark ? 'quaver_lightmode1.png' : 'quaver_nightmode1.png';
     localStorage.setItem('theme', isDark ? 'light' : 'dark');
   }
@@ -124,7 +129,7 @@
     const saved = localStorage.getItem('theme');
     const isDark = !saved || saved === 'dark';
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    document.querySelector('.toggle').textContent = isDark ? '🌙' : '☀️';
+    document.querySelector('.toggle').innerHTML = themeIcon(isDark ? 'dark' : 'light');
     document.getElementById('logo').src = isDark ? 'quaver_nightmode1.png' : 'quaver_lightmode1.png';
     loadSharedPlaylist();
   });

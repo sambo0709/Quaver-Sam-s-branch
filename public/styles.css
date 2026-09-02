@@ -273,6 +273,26 @@ nav.nav-hidden,
   line-height: 1;
 }
 
+.toggle svg,
+.rename-playlist-btn svg,
+.share-playlist-btn svg,
+.delete-playlist-btn svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.toggle svg {
+  width: 18px;
+  height: 18px;
+  margin: auto;
+}
+
 :root[data-theme="light"] .toggle {
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.92);

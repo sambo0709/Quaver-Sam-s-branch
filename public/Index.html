@@ -31,7 +31,7 @@
     <button class="nav-link" onclick="togglePlaylistPanel()">Playlist <span id="playlist-count" class="count-badge">0</span></button>
     <a class="nav-link" href="profile.html">Profile</a>
     <div id="spotify-login-btn" style="display:none">
-      <a href="/spotify/login" class="nav-link spotify-nav-link">🎵 Spotify</a>
+      <a href="/spotify/login" class="nav-link spotify-nav-link">Spotify</a>
     </div>
     <div id="spotify-user-info" style="display:none">
       <span class="nav-link spotify-connected-link" id="spotify-user-name"></span>
@@ -42,7 +42,7 @@
     <span id="nav-username" class="nav-username"></span>
     <button id="nav-logout" class="logout-btn" onclick="logout()" style="display:none">Logout</button>
     <a id="nav-login-link" href="login.html" class="login-nav-btn" style="display:none">Login</a>
-    <button class="toggle" id="theme-btn" onclick="toggleTheme()">🌙</button>
+    <button class="toggle" id="theme-btn" onclick="toggleTheme()" aria-label="Toggle color theme"></button>
   </div>
 </nav>
 
@@ -238,6 +238,14 @@
 
 <script>
   const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+  const UI_ICONS = {
+    sun: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>',
+    moon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>',
+    edit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 20 4.2-1 10.6-10.6a2 2 0 0 0-2.8-2.8L5.4 16.2 4 20Z"/><path d="m14.5 7.1 2.8 2.8"/></svg>',
+    share: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.5M8.2 13.2l7.6 4.5"/></svg>',
+    trash: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>'
+  };
+  function uiIcon(name) { return UI_ICONS[name] || ''; }
 
   const moods = ['happy', 'sad', 'energetic', 'calm', 'focused', 'angry', 'romantic', 'nostalgic', 'party', 'sleepy', 'anxious'];
 
@@ -319,7 +327,7 @@
 
   function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
-    document.getElementById('theme-btn').textContent = theme === 'dark' ? '🌙' : '☀️';
+    document.getElementById('theme-btn').innerHTML = uiIcon(theme === 'dark' ? 'moon' : 'sun');
     document.getElementById('logo').src = theme === 'dark' ? 'quaver_nightmode1.png' : 'quaver_lightmode1.png';
     const splashLogo = document.getElementById('splash-logo');
     if (splashLogo) splashLogo.src = theme === 'dark' ? 'quaver_nightmode1.png' : 'quaver_lightmode1.png';
@@ -913,9 +921,9 @@
       html += '</div>';
       html += '<div style="display:flex;gap:6px;align-items:center;">';
       html += '<button class="export-spotify-btn" onclick="exportToSpotify(' + i + ')">▶ Spotify</button>';
-      html += '<button class="rename-playlist-btn" onclick="renamePlaylist(' + i + ')" title="Rename">✏️</button>';
-      html += '<button class="share-playlist-btn" onclick="sharePlaylist(' + i + ')" title="' + (pl.isPublic ? 'Copy share link' : 'Share') + '">' + (pl.isPublic ? '🔗' : '↗') + '</button>';
-      html += '<button class="delete-playlist-btn" onclick="deletePlaylist(' + i + ')">✕</button>';
+      html += '<button class="rename-playlist-btn" onclick="renamePlaylist(' + i + ')" title="Rename" aria-label="Rename">' + uiIcon('edit') + '</button>';
+      html += '<button class="share-playlist-btn" onclick="sharePlaylist(' + i + ')" title="' + (pl.isPublic ? 'Copy share link' : 'Share') + '" aria-label="Share">' + uiIcon('share') + '</button>';
+      html += '<button class="delete-playlist-btn" onclick="deletePlaylist(' + i + ')" title="Delete" aria-label="Delete">' + uiIcon('trash') + '</button>';
       html += '</div></div>';
     });
     container.innerHTML = html;
