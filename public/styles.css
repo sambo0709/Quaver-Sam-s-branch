@@ -2850,6 +2850,14 @@ html.reduce-motion *::after {
    RESPONSIVE
 ═══════════════════════════════════════ */
 
+/* Keep the centered navigation from colliding with account actions on
+   laptops, split-screen windows, and landscape tablets. */
+@media (max-width: 1100px) and (min-width: 769px) {
+  nav, .top-nav { padding-inline: 20px; }
+  .nav-link { padding-inline: 12px; }
+  .nav-username { display: none; }
+}
+
 /* ═══════════════════════════════════════
    RESPONSIVE — TABLET (≤ 768px)
 ═══════════════════════════════════════ */

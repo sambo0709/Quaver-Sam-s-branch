@@ -257,13 +257,22 @@
   async function syncAccountPreferences() {
     const token = localStorage.getItem('quaver_token');
     if (!token) return;
+    const deviceTheme = localStorage.getItem('theme');
     try {
       const res = await fetch(API + '/api/auth/settings', { headers: { 'Authorization': 'Bearer ' + token } });
       if (!res.ok) return;
       const data = await res.json();
       localStorage.setItem('quaver_preferences', JSON.stringify(data.preferences || {}));
-      if (data.defaultTheme === 'system') localStorage.removeItem('theme');
-      else localStorage.setItem('theme', data.defaultTheme);
+      // A theme explicitly chosen on this device wins during navigation.
+      // The account default initializes devices that have no local choice yet.
+      if (!deviceTheme) {
+        const accountTheme = data.defaultTheme || 'system';
+        if (accountTheme !== 'system') localStorage.setItem('theme', accountTheme);
+        const activeTheme = accountTheme === 'system'
+          ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+          : accountTheme;
+        applyTheme(activeTheme);
+      }
       const preferences = data.preferences || {};
       document.documentElement.classList.toggle('reduce-motion', !!preferences.reducedMotion);
       if (preferences.defaultMood) { currentMood = preferences.defaultMood; document.getElementById('mood-select').value = currentMood; applyMoodColors(currentMood); }
