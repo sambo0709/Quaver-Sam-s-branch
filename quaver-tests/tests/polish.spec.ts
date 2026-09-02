@@ -15,6 +15,7 @@ test('profile exposes the polished dashboard and dedicated settings navigation',
   await expect(page.getByRole('heading', { name: 'Your Sound Story' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Weekly Mood Mix' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '30-Day Mood Timeline' })).toBeVisible();
+  await page.getByRole('button', { name: 'Open account menu' }).click();
   await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Toggle color theme' })).toBeVisible();
 });

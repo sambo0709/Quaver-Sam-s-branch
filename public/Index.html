@@ -29,8 +29,6 @@
   <div class="nav-center">
     <a class="nav-link active" href="Index.html">Home</a>
     <button class="nav-link" onclick="togglePlaylistPanel()">Playlist <span id="playlist-count" class="count-badge">0</span></button>
-    <a class="nav-link" href="profile.html">Profile</a>
-    <a class="nav-link" href="settings.html">Settings</a>
     <div id="spotify-login-btn" style="display:none">
       <button onclick="connectSpotifyAccount()" class="nav-link spotify-nav-link">Spotify</button>
     </div>
@@ -40,10 +38,9 @@
     </div>
   </div>
   <div class="nav-right">
-    <span id="nav-username" class="nav-username"></span>
-    <button id="nav-logout" class="logout-btn" onclick="logout()" style="display:none">Logout</button>
     <a id="nav-login-link" href="login.html" class="login-nav-btn" style="display:none">Login</a>
     <button class="toggle" id="theme-btn" onclick="toggleTheme()" aria-label="Toggle color theme"></button>
+    <div id="user-menu" class="user-menu" style="display:none"><button id="user-menu-button" class="user-menu-button" onclick="toggleUserMenu(event)" aria-label="Open account menu" aria-expanded="false"><span id="user-avatar">U</span></button><div id="user-menu-dropdown" class="user-menu-dropdown" hidden><div class="user-menu-header"><strong id="nav-username"></strong><small>Quaver account</small></div><a href="profile.html">Profile</a><a href="settings.html">Settings</a><button onclick="logout()">Log out</button></div></div>
   </div>
 </nav>
 
@@ -345,19 +342,25 @@
 
   function updateAuthUI() {
     const user = JSON.parse(localStorage.getItem('quaver_user') || 'null');
-    const logoutBtn = document.getElementById('nav-logout');
+    const userMenu = document.getElementById('user-menu');
     const loginLink = document.getElementById('nav-login-link');
     const usernameEl = document.getElementById('nav-username');
     if (user) {
-      usernameEl.textContent = 'Hi, ' + user.username + '!';
-      logoutBtn.style.display = 'inline-block';
+      usernameEl.textContent = user.username;
+      document.getElementById('user-avatar').textContent = (user.username || 'U').charAt(0).toUpperCase();
+      userMenu.style.display = 'block';
       loginLink.style.display = 'none';
     } else {
       usernameEl.textContent = '';
-      logoutBtn.style.display = 'none';
+      userMenu.style.display = 'none';
       loginLink.style.display = 'inline-block';
     }
   }
+
+  function toggleUserMenu(event) { event.stopPropagation(); const menu=document.getElementById('user-menu-dropdown'); const open=menu.hidden; menu.hidden=!open; document.getElementById('user-menu-button').setAttribute('aria-expanded',String(open)); }
+  function closeUserMenu() { const menu=document.getElementById('user-menu-dropdown'); if(!menu)return; menu.hidden=true; document.getElementById('user-menu-button').setAttribute('aria-expanded','false'); }
+  document.addEventListener('click', closeUserMenu);
+  document.addEventListener('keydown', function(event) { if(event.key==='Escape') closeUserMenu(); });
 
   function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);

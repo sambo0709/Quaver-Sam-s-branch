@@ -256,6 +256,49 @@ nav.nav-hidden,
   gap: 0.5rem;
 }
 
+.user-menu { position: relative; }
+.user-menu-button {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 3px solid rgba(255,255,255,0.72);
+  border-radius: 50%;
+  background: var(--gradient);
+  color: #fff;
+  font: 800 0.9rem/1 var(--font-family);
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(15,23,42,0.18);
+}
+.user-menu-button:hover { transform: scale(1.04); }
+.user-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 210px;
+  padding: 8px;
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  background: #202633;
+  color: #f5f7fb;
+  box-shadow: 0 18px 48px rgba(0,0,0,0.34);
+  z-index: 900;
+}
+:root[data-theme="light"] .user-menu-dropdown { background: #fff; color: #171923; box-shadow: 0 18px 48px rgba(15,23,42,0.16); }
+.user-menu-dropdown[hidden] { display: none; }
+.user-menu-header { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px 12px; margin-bottom: 5px; border-bottom: 1px solid var(--glass-border); }
+.user-menu-header strong { font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; }
+.user-menu-header small { color: var(--text-muted); font-size: 0.72rem; }
+.user-menu-dropdown a,
+.user-menu-dropdown > button { display: block; width: 100%; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; color: inherit; text-align: left; text-decoration: none; font: 600 0.82rem/1.2 var(--font-family); cursor: pointer; }
+.user-menu-dropdown a:hover,
+.user-menu-dropdown > button:hover,
+.user-menu-dropdown a.active { background: rgba(255,255,255,0.08); }
+:root[data-theme="light"] .user-menu-dropdown a:hover,
+:root[data-theme="light"] .user-menu-dropdown > button:hover,
+:root[data-theme="light"] .user-menu-dropdown a.active { background: rgba(15,23,42,0.06); }
+.user-menu-dropdown > button { margin-top: 5px; border-top: 1px solid var(--glass-border); border-radius: 0 0 8px 8px; color: #ef6b6b; }
+
 /* Theme toggle — exact portfolio dark-btn style */
 .toggle {
   background: rgba(8, 12, 20, 0.72);

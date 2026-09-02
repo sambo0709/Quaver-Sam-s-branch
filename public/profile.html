@@ -19,13 +19,10 @@
     </div>
     <div class="nav-center">
       <a class="nav-link" href="Index.html">Home</a>
-      <a class="nav-link active" href="profile.html">Profile</a>
-      <a class="nav-link" href="settings.html">Settings</a>
     </div>
     <div class="nav-right">
-      <span id="nav-username" class="nav-username"></span>
-      <button id="nav-logout" class="logout-btn" onclick="logout()" style="display:none">Logout</button>
       <button class="toggle" onclick="toggleTheme()" aria-label="Toggle color theme"></button>
+      <div id="user-menu" class="user-menu" style="display:none"><button id="user-menu-button" class="user-menu-button" onclick="toggleUserMenu(event)" aria-label="Open account menu" aria-expanded="false"><span id="user-avatar">U</span></button><div id="user-menu-dropdown" class="user-menu-dropdown" hidden><div class="user-menu-header"><strong id="nav-username"></strong><small>Quaver account</small></div><a class="active" href="profile.html">Profile</a><a href="settings.html">Settings</a><button onclick="logout()">Log out</button></div></div>
     </div>
   </nav>
 
@@ -201,13 +198,18 @@
 
     function updateAuthUI() {
       const user = JSON.parse(localStorage.getItem('quaver_user') || 'null');
-      const logoutBtn = document.getElementById('nav-logout');
       const usernameEl = document.getElementById('nav-username');
       if (user) {
-        usernameEl.textContent = 'Hi, ' + user.username + '!';
-        logoutBtn.style.display = 'inline-block';
+        usernameEl.textContent = user.username;
+        document.getElementById('user-avatar').textContent=(user.username||'U').charAt(0).toUpperCase();
+        document.getElementById('user-menu').style.display='block';
       }
     }
+
+    function toggleUserMenu(event){event.stopPropagation();const menu=document.getElementById('user-menu-dropdown');const open=menu.hidden;menu.hidden=!open;document.getElementById('user-menu-button').setAttribute('aria-expanded',String(open));}
+    function closeUserMenu(){const menu=document.getElementById('user-menu-dropdown');if(!menu)return;menu.hidden=true;document.getElementById('user-menu-button').setAttribute('aria-expanded','false');}
+    document.addEventListener('click',closeUserMenu);
+    document.addEventListener('keydown',function(event){if(event.key==='Escape')closeUserMenu();});
 
     function playInApp(trackId, title, artist, albumArt) {
       document.getElementById('spotify-iframe').src = 'https://open.spotify.com/embed/track/' + trackId + '?utm_source=generator&theme=0&autoplay=1';
