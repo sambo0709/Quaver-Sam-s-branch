@@ -6,7 +6,9 @@
   <title>Shared Playlist - Quaver</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="share-page">
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <nav class="top-nav">
   <div class="nav-left">
@@ -22,17 +24,25 @@
   </div>
 </nav>
 
-<div id="spotify-player" class="spotify-player" style="display:none">
-  <div class="player-header">
-    <span id="player-song-name">—</span>
-    <button class="player-close-btn" onclick="closePlayer()">✕</button>
+<div id="spotify-player" class="spotify-player" style="display:none" role="region" aria-label="Now playing">
+  <div class="player-identity" aria-live="polite">
+    <div class="player-artwork"><img id="player-art" alt="" hidden/><span id="player-art-placeholder" aria-hidden="true">Q</span></div>
+    <div class="player-track-copy"><span class="now-playing-label">NOW PLAYING</span><strong id="player-song-name">Choose a song</strong><small id="player-song-artist">Quaver</small></div>
+    <a id="player-spotify-link" class="player-spotify-link" href="https://open.spotify.com" target="_blank" rel="noopener" aria-label="Open current track in Spotify"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7 9.1c3.7-1 7.7-.7 10.9.9M7.8 12.4c3-.8 6.5-.5 9.2.7M8.5 15.4c2.4-.6 5.1-.4 7.3.6"/></svg><span>Spotify</span></a>
   </div>
-  <iframe id="spotify-iframe"
-    style="border-radius:12px" src="" width="100%" height="80"
-    frameborder="0" allowfullscreen=""
-    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-    loading="lazy">
-  </iframe>
+  <div class="player-center">
+    <div class="player-transport">
+      <button class="player-control-button" onclick="QuaverPlayer.previous()" title="Previous" aria-label="Previous song"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14M19 6.5 9 12l10 5.5Z"/></svg></button>
+      <button id="player-toggle" class="player-toggle-button" onclick="QuaverPlayer.toggle()" title="Play" aria-label="Play"><svg class="player-play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 7 9 5-9 5Z"/></svg><svg class="player-pause-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7h3v10H8zM13 7h3v10h-3z"/></svg></button>
+      <button class="player-control-button" onclick="QuaverPlayer.next()" title="Next" aria-label="Next song"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14M5 6.5 15 12 5 17.5Z"/></svg></button>
+    </div>
+    <div class="player-progress-row"><span id="player-current-time">0:00</span><input id="player-progress" class="player-range" type="range" min="0" max="1" value="0" aria-label="Song progress" oninput="QuaverPlayer.previewSeek(this.value)" onchange="QuaverPlayer.seek(this.value)"/><span id="player-duration">0:00</span></div>
+    <div class="player-status-line"><span id="player-status" data-state="">Ready when you are</span><a id="player-status-action" href="settings.html#spotify-settings" hidden></a></div>
+  </div>
+  <div class="player-actions">
+    <div class="player-volume-controls"><button id="player-volume-button" class="player-control-button" onclick="QuaverPlayer.toggleMute()" title="Mute" aria-label="Mute"><svg class="player-volume-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10v4h3l4 3V7l-4 3ZM15 9c1 .8 1.5 1.8 1.5 3S16 14.2 15 15M17.5 7c1.7 1.3 2.5 3 2.5 5s-.8 3.7-2.5 5"/></svg><svg class="player-muted-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10v4h3l4 3V7l-4 3ZM16 10l4 4M20 10l-4 4"/></svg></button><input id="player-volume" class="player-range player-volume-range" type="range" min="0" max="100" value="70" aria-label="Volume" oninput="QuaverPlayer.setVolume(this.value)"/></div>
+    <button class="player-close-btn" onclick="closePlayer()" aria-label="Close player" title="Close player"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button>
+  </div>
 </div>
 
 <main class="profile-main">
@@ -46,6 +56,8 @@
 
 <script>
   const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+  let toastTimer;
+  function showToast(message, type) { const toast=document.getElementById('toast'); clearTimeout(toastTimer); toast.textContent=message; toast.className='toast '+(type||'success')+' show'; toastTimer=setTimeout(function(){toast.classList.remove('show');},3200); }
   function themeIcon(theme) {
     return theme === 'light'
       ? '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>'
@@ -63,15 +75,12 @@
     localStorage.setItem('theme', isDark ? 'light' : 'dark');
   }
 
-  function playInApp(trackId, title) {
-    document.getElementById('spotify-iframe').src = 'https://open.spotify.com/embed/track/' + trackId + '?utm_source=generator&theme=0&autoplay=1';
-    document.getElementById('player-song-name').textContent = title;
-    document.getElementById('spotify-player').style.display = 'block';
+  function playInApp(trackId, title, artist, albumArt) {
+    return QuaverPlayer.play({ trackId: trackId, title: title, artist: artist || '', albumArt: albumArt || '' });
   }
 
   function closePlayer() {
-    document.getElementById('spotify-iframe').src = '';
-    document.getElementById('spotify-player').style.display = 'none';
+    QuaverPlayer.hide();
   }
 
   async function loadSharedPlaylist() {
@@ -110,7 +119,7 @@
         html += '<div class="song-info"><div class="song-title">' + song.title + '</div><div class="song-artist">' + song.artist + '</div></div>';
         html += '<div class="song-actions">';
         if (trackId) {
-          html += '<button class="play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\')">&#9654;</button>';
+          html += '<button class="play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\', \'' + (song.artist || '').replace(/'/g, "\\'") + '\', \'' + (song.album_art || '') + '\')">&#9654;</button>';
         }
         html += '</div></div>';
       });
@@ -134,5 +143,6 @@
     loadSharedPlaylist();
   });
 </script>
+<script src="spotify-player.js"></script>
 </body>
 </html>

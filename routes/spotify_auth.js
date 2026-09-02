@@ -9,8 +9,18 @@ const SCOPES = [
   'playlist-modify-public',
   'playlist-modify-private',
   'user-read-private',
-  'user-read-email'
+  'user-read-email',
+  'streaming',
+  'user-read-playback-state',
+  'user-read-currently-playing',
+  'user-modify-playback-state'
 ].join(' ');
+
+const PLAYBACK_SCOPES = [
+  'streaming',
+  'user-read-playback-state',
+  'user-modify-playback-state',
+];
 
 function getQuaverUser(req) {
   const header = req.headers.authorization;
@@ -46,6 +56,11 @@ function authorizationUrl(state) {
   });
   if (state) params.set('state', state);
   return 'https://accounts.spotify.com/authorize?' + params.toString();
+}
+
+function hasPlaybackScopes(scopes) {
+  const granted = new Set(String(scopes || '').split(/\s+/).filter(Boolean));
+  return PLAYBACK_SCOPES.every((scope) => granted.has(scope));
 }
 
 function createSpotifySession(accessToken, refreshToken, spotifyUser) {
@@ -132,6 +147,7 @@ router.get('/callback', async (req, res) => {
           userId: spotifyIdentity.id,
           displayName: spotifyIdentity.displayName,
           refreshToken: encrypt(tokenData.refresh_token),
+          scopes: tokenData.scope || SCOPES,
           connectedAt: new Date(),
         } } }
       );
@@ -158,7 +174,11 @@ router.get('/status', async (req, res) => {
       { projection: { spotifyConnection: 1 } }
     );
     const connection = found && found.spotifyConnection;
-    res.json({ connected: !!connection, displayName: connection?.displayName || null });
+    res.json({
+      connected: !!connection,
+      displayName: connection?.displayName || null,
+      playbackReady: !!connection && hasPlaybackScopes(connection.scopes),
+    });
   } catch (_) { res.status(500).json({ error: 'Could not check Spotify connection' }); }
 });
 
@@ -180,6 +200,53 @@ router.post('/session', async (req, res) => {
   } catch (error) {
     console.error('Spotify account session error:', error);
     res.status(401).json({ error: 'Spotify needs to be reconnected' });
+  }
+});
+
+// The Web Playback SDK must receive a short-lived Spotify access token in the
+// browser. The reusable refresh token remains encrypted in MongoDB and is
+// never returned to the client.
+router.post('/playback-token', async (req, res) => {
+  const user = getQuaverUser(req);
+  if (!user) return res.status(401).json({ code: 'QUAVER_LOGIN_REQUIRED', error: 'Log in to Quaver first.' });
+
+  try {
+    const db = await getDB();
+    const found = await db.collection('users').findOne(
+      { _id: new ObjectId(user.userId) },
+      { projection: { spotifyConnection: 1 } }
+    );
+    const connection = found?.spotifyConnection;
+    if (!connection?.refreshToken) {
+      return res.status(404).json({ code: 'SPOTIFY_NOT_CONNECTED', error: 'Connect Spotify in Settings to listen in Quaver.' });
+    }
+    if (!hasPlaybackScopes(connection.scopes)) {
+      return res.status(409).json({
+        code: 'SPOTIFY_RECONNECT_REQUIRED',
+        error: 'Reconnect Spotify once to enable the new Quaver player.',
+      });
+    }
+
+    const refreshToken = decrypt(connection.refreshToken);
+    const tokenData = await refreshAccessToken(refreshToken);
+    if (tokenData.refresh_token) {
+      await db.collection('users').updateOne(
+        { _id: found._id },
+        { $set: { 'spotifyConnection.refreshToken': encrypt(tokenData.refresh_token) } }
+      );
+    }
+
+    res.set('Cache-Control', 'no-store');
+    res.json({
+      accessToken: tokenData.access_token,
+      expiresIn: tokenData.expires_in || 3600,
+    });
+  } catch (error) {
+    console.error('Spotify playback token error:', error);
+    res.status(401).json({
+      code: 'SPOTIFY_RECONNECT_REQUIRED',
+      error: 'Spotify needs to be reconnected in Settings.',
+    });
   }
 });
 
