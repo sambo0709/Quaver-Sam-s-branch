@@ -106,6 +106,10 @@ body::after {
   z-index: 0;
 }
 
+:root[data-theme="dark"] body::after {
+  display: none;
+}
+
 /* ═══════════════════════════════════════
    GLASS MIXIN UTILITY
 ═══════════════════════════════════════ */

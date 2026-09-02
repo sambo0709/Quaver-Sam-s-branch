@@ -30,6 +30,16 @@ const POOL_TTL = 2 * 60 * 60 * 1000; // 2 hours
 const recentlyServed = {};
 const MAX_SEEN = 8; // remember last 8 served per mood
 
+async function spotifyApiError(response, context) {
+  let details = '';
+  try {
+    details = await response.text();
+  } catch (_) {}
+
+  const suffix = details ? ' - ' + details : '';
+  return new Error(context + ': ' + response.status + ' ' + response.statusText + suffix);
+}
+
 async function getMoodPool(mood, token) {
   const entry = moodPoolCache[mood];
   if (entry && Date.now() < entry.expiresAt) {
@@ -94,8 +104,9 @@ async function getSpotifyToken() {
     },
     body: 'grant_type=client_credentials',
   });
+  if (!res.ok) throw await spotifyApiError(res, 'Spotify token request failed');
   const data = await res.json();
-  if (!data.access_token) throw new Error('Failed to get Spotify token');
+  if (!data.access_token) throw new Error('Spotify token response did not include an access token');
   cachedToken = data.access_token;
   tokenExpiresAt = Date.now() + (data.expires_in - 60) * 1000; // expire 1 min early
   return cachedToken;
@@ -116,10 +127,10 @@ async function searchTracks(queries, token, limit) {
   }
 
   if (res.status === 429) {
-    throw new Error('Spotify rate limit reached. Please try again in a moment.');
+    throw await spotifyApiError(res, 'Spotify rate limit reached');
   }
   if (!res.ok) {
-    throw new Error('Spotify API error: ' + res.status);
+    throw await spotifyApiError(res, 'Spotify search failed');
   }
   const data = await res.json();
   if (!data.tracks || !data.tracks.items) {
@@ -179,8 +190,7 @@ router.get('/search', async function(req, res) {
     const token = await getSpotifyToken();
     const url = 'https://api.spotify.com/v1/search?q=' + encodeURIComponent(query) + '&type=track&limit=10';
     const searchRes = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
-    if (searchRes.status === 429) throw new Error('Spotify rate limit reached. Please try again in a moment.');
-    if (!searchRes.ok) throw new Error('Spotify API error: ' + searchRes.status);
+    if (!searchRes.ok) throw await spotifyApiError(searchRes, 'Spotify search failed');
     const data = await searchRes.json();
     const songs = (data.tracks?.items || []).map(function(track) {
       return {

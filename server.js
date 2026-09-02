@@ -9,6 +9,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
+// Render terminates HTTPS at its proxy and forwards the original client IP.
+app.set('trust proxy', 1);
 app.use(cors());
 app.use(express.json());
 
