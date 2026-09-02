@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Shared Playlist - Quaver</title>
-  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -93,8 +92,8 @@
       document.title = pl.name + ' - Quaver';
 
       let html = '<div style="margin-bottom:32px;">';
-      html += '<div style="font-family:Space Grotesk,sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);opacity:0.6;margin-bottom:8px;">SHARED PLAYLIST</div>';
-      html += '<h1 style="font-family:Space Grotesk,sans-serif;font-size:clamp(1.6rem,5vw,2.8rem);font-weight:700;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;">' + pl.name + '</h1>';
+      html += '<div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);opacity:0.6;margin-bottom:8px;">SHARED PLAYLIST</div>';
+      html += '<h1 style="font-size:clamp(1.6rem,5vw,2.8rem);font-weight:700;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;">' + pl.name + '</h1>';
       html += '<div style="color:var(--text-muted);font-size:0.88rem;">' + pl.songs.length + ' songs · ' + pl.mood + ' · by <strong style="color:var(--text);">' + owner + '</strong></div>';
       html += '</div>';
 
@@ -112,7 +111,7 @@
       });
 
       html += '<div style="text-align:center;margin-top:40px;">';
-      html += '<a href="Index.html" style="display:inline-block;padding:12px 28px;background:var(--gradient);color:#fff;border-radius:999px;text-decoration:none;font-weight:700;font-family:Quicksand,sans-serif;">Make your own playlist</a>';
+      html += '<a href="Index.html" style="display:inline-block;padding:12px 28px;background:var(--gradient);color:#fff;border-radius:999px;text-decoration:none;font-weight:700;">Make your own playlist</a>';
       html += '</div>';
 
       container.innerHTML = html;

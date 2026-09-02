@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Profile - Quaver</title>
-  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="styles.css">
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </head>
@@ -95,10 +94,6 @@
         <div id="mood-analytics">
           <p class="box-empty">No moods yet. Pick one on the home page!</p>
         </div>
-        <h2 style="margin-top:1.5rem;">Recent Moods</h2>
-        <div id="recent-moods-list">
-          <p class="box-empty">No moods yet. Pick one on the home page!</p>
-        </div>
       </div>
 
       <div class="box">
@@ -119,6 +114,13 @@
         <h2>Suggestions</h2>
         <div id="suggestions-list">
           <p class="box-empty">Pick a mood to get suggestions.</p>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2>Recent Moods</h2>
+        <div id="recent-moods-list">
+          <p class="box-empty">No moods yet. Pick one on the home page!</p>
         </div>
       </div>
 
@@ -330,7 +332,7 @@
         const data = await res.json();
         if (data.songs && data.songs.length > 0) {
           container.innerHTML =
-            '<div style="font-family:Quicksand,sans-serif;font-size:11px;color:var(--text);opacity:0.5;margin-bottom:12px;">Based on your love of <strong>' + topMood + '</strong></div>' +
+            '<div style="font-size:11px;color:var(--text);opacity:0.5;margin-bottom:12px;">Based on your love of <strong>' + topMood + '</strong></div>' +
             data.songs.map(function(song) {
               const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
               return '<div class="profile-suggestion-item">' +

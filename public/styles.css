@@ -2,11 +2,13 @@
    IMPORTS
 ═══════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
-
 /* ═══════════════════════════════════════
    THEME VARIABLES
 ═══════════════════════════════════════ */
+
+:root {
+  --font-family: 'Spotify Mix', 'Circular Spotify Text', 'Circular Sp', Helvetica, Arial, sans-serif;
+}
 
 :root[data-theme="dark"] {
   --bg: #080c14;
@@ -72,7 +74,7 @@ html {
 
 body {
   background-color: var(--bg);
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -191,7 +193,7 @@ nav.nav-hidden,
 }
 
 .nav-link {
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 0.88rem;
   font-weight: 700;
   color: var(--text-muted);
@@ -259,7 +261,7 @@ nav.nav-hidden,
   background: rgba(8, 12, 20, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--text);
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 16px;
   padding: 12px 14px;
   border-radius: 999px;
@@ -298,7 +300,7 @@ nav.nav-hidden,
 .logout-btn,
 .login-nav-btn,
 .auth-tab {
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-weight: 700;
   cursor: pointer;
   border-radius: 100px;
@@ -392,7 +394,7 @@ nav.nav-hidden,
 }
 
 .nav-username {
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 0.8rem;
   font-weight: 700;
   background: var(--gradient);
@@ -420,7 +422,7 @@ nav.nav-hidden,
   backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
   color: var(--text);
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 0.8rem;
   font-weight: 700;
   text-decoration: none;
@@ -450,7 +452,7 @@ main {
 }
 
 h1 {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: clamp(3rem, 9vw, 8rem);
   font-weight: 700;
   line-height: 1.05;
@@ -492,7 +494,7 @@ h1 span {
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--glass-border);
   color: var(--text);
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 0.95rem;
   font-weight: 700;
   padding: 0.7rem 1.6rem;
@@ -566,7 +568,7 @@ h1 span {
   color: var(--text);
   border-radius: 10px;
   padding: 7px 12px;
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 0.82rem;
   cursor: pointer;
   transition: border-color 0.2s;
@@ -629,7 +631,7 @@ h1 span {
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--glass-border);
   color: var(--text);
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 0.92rem;
   font-weight: 600;
   padding: 0.7rem 1.2rem;
@@ -649,7 +651,7 @@ h1 span {
   background: var(--gradient);
   border: none;
   color: #fff;
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 0.88rem;
   font-weight: 700;
   padding: 0.7rem 1.4rem;
@@ -669,7 +671,7 @@ h1 span {
   backdrop-filter: blur(16px);
   border: 1px solid var(--glass-border);
   color: var(--text-muted);
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 0.85rem;
   font-weight: 600;
   padding: 0.55rem 1.4rem;
@@ -692,7 +694,7 @@ h1 span {
   border: 1px solid var(--glass-border);
   color: var(--text-muted);
   font-size: 0.8rem;
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -870,7 +872,7 @@ h1 span {
   background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(123,97,255,0.1));
   border: 1px solid rgba(0, 212, 255, 0.25);
   color: var(--text);
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 0.85rem;
   font-weight: 700;
   text-align: center;
@@ -885,7 +887,7 @@ h1 span {
 }
 
 .results-header {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 11px;
   letter-spacing: 3px;
   text-transform: uppercase;
@@ -900,7 +902,7 @@ h1 span {
 }
 
 .play-all-btn {
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.5px;
@@ -979,7 +981,7 @@ h1 span {
 }
 
 .song-num {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 11px;
   color: var(--accent);
   opacity: 0.35;
@@ -1011,7 +1013,7 @@ h1 span {
 }
 
 .song-title {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 14px;
   font-weight: 600;
   color: var(--text);
@@ -1042,7 +1044,7 @@ h1 span {
 }
 
 .song-duration {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 12px;
   color: var(--text-muted);
   opacity: 0.6;
@@ -1082,7 +1084,7 @@ h1 span {
   background: var(--glass);
   border: 1px solid var(--glass-border);
   color: var(--text-muted);
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
@@ -1146,7 +1148,7 @@ h1 span {
 }
 
 .queue-counter {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 11px;
   color: var(--accent);
   background: var(--glass);
@@ -1227,7 +1229,7 @@ h1 span {
 }
 
 .queue-panel-title {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 2px;
@@ -1242,7 +1244,7 @@ h1 span {
 }
 
 .queue-clear-btn {
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 0.75rem;
   font-weight: 700;
   padding: 4px 12px;
@@ -1421,7 +1423,7 @@ h1 span {
   background: var(--glass);
   border: 1px solid var(--glass-border);
   color: var(--text);
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
@@ -1472,7 +1474,7 @@ h1 span {
 }
 
 .onboarding-title {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 1.8rem;
   font-weight: 700;
   background: var(--gradient);
@@ -1525,7 +1527,7 @@ h1 span {
   background: var(--gradient);
   border: none;
   color: #fff;
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
@@ -1543,7 +1545,7 @@ h1 span {
   background: var(--glass);
   border: 1px solid var(--glass-border);
   color: var(--text-muted);
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
@@ -1599,7 +1601,7 @@ h1 span {
 }
 
 .player-header span {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
@@ -1688,7 +1690,7 @@ h1 span {
 }
 
 .panel-title {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 18px;
   font-weight: 700;
   color: var(--text);
@@ -1723,7 +1725,7 @@ h1 span {
   background: var(--glass);
   border: 1px solid var(--glass-border);
   color: var(--text);
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 14px;
   font-weight: 600;
   padding: 9px 14px;
@@ -1746,7 +1748,7 @@ h1 span {
   background: var(--gradient);
   color: #fff;
   border: none;
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 13px;
   font-weight: 700;
   padding: 9px 18px;
@@ -1798,7 +1800,7 @@ h1 span {
   background: var(--glass);
   border: 1px solid var(--glass-border);
   color: var(--accent);
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 11px;
   font-weight: 700;
   padding: 5px 12px;
@@ -1815,7 +1817,7 @@ h1 span {
 }
 
 .active-playlist-name {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 14px;
   font-weight: 600;
   color: var(--text);
@@ -1840,7 +1842,7 @@ h1 span {
 .panel-song-info { flex: 1; min-width: 0; }
 
 .panel-song-title {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
@@ -1916,7 +1918,7 @@ h1 span {
 }
 
 .saved-section-label {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 10px;
   letter-spacing: 3px;
   text-transform: uppercase;
@@ -1960,7 +1962,7 @@ h1 span {
 .saved-playlist-info:hover { opacity: 0.7; }
 
 .saved-playlist-name {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
@@ -2096,7 +2098,7 @@ h1 span {
   gap: 6px;
   background: #1db954;
   color: #000;
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 0.8rem;
   font-weight: 700;
   padding: 0.45rem 1.1rem;
@@ -2112,7 +2114,7 @@ h1 span {
 }
 
 .spotify-user-badge {
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 0.8rem;
   font-weight: 700;
   color: #1db954;
@@ -2127,7 +2129,7 @@ h1 span {
   background: #1db954;
   color: #000;
   border: none;
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 11px;
   font-weight: 700;
   padding: 5px 12px;
@@ -2145,13 +2147,6 @@ h1 span {
 /* ═══════════════════════════════════════
    PROFILE PAGE
 ═══════════════════════════════════════ */
-
-.profile-page,
-.profile-page button,
-.profile-page input,
-.profile-page select {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-}
 
 .profile-main {
   padding: 50px 24px 100px;
@@ -2419,7 +2414,7 @@ h1 span {
 }
 
 .auth-title {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 2.2rem;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -2471,7 +2466,7 @@ h1 span {
 
 .auth-field label {
   display: block;
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-muted);
@@ -2485,7 +2480,7 @@ h1 span {
   background: var(--glass);
   border: 1px solid var(--glass-border);
   color: var(--text);
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 1rem;
   font-weight: 600;
   padding: 13px 16px;
@@ -2511,7 +2506,7 @@ h1 span {
   background: var(--gradient);
   color: #fff;
   border: none;
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -2567,7 +2562,7 @@ h1 span {
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
   color: var(--text);
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 13px;
   font-weight: 600;
   padding: 12px 24px;
@@ -2772,7 +2767,7 @@ h1 span {
 }
 
 .trending-title {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--text);
@@ -2795,7 +2790,7 @@ h1 span {
   border: 1px solid var(--glass-border);
   background: var(--glass);
   color: var(--text);
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -2858,7 +2853,7 @@ h1 span {
 }
 
 .sotd-label {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 10px;
   letter-spacing: 4px;
   text-transform: uppercase;
@@ -2868,7 +2863,7 @@ h1 span {
 }
 
 .sotd-title {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: clamp(1.8rem, 4vw, 3rem);
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -2921,7 +2916,7 @@ h1 span {
 }
 
 .sotd-num {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 12px;
   color: var(--text-muted);
   opacity: 0.4;
@@ -2931,7 +2926,7 @@ h1 span {
 }
 
 .sotd-mood-tag {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1px;
@@ -2962,7 +2957,7 @@ h1 span {
 }
 
 .sotd-song-title {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--font-family);
   font-size: 14px;
   font-weight: 600;
   color: var(--text);
@@ -3019,7 +3014,7 @@ h1 span {
   background: var(--glass);
   border: 1px solid var(--glass-border);
   color: var(--text-muted);
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
@@ -3302,7 +3297,7 @@ h1 span {
   border: none;
   border-radius: 100px;
   color: #fff;
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-weight: 700;
   font-size: 0.88rem;
   cursor: pointer;
@@ -3318,7 +3313,7 @@ h1 span {
   border: 1px solid rgba(255,255,255,0.15);
   border-radius: 100px;
   color: #fff;
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 0.88rem;
   cursor: pointer;
   transition: background 0.2s;
@@ -3335,7 +3330,7 @@ h1 span {
   border: 1px solid rgba(0,212,255,0.3);
   border-radius: 100px;
   color: var(--accent);
-  font-family: 'Quicksand', sans-serif;
+  font-family: var(--font-family);
   font-size: 0.88rem;
   font-weight: 700;
   cursor: pointer;
