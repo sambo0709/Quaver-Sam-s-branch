@@ -26,6 +26,8 @@
     </div>
   </nav>
 
+  <nav class="mobile-bottom-nav" aria-label="Mobile navigation"><a href="Index.html"><span aria-hidden="true">⌂</span>Home</a><a href="Index.html#search-input"><span aria-hidden="true">⌕</span>Search</a><a href="Index.html?open=playlist"><span aria-hidden="true">♫</span>Playlist</a><a class="active" href="profile.html"><span aria-hidden="true">◉</span>Account</a></nav>
+
   <div id="spotify-player" class="spotify-player" style="display:none">
     <div class="player-header">
       <div class="player-identity"><img id="player-art" alt=""/><div><span id="player-song-name">—</span><small id="player-song-artist"></small></div></div>
@@ -131,13 +133,6 @@
         </div>
       </div>
 
-      <div class="box box-wide">
-        <h2>30-Day Mood Timeline</h2>
-        <div id="mood-timeline">
-          <p class="box-empty">Your mood timeline will appear here.</p>
-        </div>
-      </div>
-
       <div class="box">
         <h2>Recent Moods</h2>
         <div id="recent-moods-list">
@@ -218,7 +213,8 @@
       document.getElementById('player-art').src = albumArt || '';
       document.getElementById('player-art').style.display = albumArt ? 'block' : 'none';
       document.getElementById('player-spotify-link').href = 'https://open.spotify.com/track/' + trackId;
-      document.getElementById('spotify-player').style.display = 'block';
+      document.getElementById('spotify-player').style.display = 'grid';
+      document.body.classList.add('player-active');
       clearTimeout(meaningfulPlayTimer);
       meaningfulPlayTimer = setTimeout(function() {
         try {
@@ -260,6 +256,7 @@
       clearTimeout(meaningfulPlayTimer);
       document.getElementById('spotify-iframe').src = '';
       document.getElementById('spotify-player').style.display = 'none';
+      document.body.classList.remove('player-active');
     }
 
     const moodEmoji = { happy: '😊', sad: '😢', energetic: '⚡', calm: '😌', focused: '🎯', angry: '😤', romantic: '❤️', nostalgic: '🌅', party: '🎉', sleepy: '😴', anxious: '🌀' };
@@ -413,20 +410,6 @@
       }
     }
 
-    function renderMoodTimeline(moods) {
-      const container = document.getElementById('mood-timeline');
-      const since = Date.now() - 30 * 24 * 60 * 60 * 1000;
-      const recent = (moods || []).filter(function(item) { return item.ts && item.ts >= since; }).slice().reverse();
-      if (!recent.length) {
-        container.innerHTML = '<div class="box-empty"><p>Your timeline needs a few mood picks.</p><a href="Index.html">Record a mood</a></div>';
-        return;
-      }
-      container.innerHTML = '<div class="timeline-list">' + recent.map(function(item) {
-        const date = new Date(item.ts);
-        return '<div class="timeline-item"><span class="timeline-dot"></span><div class="timeline-content"><div><strong>' + escapeHTML(item.mood) + '</strong><span>' + date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + '</span></div>' + (item.note ? '<small>' + escapeHTML(item.note) + '</small>' : '') + '</div></div>';
-      }).join('') + '</div>';
-    }
-
     async function loadProfileData() {
       const token = localStorage.getItem('quaver_token');
       let playlists = JSON.parse(localStorage.getItem('quaver_playlists') || '[]');
@@ -470,7 +453,6 @@
       renderPlaylists(playlists);
       renderSuggestions(moods);
       renderWeeklyMix(moods);
-      renderMoodTimeline(moods);
     }
 
     function openWrapped() {

@@ -137,6 +137,21 @@
   <div id="results" class="results"></div>
 </main>
 
+<section class="personalized-section" id="personalized-home" aria-label="Personalized music">
+  <div class="personalized-row" id="jump-back-section">
+    <div class="personalized-heading"><div><span>FOR YOU</span><h2>Jump back in</h2></div><a href="profile.html">See your history</a></div>
+    <div class="media-rail" id="jump-back-rail" aria-live="polite">
+      <div class="rail-skeleton"></div><div class="rail-skeleton"></div><div class="rail-skeleton"></div><div class="rail-skeleton"></div>
+    </div>
+  </div>
+  <div class="personalized-row">
+    <div class="personalized-heading"><div><span>MADE FOR YOU</span><h2>Your mood shortcuts</h2></div><small>Based on the moods you choose most</small></div>
+    <div class="media-rail mood-rail" id="mood-shortcut-rail" aria-live="polite">
+      <div class="rail-skeleton mood-skeleton"></div><div class="rail-skeleton mood-skeleton"></div><div class="rail-skeleton mood-skeleton"></div><div class="rail-skeleton mood-skeleton"></div>
+    </div>
+  </div>
+</section>
+
 <section class="trending-section" id="trending-section">
   <div class="trending-label">COMMUNITY</div>
   <h2 class="trending-title">Trending Moods</h2>
@@ -150,28 +165,22 @@
     <p class="sotd-subtitle" id="sotd-mood-subtitle">Loading today's vibe...</p>
   </div>
   <div class="sotd-grid" id="sotd-grid">
-    <div class="sotd-loading">
-      <div class="music-notes-loader">
-        <span class="music-note">♩</span>
-        <span class="music-note">♪</span>
-        <span class="music-note">♫</span>
-        <span class="music-note">♬</span>
-      </div>
-      <span>loading today's mood...</span>
-    </div>
+    <div class="sotd-skeleton"><span></span><div><i></i><i></i></div></div>
+    <div class="sotd-skeleton"><span></span><div><i></i><i></i></div></div>
+    <div class="sotd-skeleton"><span></span><div><i></i><i></i></div></div>
   </div>
 </section>
 
-<div id="spotify-player" class="spotify-player" style="display:none">
+<div id="spotify-player" class="spotify-player" style="display:none" role="region" aria-label="Now playing">
   <div class="player-header">
-    <div class="player-identity"><img id="player-art" alt=""/><div><span id="player-song-name">—</span><small id="player-song-artist"></small></div></div>
-    <div style="display:flex;gap:6px;align-items:center;">
+    <div class="player-identity"><img id="player-art" alt=""/><div><small class="now-playing-label">NOW PLAYING</small><span id="player-song-name">—</span><small id="player-song-artist"></small></div></div>
+    <div class="player-actions">
       <a id="player-spotify-link" class="player-spotify-link" href="https://open.spotify.com" target="_blank" rel="noopener">Open Spotify</a>
-      <button class="player-prev-btn" onclick="playFromQueue(-1)" title="Previous">&#9664;</button>
-      <button class="player-next-btn" onclick="playFromQueue(1)" title="Next">&#9654;&#9654;</button>
-      <button id="shuffle-btn" class="player-shuffle-btn" onclick="shuffleQueue()" title="Shuffle remaining">⇄</button>
+      <button class="player-prev-btn" onclick="playFromQueue(-1)" title="Previous" aria-label="Previous song">&#9664;</button>
+      <button class="player-next-btn" onclick="playFromQueue(1)" title="Next" aria-label="Next song">&#9654;</button>
+      <button id="shuffle-btn" class="player-shuffle-btn" onclick="shuffleQueue()" title="Shuffle remaining" aria-label="Shuffle queue">⇄</button>
       <button id="queue-counter" class="queue-counter" onclick="toggleQueuePanel()" style="display:none" title="View queue"></button>
-      <button class="player-close-btn" onclick="closePlayer()">✕</button>
+      <button class="player-close-btn" onclick="closePlayer()" aria-label="Close player">✕</button>
     </div>
   </div>
   <iframe id="spotify-iframe"
@@ -185,6 +194,13 @@
     loading="lazy">
   </iframe>
 </div>
+
+<nav class="mobile-bottom-nav" aria-label="Mobile navigation">
+  <a class="active" href="Index.html"><span aria-hidden="true">⌂</span>Home</a>
+  <button onclick="focusSearch()"><span aria-hidden="true">⌕</span>Search</button>
+  <button onclick="togglePlaylistPanel()"><span aria-hidden="true">♫</span>Playlist</button>
+  <a href="profile.html"><span aria-hidden="true">◉</span>Account</a>
+</nav>
 
 <div class="queue-overlay" id="queue-overlay" onclick="toggleQueuePanel()"></div>
 <div class="queue-panel" id="queue-panel">
@@ -313,6 +329,36 @@
   let spotifyToken = localStorage.getItem('quaver_spotify_token') || null;
   let songQueue = [];
   let queueIndex = -1;
+  let songActionItems = [];
+
+  function songActionMenuHTML(song, includeFeedback) {
+    const itemIndex = songActionItems.push(song) - 1;
+    const feedback = includeFeedback && song.spotify_url
+      ? '<div class="song-menu-divider"></div><button onclick="songMenuAction(\'helpful\',' + itemIndex + ',this)">Fits this mood</button><button onclick="songMenuAction(\'not-helpful\',' + itemIndex + ',this)">Not for me</button>'
+      : '';
+    return '<div class="song-menu-wrap"><button class="song-more-button" onclick="toggleSongMenu(event,this)" aria-label="More options for ' + escapeHTML(song.title) + '" aria-expanded="false">•••</button><div class="song-action-menu" hidden><button onclick="songMenuAction(\'play\',' + itemIndex + ',this)">Play now</button><button onclick="songMenuAction(\'queue\',' + itemIndex + ',this)">Add to queue</button><button onclick="songMenuAction(\'playlist\',' + itemIndex + ',this)">Add to playlist</button><button onclick="songMenuAction(\'similar\',' + itemIndex + ',this)">More like this</button>' + feedback + '<div class="song-menu-divider"></div><button onclick="songMenuAction(\'spotify\',' + itemIndex + ',this)">Open in Spotify</button></div></div>';
+  }
+
+  function closeSongMenus(except) {
+    document.querySelectorAll('.song-action-menu').forEach(function(menu) { if(menu!==except) { menu.hidden=true; const trigger=menu.previousElementSibling; if(trigger)trigger.setAttribute('aria-expanded','false'); } });
+  }
+  function toggleSongMenu(event, button) { event.stopPropagation(); const menu=button.nextElementSibling; const open=menu.hidden; closeSongMenus(menu); menu.hidden=!open; button.setAttribute('aria-expanded',String(open)); }
+  document.addEventListener('click', function(){ closeSongMenus(); });
+  document.addEventListener('keydown', function(event){ if(event.key==='Escape')closeSongMenus(); });
+
+  function songMenuAction(action, index, button) {
+    const song = songActionItems[index];
+    if (!song) return;
+    const trackId = song.trackId || (song.spotify_url ? song.spotify_url.split('/track/')[1]?.split('?')[0] : '');
+    if (action === 'play' && trackId) playInApp(trackId, song.title, song.artist, song.album_art || song.albumArt);
+    if (action === 'queue') addToQueue(song);
+    if (action === 'playlist') addToPlaylist(song, button);
+    if (action === 'similar') moreLikeThis(song.title, song.artist);
+    if (action === 'spotify' && trackId) window.open('https://open.spotify.com/track/' + trackId, '_blank', 'noopener');
+    if (action === 'helpful' && trackId) sendRecommendationFeedback(trackId, true, button);
+    if (action === 'not-helpful' && trackId) sendRecommendationFeedback(trackId, false, button);
+    closeSongMenus();
+  }
 
   function showToast(msg, type) {
     const toast = document.getElementById('toast');
@@ -491,6 +537,7 @@
     restoreSpotifySession();
     syncAccountPreferences();
     loadPlaylists();
+    loadPersonalizedHome();
     renderTrendingPills();
     loadTrendingMoods();
     loadSongsOfTheDay();
@@ -500,6 +547,11 @@
     if (!localStorage.getItem('quaver_onboarded')) {
       document.getElementById('onboarding-overlay').style.display = 'flex';
     }
+    if (new URLSearchParams(window.location.search).get('open') === 'playlist') {
+      setTimeout(togglePlaylistPanel, 100);
+      window.history.replaceState({}, '', 'Index.html');
+    }
+    if (window.location.hash === '#search-input') setTimeout(focusSearch, 100);
   });
 
   function dismissOnboarding() {
@@ -591,6 +643,70 @@
     document.getElementById('results').innerHTML = card.repeat(count);
   }
 
+  function focusSearch() {
+    const input = document.getElementById('search-input');
+    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(function(){ input.focus(); }, 350);
+  }
+
+  function playPersonalized(index) {
+    const song = (window._jumpBackSongs || [])[index];
+    if (song) playInApp(song.trackId, song.title, song.artist, song.albumArt);
+  }
+
+  function chooseMoodShortcut(mood) {
+    document.getElementById('mood-select').value = mood;
+    onMoodSelect(mood);
+    document.querySelector('main').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function renderJumpBack(plays) {
+    const rail = document.getElementById('jump-back-rail');
+    const seen = new Set();
+    const songs = (plays || []).filter(function(song){ if(!song.trackId || seen.has(song.trackId))return false; seen.add(song.trackId); return true; }).slice(0, 8);
+    window._jumpBackSongs = songs;
+    if (!songs.length) {
+      rail.innerHTML = '<div class="rail-empty"><strong>Your listening history will appear here</strong><span>Play a song for at least 10 seconds to add it.</span></div>';
+      return;
+    }
+    rail.innerHTML = songs.map(function(song, index){
+      const menuSong = { trackId:song.trackId, title:song.title, artist:song.artist||'', albumArt:song.albumArt||'', album_art:song.albumArt||'', spotify_url:'https://open.spotify.com/track/'+song.trackId };
+      return '<article class="media-card"><div class="media-art-wrap">' + (song.albumArt ? '<img src="'+escapeHTML(song.albumArt)+'" alt=""/>' : '<div class="media-art-placeholder">♪</div>') + '<button class="media-play-button" onclick="playPersonalized('+index+')" aria-label="Play '+escapeHTML(song.title)+'">▶</button></div><div class="media-card-copy"><strong>'+escapeHTML(song.title)+'</strong><span>'+escapeHTML(song.artist||'Unknown artist')+'</span></div>'+songActionMenuHTML(menuSong,false)+'</article>';
+    }).join('');
+  }
+
+  function renderMoodShortcuts(entries) {
+    const counts = {};
+    (entries || []).forEach(function(entry){ if(entry.mood)counts[entry.mood]=(counts[entry.mood]||0)+1; });
+    const preferred = JSON.parse(localStorage.getItem('quaver_preferences') || '{}').defaultMood;
+    const defaults = [preferred, 'calm', 'energetic', 'focused', 'happy', 'nostalgic'].filter(Boolean);
+    const ranked = Object.keys(counts).sort(function(a,b){return counts[b]-counts[a];}).concat(defaults);
+    const moods = ranked.filter(function(mood,index,list){return moodColors[mood]&&list.indexOf(mood)===index;}).slice(0,5);
+    document.getElementById('mood-shortcut-rail').innerHTML = moods.map(function(mood,index){
+      const count = counts[mood] || 0;
+      const subtitle = count ? count+' mood check-in'+(count===1?'':'s') : (index===0&&preferred===mood?'Your default mood':'A fresh mix');
+      return '<button class="mood-shortcut-card mood-'+mood+'" onclick="chooseMoodShortcut(\''+mood+'\')"><span class="mood-shortcut-label">'+escapeHTML(mood)+'</span><strong>'+escapeHTML(mood.charAt(0).toUpperCase()+mood.slice(1))+' Mix</strong><small>'+subtitle+'</small><span class="mood-shortcut-play">▶</span></button>';
+    }).join('');
+  }
+
+  async function loadPersonalizedHome() {
+    let plays = [];
+    let moods = recentMoods.slice();
+    try { plays = JSON.parse(localStorage.getItem('quaver_recently_played') || '[]'); } catch(_) {}
+    const token = localStorage.getItem('quaver_token');
+    if (token) {
+      const headers = { 'Authorization':'Bearer '+token };
+      const responses = await Promise.allSettled([
+        fetch(API+'/api/listening/history',{headers:headers}).then(function(res){return res.ok?res.json():null;}),
+        fetch(API+'/api/mood/history',{headers:headers}).then(function(res){return res.ok?res.json():null;})
+      ]);
+      if (responses[0].status==='fulfilled' && responses[0].value?.plays) plays=responses[0].value.plays;
+      if (responses[1].status==='fulfilled' && responses[1].value?.moods) moods=responses[1].value.moods;
+    }
+    renderJumpBack(plays);
+    renderMoodShortcuts(moods);
+  }
+
   async function fetchSongs() {
     document.getElementById('loading').style.display = 'none';
     showSkeletons(currentLimit);
@@ -611,12 +727,8 @@
           html += '<div class="song-info"><div class="song-title">' + escapeHTML(song.title) + '</div><div class="song-artist">' + escapeHTML(song.artist) + '</div><div class="recommendation-reason">Fits your ' + escapeHTML(currentMood) + ' mood</div></div>';
           html += '<div class="song-actions">';
           if (trackId) html += '<button class="play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\', \'' + (song.artist || '').replace(/'/g, "\\'") + '\', \'' + (song.album_art || '') + '\')">&#9654;</button>';
-          html += '<button class="queue-btn" onclick=\'addToQueue(' + JSON.stringify(song).replace(/'/g, "&#39;") + ')\' title="Add to queue">+Q</button>';
-          html += '<button class="more-btn" data-title="' + song.title.replace(/"/g, '&quot;') + '" data-artist="' + (song.artist || '').replace(/"/g, '&quot;') + '" onclick="moreLikeThis(this.dataset.title,this.dataset.artist)" title="More like this">\u2248</button>';
           html += '<span class="song-duration">' + song.duration + '</span>';
-          if (song.spotify_url) html += '<a class="spotify-source" href="' + song.spotify_url + '" target="_blank" rel="noopener" aria-label="Open ' + song.title.replace(/"/g, '&quot;') + ' on Spotify">Spotify</a>';
-          html += '<button class="add-btn' + (inPlaylist ? ' added' : '') + '" onclick=\'addToPlaylist(' + JSON.stringify(song).replace(/'/g, "&#39;") + ', this)\'>' + (inPlaylist ? 'Added' : '+ Add') + '</button>';
-          if (trackId) html += '<div class="feedback-actions"><button onclick="sendRecommendationFeedback(\'' + trackId + '\',true,this)" aria-label="Recommendation fits my mood">Yes</button><button onclick="sendRecommendationFeedback(\'' + trackId + '\',false,this)" aria-label="Recommendation does not fit my mood">No</button></div>';
+          html += songActionMenuHTML(song, true);
           html += '</div></div>';
         });
         document.getElementById('results').innerHTML = html;
@@ -635,8 +747,8 @@
     document.getElementById('player-art').src = albumArt || '';
     document.getElementById('player-art').style.display = albumArt ? 'block' : 'none';
     document.getElementById('player-spotify-link').href = 'https://open.spotify.com/track/' + trackId;
-    document.getElementById('spotify-player').style.display = 'block';
-    document.getElementById('spotify-player').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    document.getElementById('spotify-player').style.display = 'grid';
+    document.body.classList.add('player-active');
     updateQueueCounter();
     const qp = document.getElementById('queue-panel');
     if (qp && qp.classList.contains('open')) renderQueuePanel();
@@ -712,6 +824,7 @@
     clearTimeout(meaningfulPlayTimer);
     document.getElementById('spotify-iframe').src = '';
     document.getElementById('spotify-player').style.display = 'none';
+    document.body.classList.remove('player-active');
   }
 
   function addToPlaylist(song, btn) {
@@ -840,11 +953,8 @@
           html += '<div class="song-info"><div class="song-title">' + escapeHTML(song.title) + '</div><div class="song-artist">' + escapeHTML(song.artist) + '</div></div>';
           html += '<div class="song-actions">';
           if (trackId) html += '<button class="play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\', \'' + (song.artist || '').replace(/'/g, "\\'") + '\', \'' + (song.album_art || '') + '\')">&#9654;</button>';
-          html += '<button class="queue-btn" onclick=\'addToQueue(' + JSON.stringify(song).replace(/'/g, "&#39;") + ')\' title="Add to queue">+Q</button>';
-          html += '<button class="more-btn" data-title="' + song.title.replace(/"/g, '&quot;') + '" data-artist="' + (song.artist || '').replace(/"/g, '&quot;') + '" onclick="moreLikeThis(this.dataset.title,this.dataset.artist)" title="More like this">\u2248</button>';
           html += '<span class="song-duration">' + song.duration + '</span>';
-          if (song.spotify_url) html += '<a class="spotify-source" href="' + song.spotify_url + '" target="_blank" rel="noopener" aria-label="Open on Spotify">Spotify</a>';
-          html += '<button class="add-btn' + (inPlaylist ? ' added' : '') + '" onclick=\'addToPlaylist(' + JSON.stringify(song).replace(/'/g, "&#39;") + ', this)\'>' + (inPlaylist ? 'Added' : '+ Add') + '</button>';
+          html += songActionMenuHTML(song, false);
           html += '</div></div>';
         });
         document.getElementById('results').innerHTML = html;
@@ -1059,9 +1169,7 @@
       if (trackId) {
         html += '<button class="sotd-play-btn" onclick="playInApp(\'' + trackId + '\', \'' + safeTitle + '\', \'' + (song.artist || '').replace(/'/g, "\\'") + '\', \'' + (song.album_art || '') + '\')">&#9654;</button>';
       }
-      if (song.spotify_url) html += '<a class="spotify-source" href="' + song.spotify_url + '" target="_blank" rel="noopener">Spotify</a>';
-      const inPlaylist = playlistSongs.some(function(s) { return song.spotify_url ? s.spotify_url === song.spotify_url : s.title === song.title; });
-      html += '<button class="sotd-add-btn' + (inPlaylist ? ' added' : '') + '" onclick=\'addToPlaylist(' + songJson + ', this)\'>' + (inPlaylist ? 'Added' : '+ Add') + '</button>';
+      html += songActionMenuHTML(song, false);
       html += '</div>';
       html += '</div>';
     }
