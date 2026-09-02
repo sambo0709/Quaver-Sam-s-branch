@@ -178,11 +178,30 @@ router.get('/recommend', async function(req, res) {
 
   try {
     const token = await getSpotifyToken();
-    const pool = (await getMoodPool(mood.toLowerCase(), token)).filter(function(song) { return allowExplicit || !song.explicit; });
+    let pool = (await getMoodPool(mood.toLowerCase(), token)).filter(function(song) { return allowExplicit || !song.explicit; });
+    const user = getUser(req);
+    let liked = new Set(), disliked = new Set(), played = new Set();
+    if (user) {
+      try {
+        const db = await getDB();
+        const found = await db.collection('users').findOne(
+          { _id: new (require('mongodb').ObjectId)(user.userId) },
+          { projection: { recommendationFeedback: 1, listeningHistory: 1 } }
+        );
+        (found?.recommendationFeedback || []).forEach(function(item) { (item.helpful ? liked : disliked).add(item.trackId); });
+        (found?.listeningHistory || []).forEach(function(item) { if (item.trackId) played.add(item.trackId); });
+      } catch (_) {}
+    }
+    function trackId(song) { return song.spotify_url ? song.spotify_url.split('/track/')[1]?.split('?')[0] : ''; }
+    pool = pool.filter(function(song) { return !disliked.has(trackId(song)); });
     let songs;
-    if (variety === 'familiar') songs = pool.slice(0, songLimit);
-    else if (variety === 'adventurous') songs = pool.slice().reverse().slice(0, songLimit);
+    if (variety === 'familiar') songs = pool.slice().sort(function(a, b) { return (liked.has(trackId(b)) || played.has(trackId(b))) - (liked.has(trackId(a)) || played.has(trackId(a))); }).slice(0, songLimit);
+    else if (variety === 'adventurous') songs = pool.filter(function(song) { return !liked.has(trackId(song)) && !played.has(trackId(song)); }).slice(0, songLimit);
     else songs = pickUnseenSongs(pool, mood.toLowerCase(), songLimit);
+    if (songs.length < songLimit) {
+      const selected = new Set(songs.map(trackId));
+      songs = songs.concat(pool.filter(function(song) { return !selected.has(trackId(song)); }).slice(0, songLimit - songs.length));
+    }
     res.json({ mood: mood, count: songs.length, songs: songs });
   } catch (err) {
     console.error('Spotify error:', err.message);
@@ -199,7 +218,7 @@ router.post('/feedback', async function(req, res) {
     const db = await getDB();
     await db.collection('users').updateOne(
       { _id: new (require('mongodb').ObjectId)(user.userId) },
-      { $push: { recommendationFeedback: { trackId, mood: mood || '', helpful, createdAt: Date.now() } } }
+      { $push: { recommendationFeedback: { $each: [{ trackId, mood: mood || '', helpful, createdAt: Date.now() }], $slice: -500 } } }
     );
     res.status(201).json({ message: 'Feedback saved' });
   } catch (_) { res.status(500).json({ error: 'Server error' }); }

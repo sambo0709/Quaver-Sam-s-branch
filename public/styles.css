@@ -2195,14 +2195,33 @@ h1 span {
 
 .profile-title {
   font-family: inherit;
-  font-size: clamp(3rem, 8vw, 6rem);
+  font-size: clamp(2.3rem, 5vw, 4rem);
   font-weight: 700;
   letter-spacing: -0.02em;
-  background: var(--gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 2rem;
+  background: none;
+  -webkit-text-fill-color: var(--text);
+  color: var(--text);
+  margin: 5px 0 8px;
+}
+
+.profile-header {
+  max-width: 1180px;
+  margin: 0 auto 32px;
+  text-align: left;
+}
+
+.profile-header > span {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.profile-header p {
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .content-boxes {
@@ -2309,6 +2328,7 @@ html.reduce-motion *::after {
 .connection-status { display: flex; justify-content: space-between; margin-top: 16px; padding: 10px 0; border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border); font-size: 12px; }
 .connection-status span { color: var(--text-muted); }
 .connection-status strong { color: var(--text); }
+.connection-status strong.connected { color: #1ed760; }
 
 :root[data-theme="light"] .profile-page .box {
   background: #f8f9fc;

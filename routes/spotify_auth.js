@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { ObjectId } = require('mongodb');
+const { getDB } = require('./db');
 
 const SCOPES = [
   'playlist-modify-public',
@@ -9,8 +12,31 @@ const SCOPES = [
   'user-read-email'
 ].join(' ');
 
-// GET /spotify/login - redirect to Spotify auth
-router.get('/login', (req, res) => {
+function getQuaverUser(req) {
+  const header = req.headers.authorization;
+  if (!header) return null;
+  try { return jwt.verify(header.split(' ')[1], process.env.JWT_SECRET); }
+  catch (_) { return null; }
+}
+
+function encryptionKey() {
+  return crypto.createHash('sha256').update(process.env.JWT_SECRET).digest();
+}
+
+function encrypt(value) {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', encryptionKey(), iv);
+  const data = Buffer.concat([cipher.update(value, 'utf8'), cipher.final()]);
+  return { iv: iv.toString('base64'), tag: cipher.getAuthTag().toString('base64'), data: data.toString('base64') };
+}
+
+function decrypt(value) {
+  const decipher = crypto.createDecipheriv('aes-256-gcm', encryptionKey(), Buffer.from(value.iv, 'base64'));
+  decipher.setAuthTag(Buffer.from(value.tag, 'base64'));
+  return Buffer.concat([decipher.update(Buffer.from(value.data, 'base64')), decipher.final()]).toString('utf8');
+}
+
+function authorizationUrl(state) {
   const params = new URLSearchParams({
     client_id: process.env.SPOTIFY_CLIENT_ID,
     response_type: 'code',
@@ -18,7 +44,44 @@ router.get('/login', (req, res) => {
     scope: SCOPES,
     show_dialog: 'true',
   });
-  res.redirect('https://accounts.spotify.com/authorize?' + params.toString());
+  if (state) params.set('state', state);
+  return 'https://accounts.spotify.com/authorize?' + params.toString();
+}
+
+function createSpotifySession(accessToken, refreshToken, spotifyUser) {
+  const payload = {
+    spotify_access_token: accessToken,
+    spotify_user_id: spotifyUser.id,
+    spotify_display_name: spotifyUser.displayName,
+  };
+  // Kept only for the legacy direct-login flow. Account-linked sessions keep
+  // the reusable refresh credential encrypted on the server.
+  if (refreshToken) payload.spotify_refresh_token = refreshToken;
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+}
+
+async function refreshAccessToken(refreshToken) {
+  const credentials = Buffer.from(process.env.SPOTIFY_CLIENT_ID + ':' + process.env.SPOTIFY_CLIENT_SECRET).toString('base64');
+  const response = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { 'Authorization': 'Basic ' + credentials, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken }),
+  });
+  const data = await response.json();
+  if (!response.ok || !data.access_token) throw new Error('Spotify refresh failed');
+  return data;
+}
+
+router.post('/connect', (req, res) => {
+  const user = getQuaverUser(req);
+  if (!user) return res.status(401).json({ error: 'Log in to Quaver first.' });
+  const state = jwt.sign({ userId: String(user.userId), purpose: 'spotify-connect' }, process.env.JWT_SECRET, { expiresIn: '10m' });
+  res.json({ url: authorizationUrl(state) });
+});
+
+// GET /spotify/login - redirect to Spotify auth
+router.get('/login', (req, res) => {
+  res.redirect(authorizationUrl());
 });
 
 // GET /spotify/callback - Spotify redirects here
@@ -27,6 +90,12 @@ router.get('/callback', async (req, res) => {
   if (!code) return res.redirect('/Index.html?error=spotify_denied');
 
   try {
+    let quaverUserId = null;
+    if (req.query.state) {
+      const state = jwt.verify(req.query.state, process.env.JWT_SECRET);
+      if (state.purpose !== 'spotify-connect') throw new Error('Invalid Spotify state');
+      quaverUserId = state.userId;
+    }
     const credentials = Buffer.from(
       process.env.SPOTIFY_CLIENT_ID + ':' + process.env.SPOTIFY_CLIENT_SECRET
     ).toString('base64');
@@ -54,13 +123,22 @@ router.get('/callback', async (req, res) => {
     });
     const spotifyUser = await userRes.json();
 
+    const spotifyIdentity = { id: spotifyUser.id, displayName: spotifyUser.display_name || spotifyUser.id };
+    if (quaverUserId && tokenData.refresh_token) {
+      const db = await getDB();
+      await db.collection('users').updateOne(
+        { _id: new ObjectId(quaverUserId) },
+        { $set: { spotifyConnection: {
+          userId: spotifyIdentity.id,
+          displayName: spotifyIdentity.displayName,
+          refreshToken: encrypt(tokenData.refresh_token),
+          connectedAt: new Date(),
+        } } }
+      );
+    }
+
     // Create a short-lived JWT with Spotify tokens
-    const spotifyToken = jwt.sign({
-      spotify_access_token: tokenData.access_token,
-      spotify_refresh_token: tokenData.refresh_token,
-      spotify_user_id: spotifyUser.id,
-      spotify_display_name: spotifyUser.display_name || spotifyUser.id,
-    }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const spotifyToken = createSpotifySession(tokenData.access_token, quaverUserId ? null : tokenData.refresh_token, spotifyIdentity);
 
     // Redirect back to app with token in URL fragment
     res.redirect('/Index.html?spotify_token=' + spotifyToken + '&spotify_name=' + encodeURIComponent(spotifyUser.display_name || spotifyUser.id));
@@ -68,6 +146,51 @@ router.get('/callback', async (req, res) => {
     console.error('Spotify callback error:', err);
     res.redirect('/Index.html?error=spotify_error');
   }
+});
+
+router.get('/status', async (req, res) => {
+  const user = getQuaverUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
+  try {
+    const db = await getDB();
+    const found = await db.collection('users').findOne(
+      { _id: new ObjectId(user.userId) },
+      { projection: { spotifyConnection: 1 } }
+    );
+    const connection = found && found.spotifyConnection;
+    res.json({ connected: !!connection, displayName: connection?.displayName || null });
+  } catch (_) { res.status(500).json({ error: 'Could not check Spotify connection' }); }
+});
+
+router.post('/session', async (req, res) => {
+  const user = getQuaverUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
+  try {
+    const db = await getDB();
+    const found = await db.collection('users').findOne({ _id: new ObjectId(user.userId) }, { projection: { spotifyConnection: 1 } });
+    if (!found?.spotifyConnection?.refreshToken) return res.status(404).json({ error: 'Spotify is not connected' });
+    const refreshToken = decrypt(found.spotifyConnection.refreshToken);
+    const tokenData = await refreshAccessToken(refreshToken);
+    const activeRefreshToken = tokenData.refresh_token || refreshToken;
+    if (tokenData.refresh_token) {
+      await db.collection('users').updateOne({ _id: found._id }, { $set: { 'spotifyConnection.refreshToken': encrypt(activeRefreshToken) } });
+    }
+    const identity = { id: found.spotifyConnection.userId, displayName: found.spotifyConnection.displayName };
+    res.json({ spotifyToken: createSpotifySession(tokenData.access_token, null, identity), displayName: identity.displayName });
+  } catch (error) {
+    console.error('Spotify account session error:', error);
+    res.status(401).json({ error: 'Spotify needs to be reconnected' });
+  }
+});
+
+router.delete('/connection', async (req, res) => {
+  const user = getQuaverUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
+  try {
+    const db = await getDB();
+    await db.collection('users').updateOne({ _id: new ObjectId(user.userId) }, { $unset: { spotifyConnection: '' } });
+    res.json({ message: 'Spotify disconnected' });
+  } catch (_) { res.status(500).json({ error: 'Could not disconnect Spotify' }); }
 });
 
 // POST /spotify/export - create playlist on Spotify

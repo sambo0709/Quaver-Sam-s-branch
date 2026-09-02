@@ -88,7 +88,11 @@
   </div>
 
   <main class="profile-main">
-    <h1 class="profile-title">Profile</h1>
+    <header class="profile-header">
+      <span>Your account</span>
+      <h1 class="profile-title">Profile</h1>
+      <p>Your moods, listening activity, and personalized music in one place.</p>
+    </header>
     <section class="story-feature" onclick="openWrapped()" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openWrapped();}">
       <div><span>Weekly recap</span><h2>Your Sound Story</h2><p>See and share the moods and music that shaped your week.</p></div>
       <button class="wrapped-open-btn" tabindex="-1">Open story</button>
@@ -160,37 +164,13 @@
       });
     }
     let toastTimer;
+    let meaningfulPlayTimer;
     function showToast(message, type) {
       const toast = document.getElementById('toast');
       clearTimeout(toastTimer);
       toast.textContent = message;
       toast.className = 'toast ' + (type || 'success') + ' show';
       toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 3200);
-    }
-
-    const moodColors = {
-      happy:     { accent: '#FFD700', accent2: '#FF9500' },
-      sad:       { accent: '#4A90D9', accent2: '#9B59B6' },
-      energetic: { accent: '#FF4E50', accent2: '#F9D423' },
-      calm:      { accent: '#43B89C', accent2: '#6BC5F8' },
-      focused:   { accent: '#7B61FF', accent2: '#00D4FF' },
-      angry:     { accent: '#FF2D2D', accent2: '#FF6B35' },
-      romantic:  { accent: '#FF6B9D', accent2: '#FF4E50' },
-      nostalgic: { accent: '#F7971E', accent2: '#FFD200' },
-      party:     { accent: '#FF006E', accent2: '#FB5607' },
-      sleepy:    { accent: '#4776E6', accent2: '#8E54E9' },
-      anxious:   { accent: '#11998E', accent2: '#38EF7D' },
-    };
-
-    function applyMoodColors(mood) {
-      const colors = moodColors[mood];
-      if (!colors) return;
-      const root = document.documentElement;
-      root.style.setProperty('--accent', colors.accent);
-      root.style.setProperty('--accent2', colors.accent2);
-      root.style.setProperty('--gradient', 'linear-gradient(135deg, ' + colors.accent + ', ' + colors.accent2 + ')');
-      root.style.setProperty('--accent-glow', colors.accent + '40');
-      root.style.setProperty('--accent2-glow', colors.accent2 + '40');
     }
 
     function toggleTheme() {
@@ -237,25 +217,21 @@
       document.getElementById('player-art').style.display = albumArt ? 'block' : 'none';
       document.getElementById('player-spotify-link').href = 'https://open.spotify.com/track/' + trackId;
       document.getElementById('spotify-player').style.display = 'block';
-      // Shift to most recent mood color on play
-      const moods = window._profileMoods;
-      if (moods && moods.length > 0) applyMoodColors(moods[0].mood);
-      try {
-        const recent = JSON.parse(localStorage.getItem('quaver_recently_played') || '[]');
-        recent.unshift({ trackId, title, artist: artist || '', albumArt: albumArt || '', playedAt: Date.now() });
-        const seen = new Set();
-        const deduped = recent.filter(function(s) { if (seen.has(s.trackId)) return false; seen.add(s.trackId); return true; });
-        localStorage.setItem('quaver_recently_played', JSON.stringify(deduped.slice(0, 20)));
-      } catch(e) {}
-      const token = localStorage.getItem('quaver_token');
-      if (token) {
-        const mood = (window._profileMoods && window._profileMoods[0]) ? window._profileMoods[0].mood : '';
-        fetch(API + '/api/listening/history', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-          body: JSON.stringify({ trackId, title, artist: artist || '', albumArt: albumArt || '', mood })
-        }).catch(function() {});
-      }
+      clearTimeout(meaningfulPlayTimer);
+      meaningfulPlayTimer = setTimeout(function() {
+        try {
+          const recent = JSON.parse(localStorage.getItem('quaver_recently_played') || '[]');
+          recent.unshift({ trackId, title, artist: artist || '', albumArt: albumArt || '', playedAt: Date.now() });
+          const seen = new Set();
+          const deduped = recent.filter(function(s) { if (seen.has(s.trackId)) return false; seen.add(s.trackId); return true; });
+          localStorage.setItem('quaver_recently_played', JSON.stringify(deduped.slice(0, 20)));
+        } catch(e) {}
+        const token = localStorage.getItem('quaver_token');
+        if (token) {
+          const mood = (window._profileMoods && window._profileMoods[0]) ? window._profileMoods[0].mood : '';
+          fetch(API + '/api/listening/history', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ trackId, title, artist: artist || '', albumArt: albumArt || '', mood }) }).catch(function() {});
+        }
+      }, 10000);
     }
 
     function renderRecentlyPlayed() {
@@ -279,6 +255,7 @@
     }
 
     function closePlayer() {
+      clearTimeout(meaningfulPlayTimer);
       document.getElementById('spotify-iframe').src = '';
       document.getElementById('spotify-player').style.display = 'none';
     }
@@ -334,7 +311,7 @@
         return;
       }
       container.innerHTML = moods.slice(0, 5).map(function(item) {
-        return '<div class="profile-mood-item" onclick="applyMoodColors(\'' + item.mood + '\')" style="cursor:pointer;" title="Apply ' + item.mood + ' theme"><span class="profile-mood-badge">' + item.mood + '</span><span class="profile-mood-time">' + item.time + '</span></div>';
+        return '<div class="profile-mood-item"><span class="profile-mood-badge">' + item.mood + '</span><span class="profile-mood-time">' + item.time + '</span></div>';
       }).join('');
     }
 
@@ -380,7 +357,7 @@
       container.innerHTML = '<p class="box-empty">Loading for <strong>' + topMood + '</strong>...</p>';
       try {
         const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
-        const res = await fetch(API + '/api/music/recommend?mood=' + topMood + '&limit=5&explicit=' + (preferences.explicitContent !== false) + '&variety=' + encodeURIComponent(preferences.recommendationVariety || 'balanced'));
+        const res = await fetch(API + '/api/music/recommend?mood=' + topMood + '&limit=5&explicit=' + (preferences.explicitContent !== false) + '&variety=' + encodeURIComponent(preferences.recommendationVariety || 'balanced'), { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('quaver_token') } });
         const data = await res.json();
         if (data.songs && data.songs.length > 0) {
           container.innerHTML =
@@ -417,7 +394,7 @@
       container.innerHTML = '<p class="box-empty">Building your ' + topMood + ' mix...</p>';
       try {
         const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
-        const res = await fetch(API + '/api/music/recommend?mood=' + topMood + '&limit=5&explicit=' + (preferences.explicitContent !== false) + '&variety=' + encodeURIComponent(preferences.recommendationVariety || 'balanced'));
+        const res = await fetch(API + '/api/music/recommend?mood=' + topMood + '&limit=5&explicit=' + (preferences.explicitContent !== false) + '&variety=' + encodeURIComponent(preferences.recommendationVariety || 'balanced'), { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('quaver_token') } });
         const data = await res.json();
         if (!data.songs || !data.songs.length) throw new Error('No songs');
         container.innerHTML = '<div class="mix-intro">Based on your most frequent mood this week: <strong>' + topMood + '</strong></div>' +
@@ -484,14 +461,6 @@
         } catch (_) {}
       }
       window._profilePlays = plays;
-
-      // C: apply top mood color on load
-      if (moods.length > 0) {
-        const moodCounts = {};
-        moods.forEach(function(m) { moodCounts[m.mood] = (moodCounts[m.mood] || 0) + 1; });
-        const topMood = Object.keys(moodCounts).sort(function(a, b) { return moodCounts[b] - moodCounts[a]; })[0];
-        applyMoodColors(topMood);
-      }
 
       renderMoodAnalytics(moods);
       renderRecentMoods(moods);

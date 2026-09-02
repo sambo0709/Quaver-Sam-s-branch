@@ -100,6 +100,20 @@ router.get('/me', async (req, res) => {
   }
 });
 
+router.get('/settings', async function(req, res) {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
+  try {
+    const db = await getDB();
+    const found = await db.collection('users').findOne(
+      { _id: new ObjectId(user.userId) },
+      { projection: { username: 1, defaultTheme: 1, preferences: 1 } }
+    );
+    if (!found) return res.status(404).json({ error: 'Account not found' });
+    res.json({ username: found.username, defaultTheme: found.defaultTheme || 'system', preferences: found.preferences || {} });
+  } catch (_) { res.status(500).json({ error: 'Server error' }); }
+});
+
 router.patch('/settings', async function(req, res) {
   const user = getUser(req);
   if (!user) return res.status(401).json({ error: 'Not logged in' });
@@ -141,7 +155,7 @@ router.get('/export', async function(req, res) {
   if (!user) return res.status(401).json({ error: 'Not logged in' });
   try {
     const db = await getDB();
-    const found = await db.collection('users').findOne({ _id: new ObjectId(user.userId) }, { projection: { password: 0 } });
+    const found = await db.collection('users').findOne({ _id: new ObjectId(user.userId) }, { projection: { password: 0, 'spotifyConnection.refreshToken': 0 } });
     if (!found) return res.status(404).json({ error: 'Account not found' });
     res.setHeader('Content-Disposition', 'attachment; filename="quaver-account-data.json"');
     res.json(found);

@@ -32,7 +32,7 @@
     <a class="nav-link" href="profile.html">Profile</a>
     <a class="nav-link" href="settings.html">Settings</a>
     <div id="spotify-login-btn" style="display:none">
-      <a href="/spotify/login" class="nav-link spotify-nav-link">Spotify</a>
+      <button onclick="connectSpotifyAccount()" class="nav-link spotify-nav-link">Spotify</button>
     </div>
     <div id="spotify-user-info" style="display:none">
       <span class="nav-link spotify-connected-link" id="spotify-user-name"></span>
@@ -254,6 +254,22 @@
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char];
     });
   }
+  async function syncAccountPreferences() {
+    const token = localStorage.getItem('quaver_token');
+    if (!token) return;
+    try {
+      const res = await fetch(API + '/api/auth/settings', { headers: { 'Authorization': 'Bearer ' + token } });
+      if (!res.ok) return;
+      const data = await res.json();
+      localStorage.setItem('quaver_preferences', JSON.stringify(data.preferences || {}));
+      if (data.defaultTheme === 'system') localStorage.removeItem('theme');
+      else localStorage.setItem('theme', data.defaultTheme);
+      const preferences = data.preferences || {};
+      document.documentElement.classList.toggle('reduce-motion', !!preferences.reducedMotion);
+      if (preferences.defaultMood) { currentMood = preferences.defaultMood; document.getElementById('mood-select').value = currentMood; applyMoodColors(currentMood); }
+      if ([5,8,10].includes(Number(preferences.songCount))) { currentLimit = Number(preferences.songCount); document.getElementById('count-select').value = String(currentLimit); }
+    } catch (_) {}
+  }
 
   const moods = ['happy', 'sad', 'energetic', 'calm', 'focused', 'angry', 'romantic', 'nostalgic', 'party', 'sleepy', 'anxious'];
 
@@ -283,6 +299,7 @@
   }
   let currentMood = null;
   let currentLimit = 5;
+  let meaningfulPlayTimer = null;
   let playlistSongs = [];
   let savedPlaylists = [];
   let recentMoods = JSON.parse(localStorage.getItem('quaver_moods') || '[]');
@@ -366,7 +383,37 @@
     }
   }
 
-  function disconnectSpotify() {
+  async function connectSpotifyAccount() {
+    if (!requireLogin('Log in to connect Spotify.')) return;
+    try {
+      const token = localStorage.getItem('quaver_token');
+      const res = await fetch(API + '/spotify/connect', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not connect Spotify.');
+      window.location.href = data.url;
+    } catch (error) { showToast(error.message, 'error'); }
+  }
+
+  async function restoreSpotifySession() {
+    const token = localStorage.getItem('quaver_token');
+    if (!token) return;
+    try {
+      const res = await fetch(API + '/spotify/session', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
+      const data = await res.json();
+      if (!res.ok) return;
+      spotifyToken = data.spotifyToken;
+      localStorage.setItem('quaver_spotify_token', data.spotifyToken);
+      localStorage.setItem('quaver_spotify_name', data.displayName || 'Spotify User');
+      updateSpotifyUI();
+    } catch (_) {}
+  }
+
+  async function disconnectSpotify() {
+    const token = localStorage.getItem('quaver_token');
+    if (token) {
+      try { await fetch(API + '/spotify/connection', { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } }); }
+      catch (_) {}
+    }
     localStorage.removeItem('quaver_spotify_token');
     localStorage.removeItem('quaver_spotify_name');
     spotifyToken = null;
@@ -429,6 +476,8 @@
     checkSpotifyCallback();
     updateSpotifyUI();
     updateAuthUI();
+    restoreSpotifySession();
+    syncAccountPreferences();
     loadPlaylists();
     renderTrendingPills();
     loadTrendingMoods();
@@ -535,7 +584,8 @@
     showSkeletons(currentLimit);
     try {
       const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
-      const res = await fetch(API + '/api/music/recommend?mood=' + currentMood + '&limit=' + currentLimit + '&explicit=' + (preferences.explicitContent !== false) + '&variety=' + encodeURIComponent(preferences.recommendationVariety || 'balanced'));
+      const token = localStorage.getItem('quaver_token');
+      const res = await fetch(API + '/api/music/recommend?mood=' + currentMood + '&limit=' + currentLimit + '&explicit=' + (preferences.explicitContent !== false) + '&variety=' + encodeURIComponent(preferences.recommendationVariety || 'balanced'), { headers: token ? { 'Authorization': 'Bearer ' + token } : {} });
       const data = await res.json();
       if (data.songs && data.songs.length > 0) {
         window._lastResults = data.songs;
@@ -578,22 +628,18 @@
     updateQueueCounter();
     const qp = document.getElementById('queue-panel');
     if (qp && qp.classList.contains('open')) renderQueuePanel();
-    // Track recently played
-    try {
-      const recent = JSON.parse(localStorage.getItem('quaver_recently_played') || '[]');
-      recent.unshift({ trackId, title, artist: artist || '', albumArt: albumArt || '', playedAt: Date.now() });
-      const seen = new Set();
-      const deduped = recent.filter(function(s) { if (seen.has(s.trackId)) return false; seen.add(s.trackId); return true; });
-      localStorage.setItem('quaver_recently_played', JSON.stringify(deduped.slice(0, 20)));
-    } catch(e) {}
-    const token = localStorage.getItem('quaver_token');
-    if (token) {
-      fetch(API + '/api/listening/history', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-        body: JSON.stringify({ trackId: trackId, title: title, artist: artist || '', albumArt: albumArt || '', mood: currentMood || '' })
-      }).catch(function() {});
-    }
+    clearTimeout(meaningfulPlayTimer);
+    meaningfulPlayTimer = setTimeout(function() {
+      try {
+        const recent = JSON.parse(localStorage.getItem('quaver_recently_played') || '[]');
+        recent.unshift({ trackId, title, artist: artist || '', albumArt: albumArt || '', playedAt: Date.now() });
+        const seen = new Set();
+        const deduped = recent.filter(function(s) { if (seen.has(s.trackId)) return false; seen.add(s.trackId); return true; });
+        localStorage.setItem('quaver_recently_played', JSON.stringify(deduped.slice(0, 20)));
+      } catch(e) {}
+      const token = localStorage.getItem('quaver_token');
+      if (token) fetch(API + '/api/listening/history', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ trackId: trackId, title: title, artist: artist || '', albumArt: albumArt || '', mood: currentMood || '' }) }).catch(function() {});
+    }, 10000);
   }
 
   function sendRecommendationFeedback(trackId, helpful, button) {
@@ -651,6 +697,7 @@
   }
 
   function closePlayer() {
+    clearTimeout(meaningfulPlayTimer);
     document.getElementById('spotify-iframe').src = '';
     document.getElementById('spotify-player').style.display = 'none';
   }
