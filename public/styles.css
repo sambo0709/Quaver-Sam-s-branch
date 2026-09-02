@@ -2192,9 +2192,37 @@ h1 span {
   transition: all 0.3s ease;
 }
 
+:root[data-theme="light"] .profile-page .box {
+  background: #f8f9fc;
+  border-color: #e2e5ec;
+  box-shadow: 0 8px 24px rgba(25, 32, 56, 0.08);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+:root[data-theme="dark"] .profile-page .box {
+  background: #171c2b;
+  border-color: #282e3e;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 .box:hover {
   border-color: rgba(0, 212, 255, 0.2);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+:root[data-theme="dark"] .profile-page .box:hover {
+  background: #1b2131;
+  border-color: #32394b;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+}
+
+:root[data-theme="light"] .profile-page .box:hover {
+  background: #ffffff;
+  border-color: #d7dbe5;
+  box-shadow: 0 10px 28px rgba(25, 32, 56, 0.11);
 }
 
 .box h2 {
