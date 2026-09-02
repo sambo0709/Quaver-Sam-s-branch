@@ -105,14 +105,46 @@ router.patch('/settings', async function(req, res) {
   if (!user) return res.status(401).json({ error: 'Not logged in' });
   const displayName = String(req.body.displayName || '').trim().slice(0, 40);
   const defaultTheme = ['light', 'dark', 'system'].includes(req.body.defaultTheme) ? req.body.defaultTheme : 'system';
+  const allowedMoods = ['happy', 'sad', 'angry', 'calm', 'energetic', 'romantic', 'focused', 'nostalgic', 'party', 'sleepy', 'anxious'];
+  const defaultMood = allowedMoods.includes(req.body.defaultMood) ? req.body.defaultMood : '';
+  const songCount = [5, 8, 10].includes(Number(req.body.songCount)) ? Number(req.body.songCount) : 5;
+  const reducedMotion = !!req.body.reducedMotion;
+  const explicitContent = req.body.explicitContent !== false;
+  const recommendationVariety = ['familiar', 'balanced', 'adventurous'].includes(req.body.recommendationVariety) ? req.body.recommendationVariety : 'balanced';
   if (!displayName) return res.status(400).json({ error: 'Display name required' });
   try {
     const db = await getDB();
     await db.collection('users').updateOne(
       { _id: new ObjectId(user.userId) },
-      { $set: { username: displayName, defaultTheme } }
+      { $set: { username: displayName, defaultTheme, preferences: { defaultMood, songCount, reducedMotion, explicitContent, recommendationVariety } } }
     );
-    res.json({ message: 'Settings saved', username: displayName, defaultTheme });
+    res.json({ message: 'Settings saved', username: displayName, defaultTheme, preferences: { defaultMood, songCount, reducedMotion, explicitContent, recommendationVariety } });
+  } catch (_) { res.status(500).json({ error: 'Server error' }); }
+});
+
+router.patch('/password', async function(req, res) {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword || newPassword.length < 8) return res.status(400).json({ error: 'New password must be at least 8 characters' });
+  try {
+    const db = await getDB();
+    const found = await db.collection('users').findOne({ _id: new ObjectId(user.userId) });
+    if (!found || !(await bcrypt.compare(currentPassword, found.password))) return res.status(401).json({ error: 'Current password is incorrect' });
+    await db.collection('users').updateOne({ _id: found._id }, { $set: { password: await bcrypt.hash(newPassword, 10) } });
+    res.json({ message: 'Password updated' });
+  } catch (_) { res.status(500).json({ error: 'Server error' }); }
+});
+
+router.get('/export', async function(req, res) {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
+  try {
+    const db = await getDB();
+    const found = await db.collection('users').findOne({ _id: new ObjectId(user.userId) }, { projection: { password: 0 } });
+    if (!found) return res.status(404).json({ error: 'Account not found' });
+    res.setHeader('Content-Disposition', 'attachment; filename="quaver-account-data.json"');
+    res.json(found);
   } catch (_) { res.status(500).json({ error: 'Server error' }); }
 });
 

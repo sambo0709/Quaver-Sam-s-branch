@@ -2255,9 +2255,33 @@ h1 span {
 .settings-form label { margin-top: 6px; color: var(--text-muted); font-size: 11px; font-weight: 600; }
 .settings-form input, .settings-form select { padding: 10px 12px; border: 1px solid var(--glass-border); border-radius: 8px; background: var(--bg2); color: var(--text); }
 .settings-form button { margin-top: 6px; padding: 10px; border: 0; border-radius: 999px; background: var(--text); color: var(--bg); font-weight: 700; cursor: pointer; }
-.settings-danger { display: flex; gap: 8px; margin-top: 18px; }
+.settings-danger { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 18px; }
 .settings-danger button { flex: 1; padding: 8px; border: 1px solid rgba(224,85,85,.35); border-radius: 8px; background: transparent; color: #e05555; cursor: pointer; font-size: 11px; }
 .privacy-note { margin-top: 14px; color: var(--text-muted); font-size: 10px; line-height: 1.45; }
+.password-form { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--glass-border); }
+.spotify-setting-actions { display: flex; gap: 8px; margin-top: 10px; }
+.spotify-setting-actions a, .spotify-setting-actions button { flex: 1; padding: 8px; border: 1px solid var(--glass-border); border-radius: 8px; background: transparent; color: var(--text); text-align: center; text-decoration: none; font: inherit; font-size: 11px; cursor: pointer; }
+
+.settings-main { width: 100%; max-width: 1050px; margin: 0 auto; padding: 140px 24px 100px; position: relative; z-index: 1; }
+.settings-header { margin-bottom: 32px; text-align: left; }
+.settings-header > span { color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.settings-header h1 { margin: 5px 0 8px; background: none; -webkit-text-fill-color: var(--text); color: var(--text); font-size: clamp(2.3rem,5vw,4rem); }
+.settings-header p, .settings-section > p { color: var(--text-muted); font-size: 13px; line-height: 1.5; }
+.settings-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.settings-section { padding: 24px; border: 1px solid var(--glass-border); border-radius: 14px; background: var(--glass); text-align: left; }
+:root[data-theme="dark"] .settings-section { background: #171c2b; border-color: #282e3e; }
+:root[data-theme="light"] .settings-section { background: #f8f9fc; }
+.settings-section h2 { color: var(--text); font-size: 1.15rem; margin-bottom: 5px; }
+.settings-section > p { margin-bottom: 16px; }
+.settings-section-wide { grid-column: 1 / -1; }
+.danger-zone { border-color: rgba(224,85,85,.35) !important; }
+.danger-zone button { margin-top: 8px; padding: 10px 16px; border: 1px solid #e05555; border-radius: 8px; background: transparent; color: #e05555; cursor: pointer; }
+
+@media (max-width: 768px) {
+  .settings-main { padding: 130px 12px 70px; }
+  .settings-layout { grid-template-columns: 1fr; }
+  .settings-section-wide { grid-column: auto; }
+}
 
 .feedback-actions { display: flex; gap: 4px; margin-left: 4px; }
 .feedback-actions button { padding: 4px 7px; border: 1px solid var(--glass-border); border-radius: 999px; background: transparent; color: var(--text-muted); font-size: 10px; cursor: pointer; }
@@ -2271,6 +2295,20 @@ h1 span {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
 }
+
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+}
+
+.settings-check { display: flex; align-items: center; gap: 8px; color: var(--text) !important; }
+.settings-check input { width: 16px; height: 16px; accent-color: var(--accent); }
+.connection-status { display: flex; justify-content: space-between; margin-top: 16px; padding: 10px 0; border-top: 1px solid var(--glass-border); border-bottom: 1px solid var(--glass-border); font-size: 12px; }
+.connection-status span { color: var(--text-muted); }
+.connection-status strong { color: var(--text); }
 
 :root[data-theme="light"] .profile-page .box {
   background: #f8f9fc;

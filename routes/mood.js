@@ -65,6 +65,16 @@ router.post('/history', async (req, res) => {
   }
 });
 
+router.delete('/history', async function(req, res) {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
+  try {
+    const db = await getDB();
+    await db.collection('users').updateOne({ _id: new ObjectId(user.userId) }, { $set: { recentMoods: [] } });
+    res.json({ message: 'Mood history cleared' });
+  } catch (_) { res.status(500).json({ error: 'Server error' }); }
+});
+
 // GET /api/mood/trending - top moods across all users in last 24h
 router.get('/trending', async (req, res) => {
   try {

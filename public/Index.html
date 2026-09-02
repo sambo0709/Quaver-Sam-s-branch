@@ -30,6 +30,7 @@
     <a class="nav-link active" href="Index.html">Home</a>
     <button class="nav-link" onclick="togglePlaylistPanel()">Playlist <span id="playlist-count" class="count-badge">0</span></button>
     <a class="nav-link" href="profile.html">Profile</a>
+    <a class="nav-link" href="settings.html">Settings</a>
     <div id="spotify-login-btn" style="display:none">
       <a href="/spotify/login" class="nav-link spotify-nav-link">Spotify</a>
     </div>
@@ -401,6 +402,17 @@
     const savedTheme = localStorage.getItem('theme');
     const systemTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
     applyTheme(savedTheme || systemTheme);
+    const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
+    document.documentElement.classList.toggle('reduce-motion', !!preferences.reducedMotion);
+    if (preferences.defaultMood) {
+      document.getElementById('mood-select').value = preferences.defaultMood;
+      currentMood = preferences.defaultMood;
+      applyMoodColors(currentMood);
+    }
+    if ([5, 8, 10].includes(Number(preferences.songCount))) {
+      currentLimit = Number(preferences.songCount);
+      document.getElementById('count-select').value = String(currentLimit);
+    }
 
     // Splash screen — show once per session (each time app is freshly opened)
     const splash = document.getElementById('splash-screen');
@@ -522,7 +534,8 @@
     document.getElementById('loading').style.display = 'none';
     showSkeletons(currentLimit);
     try {
-      const res = await fetch(API + '/api/music/recommend?mood=' + currentMood + '&limit=' + currentLimit);
+      const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
+      const res = await fetch(API + '/api/music/recommend?mood=' + currentMood + '&limit=' + currentLimit + '&explicit=' + (preferences.explicitContent !== false) + '&variety=' + encodeURIComponent(preferences.recommendationVariety || 'balanced'));
       const data = await res.json();
       if (data.songs && data.songs.length > 0) {
         window._lastResults = data.songs;
@@ -750,6 +763,8 @@
     showSkeletons(5);
     try {
       let url = API + '/api/music/search?q=' + encodeURIComponent(q);
+      const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
+      url += '&explicit=' + (preferences.explicitContent !== false);
       if (genre) url += '&genre=' + encodeURIComponent(genre);
       if (year) url += '&year=' + encodeURIComponent(year);
       const res = await fetch(url);

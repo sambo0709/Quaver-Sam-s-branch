@@ -9,6 +9,8 @@
 </head>
 <body class="profile-page">
 
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
   <nav class="top-nav">
     <div class="nav-left">
       <a href="Index.html">
@@ -18,6 +20,7 @@
     <div class="nav-center">
       <a class="nav-link" href="Index.html">Home</a>
       <a class="nav-link active" href="profile.html">Profile</a>
+      <a class="nav-link" href="settings.html">Settings</a>
     </div>
     <div class="nav-right">
       <span id="nav-username" class="nav-username"></span>
@@ -141,22 +144,6 @@
         </div>
       </div>
 
-      <div class="box">
-        <h2>Account Settings</h2>
-        <form class="settings-form" onsubmit="saveSettings(event)">
-          <label for="settings-name">Display name</label>
-          <input id="settings-name" maxlength="40" required/>
-          <label for="settings-theme">Default theme</label>
-          <select id="settings-theme"><option value="system">System</option><option value="dark">Dark</option><option value="light">Light</option></select>
-          <button type="submit">Save settings</button>
-        </form>
-        <div class="settings-danger">
-          <button onclick="clearListeningHistory()">Clear listening history</button>
-          <button onclick="deleteAccount()">Delete account</button>
-        </div>
-        <p class="privacy-note">Your moods and listening history are stored only to personalize your Quaver experience.</p>
-      </div>
-
     </div>
   </main>
 
@@ -171,6 +158,14 @@
       return String(value == null ? '' : value).replace(/[&<>"']/g, function(char) {
         return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char];
       });
+    }
+    let toastTimer;
+    function showToast(message, type) {
+      const toast = document.getElementById('toast');
+      clearTimeout(toastTimer);
+      toast.textContent = message;
+      toast.className = 'toast ' + (type || 'success') + ' show';
+      toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 3200);
     }
 
     const moodColors = {
@@ -231,38 +226,7 @@
       if (user) {
         usernameEl.textContent = 'Hi, ' + user.username + '!';
         logoutBtn.style.display = 'inline-block';
-        const settingsName = document.getElementById('settings-name');
-        if (settingsName) settingsName.value = user.username || '';
       }
-    }
-
-    async function saveSettings(event) {
-      event.preventDefault();
-      const token = localStorage.getItem('quaver_token');
-      const displayName = document.getElementById('settings-name').value.trim();
-      const defaultTheme = document.getElementById('settings-theme').value;
-      const res = await fetch(API + '/api/auth/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ displayName, defaultTheme }) });
-      const data = await res.json();
-      if (!res.ok) return alert(data.error || 'Could not save settings.');
-      const user = JSON.parse(localStorage.getItem('quaver_user') || '{}');
-      user.username = data.username;
-      localStorage.setItem('quaver_user', JSON.stringify(user));
-      localStorage.setItem('theme', defaultTheme === 'system' ? '' : defaultTheme);
-      updateAuthUI();
-    }
-
-    async function clearListeningHistory() {
-      if (!confirm('Clear your complete listening history?')) return;
-      const token = localStorage.getItem('quaver_token');
-      const res = await fetch(API + '/api/listening/history', { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
-      if (res.ok) { localStorage.removeItem('quaver_recently_played'); window._profilePlays = []; renderRecentlyPlayed(); }
-    }
-
-    async function deleteAccount() {
-      if (!confirm('Permanently delete your Quaver account and all of its data?')) return;
-      const token = localStorage.getItem('quaver_token');
-      const res = await fetch(API + '/api/auth/account', { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
-      if (res.ok) logout();
     }
 
     function playInApp(trackId, title, artist, albumArt) {
@@ -415,7 +379,8 @@
       const topMood = Object.keys(moodCounts).sort(function(a, b) { return moodCounts[b] - moodCounts[a]; })[0];
       container.innerHTML = '<p class="box-empty">Loading for <strong>' + topMood + '</strong>...</p>';
       try {
-        const res = await fetch(API + '/api/music/recommend?mood=' + topMood + '&limit=5');
+        const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
+        const res = await fetch(API + '/api/music/recommend?mood=' + topMood + '&limit=5&explicit=' + (preferences.explicitContent !== false) + '&variety=' + encodeURIComponent(preferences.recommendationVariety || 'balanced'));
         const data = await res.json();
         if (data.songs && data.songs.length > 0) {
           container.innerHTML =
@@ -451,7 +416,8 @@
       const topMood = Object.keys(counts).sort(function(a, b) { return counts[b] - counts[a]; })[0];
       container.innerHTML = '<p class="box-empty">Building your ' + topMood + ' mix...</p>';
       try {
-        const res = await fetch(API + '/api/music/recommend?mood=' + topMood + '&limit=5');
+        const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
+        const res = await fetch(API + '/api/music/recommend?mood=' + topMood + '&limit=5&explicit=' + (preferences.explicitContent !== false) + '&variety=' + encodeURIComponent(preferences.recommendationVariety || 'balanced'));
         const data = await res.json();
         if (!data.songs || !data.songs.length) throw new Error('No songs');
         container.innerHTML = '<div class="mix-intro">Based on your most frequent mood this week: <strong>' + topMood + '</strong></div>' +
@@ -619,8 +585,9 @@
       const saved = localStorage.getItem('theme');
       const systemTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
       const theme = saved || systemTheme;
+      const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
       document.documentElement.setAttribute('data-theme', theme);
-      document.getElementById('settings-theme').value = saved || 'system';
+      document.documentElement.classList.toggle('reduce-motion', !!preferences.reducedMotion);
       document.querySelector('.toggle').innerHTML = themeIcon(theme);
       document.getElementById('logo').src = theme === 'light' ? 'quaver_lightmode1.png' : 'quaver_nightmode1.png';
       updateAuthUI();

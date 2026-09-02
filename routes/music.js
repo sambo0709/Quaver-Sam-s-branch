@@ -151,6 +151,7 @@ async function searchTracks(queries, token, limit) {
         title: track.name,
         artist: track.artists.map(function(a) { return a.name; }).join(', '),
         duration: msToMinSec(track.duration_ms),
+        explicit: !!track.explicit,
         preview_url: track.preview_url,
         spotify_url: track.external_urls.spotify,
         album_art: track.album.images[1] ? track.album.images[1].url : null,
@@ -168,6 +169,8 @@ router.get('/recommend', async function(req, res) {
   const mood = req.query.mood;
   const limit = req.query.limit;
   const songLimit = Math.min(Math.max(parseInt(limit) || 5, 1), 10);
+  const allowExplicit = req.query.explicit !== 'false';
+  const variety = ['familiar', 'balanced', 'adventurous'].includes(req.query.variety) ? req.query.variety : 'balanced';
 
   if (!mood || !moodToSearch[mood.toLowerCase()]) {
     return res.status(400).json({ error: 'Invalid mood', available: Object.keys(moodToSearch) });
@@ -175,8 +178,11 @@ router.get('/recommend', async function(req, res) {
 
   try {
     const token = await getSpotifyToken();
-    const pool = await getMoodPool(mood.toLowerCase(), token);
-    const songs = pickUnseenSongs(pool, mood.toLowerCase(), songLimit);
+    const pool = (await getMoodPool(mood.toLowerCase(), token)).filter(function(song) { return allowExplicit || !song.explicit; });
+    let songs;
+    if (variety === 'familiar') songs = pool.slice(0, songLimit);
+    else if (variety === 'adventurous') songs = pool.slice().reverse().slice(0, songLimit);
+    else songs = pickUnseenSongs(pool, mood.toLowerCase(), songLimit);
     res.json({ mood: mood, count: songs.length, songs: songs });
   } catch (err) {
     console.error('Spotify error:', err.message);
@@ -199,6 +205,16 @@ router.post('/feedback', async function(req, res) {
   } catch (_) { res.status(500).json({ error: 'Server error' }); }
 });
 
+router.delete('/feedback', async function(req, res) {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
+  try {
+    const db = await getDB();
+    await db.collection('users').updateOne({ _id: new (require('mongodb').ObjectId)(user.userId) }, { $set: { recommendationFeedback: [] } });
+    res.json({ message: 'Recommendation feedback cleared' });
+  } catch (_) { res.status(500).json({ error: 'Server error' }); }
+});
+
 // GET /api/music/search?q=...&genre=...&year=... - search for specific songs/artists
 router.get('/search', async function(req, res) {
   const q = (req.query.q || '').trim();
@@ -214,11 +230,13 @@ router.get('/search', async function(req, res) {
     const searchRes = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
     if (!searchRes.ok) throw await spotifyApiError(searchRes, 'Spotify search failed');
     const data = await searchRes.json();
-    const songs = (data.tracks?.items || []).map(function(track) {
+    const allowExplicit = req.query.explicit !== 'false';
+    const songs = (data.tracks?.items || []).filter(function(track) { return allowExplicit || !track.explicit; }).map(function(track) {
       return {
         title: track.name,
         artist: track.artists.map(function(a) { return a.name; }).join(', '),
         duration: msToMinSec(track.duration_ms),
+        explicit: !!track.explicit,
         preview_url: track.preview_url,
         spotify_url: track.external_urls.spotify,
         album_art: track.album.images[1] ? track.album.images[1].url : null,

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('profile exposes the polished dashboard and settings', async ({ page }) => {
+test('profile exposes the polished dashboard and dedicated settings navigation', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('quaver_token', 'test-token');
     localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
@@ -15,8 +15,20 @@ test('profile exposes the polished dashboard and settings', async ({ page }) => 
   await expect(page.getByRole('heading', { name: 'Your Sound Story' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Weekly Mood Mix' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '30-Day Mood Timeline' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Account Settings' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Toggle color theme' })).toBeVisible();
+});
+
+test('settings are organized on a dedicated page', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('quaver_token', 'test-token');
+    localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
+  });
+  await page.goto('/settings.html');
+  await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Music preferences' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Privacy and data' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Danger zone' })).toBeVisible();
 });
 
 test('homepage supports an optional mood note and accessible theme control', async ({ page }) => {
