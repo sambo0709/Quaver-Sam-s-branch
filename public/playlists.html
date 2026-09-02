@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="theme-color" content="#00d4ff"/>
+  <title>Playlists - Quaver</title>
+  <link rel="icon" href="nightmode_logo.png"/>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body class="profile-page playlists-page">
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <nav class="top-nav">
+    <div class="nav-left"><a href="Index.html"><img class="logo" id="logo" src="quaver_nightmode1.png" alt="Quaver Logo"/></a></div>
+    <div class="nav-center"><a class="nav-link" href="Index.html">Home</a><a class="nav-link active" href="playlists.html">Playlists</a></div>
+    <div class="nav-right">
+      <button class="toggle" id="theme-btn" onclick="toggleTheme()" aria-label="Toggle color theme"></button>
+      <div id="user-menu" class="user-menu"><button id="user-menu-button" class="user-menu-button" onclick="toggleUserMenu(event)" aria-label="Open account menu" aria-expanded="false"><span id="user-avatar">U</span></button><div id="user-menu-dropdown" class="user-menu-dropdown" hidden><div class="user-menu-header"><strong id="nav-username">Account</strong><small>Quaver account</small></div><a href="profile.html">Profile</a><a href="settings.html">Settings</a><button onclick="logout()">Log out</button></div></div>
+    </div>
+  </nav>
+
+  <main class="playlist-library-main">
+    <header class="settings-header playlist-library-header"><span>Your library</span><h1>Playlists</h1><p>Everything you have made from your moods, collected in one place.</p></header>
+
+    <section class="playlist-library-summary" aria-label="Playlist totals">
+      <article><strong id="playlist-total">0</strong><span>Playlists</span></article>
+      <article><strong id="playlist-song-total">0</strong><span>Saved songs</span></article>
+      <article><strong id="playlist-shared-total">0</strong><span>Shared</span></article>
+    </section>
+
+    <div class="playlist-library-toolbar">
+      <label class="playlist-library-search"><span class="sr-only">Search playlists</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><input id="playlist-search" type="search" placeholder="Search your playlists" autocomplete="off"/></label>
+      <label class="playlist-library-filter"><span class="sr-only">Filter by mood</span><select id="playlist-mood-filter"><option value="">All moods</option></select></label>
+      <a class="playlist-build-button" href="Index.html?open=playlist">Create playlist</a>
+    </div>
+
+    <section id="playlist-detail" class="playlist-detail" hidden aria-live="polite"></section>
+
+    <section aria-labelledby="playlist-grid-heading">
+      <div class="playlist-grid-heading"><div><span>COLLECTION</span><h2 id="playlist-grid-heading">Created playlists</h2></div><small id="playlist-result-count">Loading...</small></div>
+      <div id="playlist-library-grid" class="playlist-library-grid" aria-live="polite">
+        <div class="playlist-library-skeleton"></div><div class="playlist-library-skeleton"></div><div class="playlist-library-skeleton"></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="rename-modal-overlay" id="library-modal-overlay" onclick="closeLibraryModal()"></div>
+  <div class="rename-modal" id="library-modal" role="dialog" aria-modal="true" aria-labelledby="library-modal-title">
+    <div class="rename-modal-title" id="library-modal-title">Rename playlist</div>
+    <p id="library-modal-message" class="library-modal-message" hidden></p>
+    <input type="text" id="library-modal-input" class="playlist-input" maxlength="80"/>
+    <div class="rename-modal-actions"><button class="rename-modal-cancel" onclick="closeLibraryModal()">Cancel</button><button class="save-btn" id="library-modal-confirm">Save</button></div>
+  </div>
+
+  <div id="spotify-player" class="spotify-player" style="display:none" role="region" aria-label="Now playing">
+    <div class="player-identity" aria-live="polite">
+      <div class="player-artwork"><img id="player-art" alt="" hidden/><span id="player-art-placeholder" aria-hidden="true">Q</span></div>
+      <div class="player-track-copy"><span class="now-playing-label">NOW PLAYING</span><strong id="player-song-name">Choose a song</strong><small id="player-song-artist">Quaver</small></div>
+      <a id="player-spotify-link" class="player-spotify-link" href="https://open.spotify.com" target="_blank" rel="noopener" aria-label="Open current track in Spotify"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7 9.1c3.7-1 7.7-.7 10.9.9M7.8 12.4c3-.8 6.5-.5 9.2.7M8.5 15.4c2.4-.6 5.1-.4 7.3.6"/></svg><span>Spotify</span></a>
+    </div>
+    <div class="player-center">
+      <div class="player-transport"><button class="player-control-button" onclick="playerPrevious()" title="Previous" aria-label="Previous song"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5v14M19 6.5 9 12l10 5.5Z"/></svg></button><button id="player-toggle" class="player-toggle-button" onclick="QuaverPlayer.toggle()" title="Play" aria-label="Play"><svg class="player-play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 7 9 5-9 5Z"/></svg><svg class="player-pause-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7h3v10H8zM13 7h3v10h-3z"/></svg></button><button class="player-control-button" onclick="playerNext()" title="Next" aria-label="Next song"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14M5 6.5 15 12 5 17.5Z"/></svg></button></div>
+      <div class="player-progress-row"><span id="player-current-time">0:00</span><input id="player-progress" class="player-range" type="range" min="0" max="1" value="0" aria-label="Song progress" oninput="QuaverPlayer.previewSeek(this.value)" onchange="QuaverPlayer.seek(this.value)"/><span id="player-duration">0:00</span></div>
+      <div class="player-status-line"><span id="player-status" data-state="">Ready when you are</span><a id="player-status-action" href="settings.html#spotify-settings" hidden></a></div>
+    </div>
+    <div class="player-actions"><div class="player-volume-controls"><button id="player-volume-button" class="player-control-button" onclick="QuaverPlayer.toggleMute()" title="Mute" aria-label="Mute"><svg class="player-volume-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10v4h3l4 3V7l-4 3ZM15 9c1 .8 1.5 1.8 1.5 3S16 14.2 15 15M17.5 7c1.7 1.3 2.5 3 2.5 5s-.8 3.7-2.5 5"/></svg><svg class="player-muted-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10v4h3l4 3V7l-4 3ZM16 10l4 4M20 10l-4 4"/></svg></button><input id="player-volume" class="player-range player-volume-range" type="range" min="0" max="100" value="70" aria-label="Volume" oninput="QuaverPlayer.setVolume(this.value)"/></div><button class="player-close-btn" onclick="closePlayer()" aria-label="Close player" title="Close player"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button></div>
+  </div>
+
+  <nav class="mobile-bottom-nav" aria-label="Mobile navigation"><a href="Index.html"><span aria-hidden="true">⌂</span>Home</a><a href="Index.html#search-input"><span aria-hidden="true">⌕</span>Search</a><a class="active" href="playlists.html"><span aria-hidden="true">♫</span>Playlists</a><a href="profile.html"><span aria-hidden="true">◉</span>Account</a></nav>
+
+  <script src="playlists.js"></script>
+  <script src="spotify-player.js"></script>
+</body>
+</html>

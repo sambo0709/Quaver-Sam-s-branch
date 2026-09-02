@@ -28,7 +28,7 @@
   </div>
   <div class="nav-center">
     <a class="nav-link active" href="Index.html">Home</a>
-    <button class="nav-link" onclick="togglePlaylistPanel()">Playlist <span id="playlist-count" class="count-badge">0</span></button>
+    <a class="nav-link" href="playlists.html">Playlists <span id="playlist-count" class="count-badge">0</span></a>
     <div id="spotify-login-btn" style="display:none">
       <button onclick="connectSpotifyAccount()" class="nav-link spotify-nav-link">Spotify</button>
     </div>
@@ -87,7 +87,6 @@
     </select>
   </div>
   <button class="mood-select random-btn" onclick="randomMood()">✨ Surprise Me</button>
-  <input class="mood-note-input" id="mood-note" maxlength="160" placeholder="Add an optional note about how you feel" aria-label="Optional mood note"/>
   <div class="search-divider"><span>or search directly</span></div>
   <div class="search-row">
     <div class="search-input-wrap">
@@ -197,7 +196,7 @@
 <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
   <a class="active" href="Index.html"><span aria-hidden="true">⌂</span>Home</a>
   <button onclick="focusSearch()"><span aria-hidden="true">⌕</span>Search</button>
-  <button onclick="togglePlaylistPanel()"><span aria-hidden="true">♫</span>Playlist</button>
+  <a href="playlists.html"><span aria-hidden="true">♫</span>Playlists</a>
   <a href="profile.html"><span aria-hidden="true">◉</span>Account</a>
 </nav>
 
@@ -238,7 +237,7 @@
 
 <div class="playlist-panel" id="playlist-panel">
   <div class="panel-header">
-    <h2 class="panel-title">My Playlist</h2>
+    <div><h2 class="panel-title">Playlist draft <span id="panel-song-count" class="count-badge">0</span></h2><a class="panel-library-link" href="playlists.html">View saved playlists</a></div>
     <button class="panel-close" onclick="togglePlaylistPanel()">✕</button>
   </div>
   <div class="save-form">
@@ -576,6 +575,7 @@
       } catch (e) {}
     }
     renderSavedPlaylists();
+    updatePlaylistBadge();
   }
 
   function randomMood() {
@@ -626,14 +626,11 @@
     checkMoodStreak(mood);
     const token = localStorage.getItem('quaver_token');
     if (token) {
-      const noteInput = document.getElementById('mood-note');
-      const note = noteInput ? noteInput.value.trim() : '';
       fetch(API + '/api/mood/history', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-        body: JSON.stringify({ mood: mood, note: note })
+        body: JSON.stringify({ mood: mood })
       }).catch(function() {});
-      if (noteInput) noteInput.value = '';
     }
     fetchSongs();
   }
@@ -841,6 +838,11 @@
     btn.classList.add('added');
     updatePlaylistBadge();
     renderPanelSongs();
+    const panel = document.getElementById('playlist-panel');
+    if (panel && !panel.classList.contains('open')) {
+      panel.classList.add('open');
+      document.getElementById('playlist-overlay').classList.add('open');
+    }
     showToast(song.title + ' added to playlist!', 'success');
   }
 
@@ -859,7 +861,10 @@
   }
 
   function updatePlaylistBadge() {
-    document.getElementById('playlist-count').textContent = playlistSongs.length;
+    const savedCount = document.getElementById('playlist-count');
+    const draftCount = document.getElementById('panel-song-count');
+    if (savedCount) savedCount.textContent = savedPlaylists.length;
+    if (draftCount) draftCount.textContent = playlistSongs.length;
   }
 
   function renderPanelSongs() {
@@ -1415,6 +1420,7 @@
         savedPlaylists.splice(index, 1);
         localStorage.setItem('quaver_playlists', JSON.stringify(savedPlaylists));
         renderSavedPlaylists();
+        updatePlaylistBadge();
         showToast('Playlist deleted.', 'success');
       }
     );

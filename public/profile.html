@@ -19,6 +19,7 @@
     </div>
     <div class="nav-center">
       <a class="nav-link" href="Index.html">Home</a>
+      <a class="nav-link" href="playlists.html">Playlists</a>
     </div>
     <div class="nav-right">
       <button class="toggle" onclick="toggleTheme()" aria-label="Toggle color theme"></button>
@@ -26,7 +27,7 @@
     </div>
   </nav>
 
-  <nav class="mobile-bottom-nav" aria-label="Mobile navigation"><a href="Index.html"><span aria-hidden="true">⌂</span>Home</a><a href="Index.html#search-input"><span aria-hidden="true">⌕</span>Search</a><a href="Index.html?open=playlist"><span aria-hidden="true">♫</span>Playlist</a><a class="active" href="profile.html"><span aria-hidden="true">◉</span>Account</a></nav>
+  <nav class="mobile-bottom-nav" aria-label="Mobile navigation"><a href="Index.html"><span aria-hidden="true">⌂</span>Home</a><a href="Index.html#search-input"><span aria-hidden="true">⌕</span>Search</a><a href="playlists.html"><span aria-hidden="true">♫</span>Playlists</a><a class="active" href="profile.html"><span aria-hidden="true">◉</span>Account</a></nav>
 
   <div id="spotify-player" class="spotify-player" style="display:none" role="region" aria-label="Now playing">
     <div class="player-identity" aria-live="polite">
@@ -110,7 +111,7 @@
       </div>
 
       <div class="box">
-        <h2>Playlists</h2>
+        <div class="profile-box-heading"><h2>Playlists</h2><a href="playlists.html">View all</a></div>
         <div id="playlists-list">
           <p class="box-empty">No playlists saved yet.</p>
         </div>
