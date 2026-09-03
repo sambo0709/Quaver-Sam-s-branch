@@ -42,13 +42,26 @@
     window.location.href = 'playlists.html?create=1';
   }
 
+  function spotifyTrackId(song) {
+    const match = String(song && song.spotify_url || '').match(/\/track\/([A-Za-z0-9]+)/);
+    return match ? match[1] : '';
+  }
+
+  function playSearchSong(index) {
+    const song = (window.searchSongs || [])[index];
+    const trackId = spotifyTrackId(song);
+    if (!song || !trackId) return;
+    QuaverPlayer.play({ trackId: trackId, title: song.title || '', artist: song.artist || '', albumArt: song.album_art || '' });
+  }
+
   function renderSongs(songs, query) {
     window.searchSongs = songs;
     status.textContent = songs.length ? songs.length + ' results for “' + query + '”' : 'No results for “' + query + '”.';
     results.innerHTML = songs.map(function (song, index) {
       const art = song.album_art ? '<img src="' + escapeHTML(song.album_art) + '" alt="" loading="lazy"/>' : '<div class="search-result-art"></div>';
       const spotify = song.spotify_url ? '<a href="' + escapeHTML(song.spotify_url) + '" target="_blank" rel="noopener">Open Spotify</a>' : '';
-      return '<article class="search-result-card">' + art + '<div><strong>' + escapeHTML(song.title || 'Untitled song') + '</strong><span>' + escapeHTML(song.artist || 'Unknown artist') + '</span></div><div class="search-result-actions">' + spotify + '<button type="button" data-add-index="' + index + '">Add to playlist</button></div></article>';
+      const play = spotifyTrackId(song) ? '<button class="search-result-play" type="button" data-play-index="' + index + '" aria-label="Play ' + escapeHTML(song.title || 'song') + '">▶ Play</button>' : '';
+      return '<article class="search-result-card">' + art + '<div><strong>' + escapeHTML(song.title || 'Untitled song') + '</strong><span>' + escapeHTML(song.artist || 'Unknown artist') + '</span></div><div class="search-result-actions">' + play + spotify + '<button type="button" data-add-index="' + index + '">Add to playlist</button></div></article>';
     }).join('');
   }
 
@@ -70,7 +83,16 @@
   }
 
   document.getElementById('search-page-form').addEventListener('submit', function (event) { event.preventDefault(); search(input.value); });
-  results.addEventListener('click', function (event) { const button = event.target.closest('[data-add-index]'); if (button) addToPlaylist(Number(button.dataset.addIndex)); });
+  results.addEventListener('click', function (event) {
+    const playButton = event.target.closest('[data-play-index]');
+    if (playButton) { playSearchSong(Number(playButton.dataset.playIndex)); return; }
+    const addButton = event.target.closest('[data-add-index]');
+    if (addButton) addToPlaylist(Number(addButton.dataset.addIndex));
+  });
+
+  window.playerPrevious = function () { QuaverPlayer.previous(); };
+  window.playerNext = function () { QuaverPlayer.next(); };
+  window.closePlayer = function () { QuaverPlayer.hide(); };
 
   const savedTheme = localStorage.getItem('theme') || 'system';
   applyTheme(savedTheme);

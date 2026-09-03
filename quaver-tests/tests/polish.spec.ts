@@ -308,6 +308,18 @@ test('global search opens a dedicated discovery page', async ({ page }) => {
   await expect(page.locator('.mobile-bottom-nav a.active')).toHaveText(/Search/);
 });
 
+test('search results can play through the shared Quaver player', async ({ page }) => {
+  await page.route('**/api/music/search?*', route => route.fulfill({ json: { songs: [{ title: 'Playable Result', artist: 'Quaver Artist', album_art: 'https://i.scdn.co/image/search', spotify_url: 'https://open.spotify.com/track/search123' }] } }));
+  await page.goto('/search.html?q=playable');
+  await page.evaluate(() => {
+    (window as any).__searchPlayback = null;
+    (window as any).QuaverPlayer.play = (track: unknown) => { (window as any).__searchPlayback = track; return Promise.resolve(true); };
+  });
+  await page.getByRole('button', { name: 'Play Playable Result' }).click();
+  expect(await page.evaluate(() => (window as any).__searchPlayback)).toMatchObject({ trackId: 'search123', title: 'Playable Result', artist: 'Quaver Artist' });
+  await expect(page.locator('#spotify-player')).toBeAttached();
+});
+
 test('header uses a non-linking compact Quaver mark', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('quaver_onboarded', '1');

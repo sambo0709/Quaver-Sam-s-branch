@@ -4773,6 +4773,8 @@ body > nav:not(.mobile-bottom-nav),
 .search-result-card span { margin-top: 4px; color: var(--text-muted); font-size: .76rem; }
 .search-result-actions { display: flex; align-items: center; gap: 10px; }
 .search-result-actions a { color: #1db954; font-size: .76rem; font-weight: 700; text-decoration: none; }
+.search-result-actions .search-result-play { border-color:var(--accent); background:transparent; color:var(--accent); }
+.search-result-actions .search-result-play:hover { background:var(--accent-glow); }
 
 @media (max-width: 1100px) and (min-width: 769px) {
   nav,
