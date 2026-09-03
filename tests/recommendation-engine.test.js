@@ -6,7 +6,8 @@ test('recommendation context validates expressive mood inputs', function() {
   const context = parseRecommendationContext({ mood: 'anxious', secondaryMood: 'happy', intensity: '9', activity: 'studying', direction: 'uplift', minutes: '60', artist: 'SZA', genre: 'r&b' });
   assert.deepEqual(context, { mood: 'anxious', secondaryMood: 'happy', intensity: 5, activity: 'studying', direction: 'uplift', minutes: 60, preferredArtist: 'SZA', preferredGenre: 'r&b' });
   const queries = buildSearchQueries(context);
-  assert.ok(queries.every(function(query) { return query.includes('happy') && query.includes('studying') && query.includes('artist:SZA'); }));
+  assert.equal(queries[0], 'artist:SZA');
+  assert.ok(queries.some(function(query) { return query.includes('SZA') && query.includes('happy') && query.includes('studying'); }));
 });
 
 test('ranking removes dislikes, favors learned artists, and explains picks', function() {

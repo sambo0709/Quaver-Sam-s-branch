@@ -42,9 +42,19 @@ function buildSearchQueries(context) {
   const activity = context.activity === 'none' ? '' : ' for ' + context.activity;
   const direction = context.direction === 'stay' ? '' : ' ' + context.direction;
   const intensity = context.intensity >= 4 ? ' intense' : context.intensity <= 2 ? ' gentle' : '';
-  const genre = context.preferredGenre ? ' genre:' + context.preferredGenre : '';
-  const artist = context.preferredArtist ? ' artist:' + context.preferredArtist : '';
-  return profile.terms.map(function(term) { return term + secondary + direction + intensity + activity + genre + artist; });
+  const moodQueries = profile.terms.map(function(term) {
+    const genre = context.preferredGenre ? ' ' + context.preferredGenre : '';
+    return term + secondary + direction + intensity + activity + genre;
+  });
+  if (context.preferredArtist) {
+    // Combining Spotify field filters with several mood terms can produce an
+    // empty result set. Search the requested artist first, then use natural
+    // language mood fallbacks; ranking still favors exact artist matches.
+    return ['artist:' + context.preferredArtist]
+      .concat(moodQueries.map(function(query) { return context.preferredArtist + ' ' + query; }))
+      .concat([context.preferredArtist]);
+  }
+  return moodQueries;
 }
 
 function scoreAndExplain(song, context, history) {
