@@ -8,6 +8,9 @@
   let playQueueIndex = -1;
   let modalAction = null;
   let toastTimer = null;
+  let createDraft = [];
+  let createSearchResults = [];
+  try { createDraft = JSON.parse(localStorage.getItem('quaver_playlist_draft') || '[]'); } catch (_) { createDraft = []; }
 
   function byId(id) { return document.getElementById(id); }
   function escapeHTML(value) {
@@ -79,6 +82,113 @@
     return '<div class="' + className + modifier + '">' + artwork.map(function (url) { return '<img src="' + escapeHTML(url) + '" alt="" loading="lazy"/>'; }).join('') + '</div>';
   }
 
+  function saveCreateDraft() {
+    localStorage.setItem('quaver_playlist_draft', JSON.stringify(createDraft));
+  }
+  function renderCreateDraft() {
+    const container = byId('playlist-create-draft');
+    const count = byId('playlist-create-song-count');
+    count.textContent = createDraft.length + (createDraft.length === 1 ? ' song' : ' songs');
+    if (!createDraft.length) {
+      container.innerHTML = '<div class="playlist-create-empty"><p>No songs added yet.</p><span>Your search results will appear on the left.</span></div>';
+      return;
+    }
+    container.innerHTML = createDraft.map(function (song, index) {
+      return '<div class="playlist-create-song">' + (song.album_art ? '<img src="' + escapeHTML(song.album_art) + '" alt=""/>' : '<div class="playlist-create-song-art"></div>') + '<div><strong>' + escapeHTML(song.title || 'Untitled song') + '</strong><span>' + escapeHTML(song.artist || 'Unknown artist') + '</span></div><button type="button" data-action="remove-create-song" data-song-index="' + index + '" aria-label="Remove ' + escapeHTML(song.title) + '">Remove</button></div>';
+    }).join('');
+  }
+  function renderCreateResults(message) {
+    const container = byId('playlist-create-results');
+    if (message) { container.innerHTML = '<p>' + escapeHTML(message) + '</p>'; return; }
+    if (!createSearchResults.length) { container.innerHTML = '<p>No songs found. Try another search.</p>'; return; }
+    container.innerHTML = createSearchResults.map(function (song, index) {
+      const alreadyAdded = createDraft.some(function (saved) { return trackId(saved) ? trackId(saved) === trackId(song) : saved.title === song.title && saved.artist === song.artist; });
+      return '<div class="playlist-create-song">' + (song.album_art ? '<img src="' + escapeHTML(song.album_art) + '" alt=""/>' : '<div class="playlist-create-song-art"></div>') + '<div><strong>' + escapeHTML(song.title || 'Untitled song') + '</strong><span>' + escapeHTML(song.artist || 'Unknown artist') + '</span></div><button type="button" data-action="add-create-song" data-result-index="' + index + '"' + (alreadyAdded ? ' disabled' : '') + '>' + (alreadyAdded ? 'Added' : 'Add') + '</button></div>';
+    }).join('');
+  }
+  function startCreate() {
+    selectedPlaylistId = null;
+    renderDetail();
+    const section = byId('playlist-create');
+    section.hidden = false;
+    byId('playlist-collection').hidden = true;
+    if (!byId('playlist-create-name').value && !createDraft.length) {
+      const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
+      byId('playlist-create-mood').value = preferences.defaultMood || 'mixed';
+    }
+    renderCreateDraft();
+    history.replaceState({}, '', 'playlists.html?create=1');
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(function () { byId('playlist-create-name').focus(); }, 100);
+  }
+  function closeCreate() {
+    byId('playlist-create').hidden = true;
+    byId('playlist-collection').hidden = false;
+    history.replaceState({}, '', 'playlists.html');
+  }
+  async function searchCreateSongs(event) {
+    event.preventDefault();
+    const query = byId('playlist-create-search-input').value.trim();
+    if (!query) return;
+    renderCreateResults('Searching...');
+    try {
+      const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
+      const response = await fetch(API + '/api/music/search?q=' + encodeURIComponent(query) + '&explicit=' + (preferences.explicitContent !== false));
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Search failed.');
+      createSearchResults = Array.isArray(data.songs) ? data.songs : [];
+      renderCreateResults();
+    } catch (error) {
+      createSearchResults = [];
+      renderCreateResults(error.message || 'Search failed. Try again.');
+    }
+  }
+  function addCreateSong(index) {
+    const song = createSearchResults[index];
+    if (!song) return;
+    const exists = createDraft.some(function (saved) { return trackId(saved) ? trackId(saved) === trackId(song) : saved.title === song.title && saved.artist === song.artist; });
+    if (exists) return;
+    createDraft.push(song);
+    saveCreateDraft();
+    renderCreateDraft();
+    renderCreateResults();
+  }
+  function removeCreateSong(index) {
+    createDraft.splice(index, 1);
+    saveCreateDraft();
+    renderCreateDraft();
+    renderCreateResults();
+  }
+  async function saveCreatedPlaylist() {
+    const name = byId('playlist-create-name').value.trim();
+    const mood = byId('playlist-create-mood').value || 'mixed';
+    if (!name) { byId('playlist-create-name').focus(); showToast('Give your playlist a name.', 'error'); return; }
+    if (!createDraft.length) { byId('playlist-create-search-input').focus(); showToast('Add at least one song.', 'error'); return; }
+    const button = byId('playlist-create-save');
+    button.disabled = true;
+    button.textContent = 'Saving...';
+    try {
+      const response = await fetch(API + '/api/playlist', { method: 'POST', headers: authHeaders(true), body: JSON.stringify({ name: name, mood: mood, songs: createDraft }) });
+      const data = await response.json();
+      if (!response.ok || !data.playlist) throw new Error(data.error || 'Could not save playlist.');
+      playlists.push(data.playlist);
+      createDraft = [];
+      createSearchResults = [];
+      localStorage.removeItem('quaver_playlist_draft');
+      byId('playlist-create-name').value = '';
+      byId('playlist-create-search-input').value = '';
+      closeCreate();
+      renderAll();
+      openPlaylist(data.playlist.id);
+      showToast('Playlist created.', 'success');
+    } catch (error) {
+      showToast(error.message || 'Could not save playlist.', 'error');
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Save playlist';
+    }
+  }
+
   function renderSummary() {
     byId('playlist-total').textContent = playlists.length;
     byId('playlist-song-total').textContent = playlists.reduce(function (sum, playlist) { return sum + playlistSongs(playlist).length; }, 0);
@@ -103,7 +213,7 @@
     byId('playlist-result-count').textContent = visible.length + (visible.length === 1 ? ' playlist' : ' playlists');
     const grid = byId('playlist-library-grid');
     if (!playlists.length) {
-      grid.innerHTML = '<div class="playlist-library-empty"><div class="playlist-empty-mark" aria-hidden="true">Q</div><h3>Your playlist library is ready</h3><p>Choose a mood, add a few songs, and save your first playlist.</p><a href="Index.html?open=playlist">Create your first playlist</a></div>';
+      grid.innerHTML = '<div class="playlist-library-empty"><div class="playlist-empty-mark" aria-hidden="true">Q</div><h3>Your playlist library is ready</h3><p>Choose a mood, add a few songs, and save your first playlist.</p><button type="button" data-action="start-create">Create your first playlist</button></div>';
       return;
     }
     if (!visible.length) {
@@ -116,7 +226,7 @@
       return '<article class="playlist-library-card" data-playlist-id="' + id + '">' +
         '<button class="playlist-card-open" type="button" data-action="open" aria-label="Open ' + escapeHTML(playlist.name) + '">' + coverHTML(playlist, 'playlist-library-cover') + '</button>' +
         '<div class="playlist-library-card-copy"><button type="button" data-action="open"><strong>' + escapeHTML(playlist.name) + '</strong></button><span>' + songs.length + (songs.length === 1 ? ' song' : ' songs') + ' · ' + escapeHTML(playlistMood(playlist)) + '</span><small>' + escapeHTML(formatDate(playlist.createdAt)) + '</small></div>' +
-        '<div class="playlist-library-card-actions">' + (songs.some(trackId) ? '<button type="button" class="playlist-round-play" data-action="play" aria-label="Play ' + escapeHTML(playlist.name) + '">▶</button>' : '') + '<button type="button" data-action="share" aria-label="Share ' + escapeHTML(playlist.name) + '">Share</button><button type="button" data-action="rename" aria-label="Rename ' + escapeHTML(playlist.name) + '">Rename</button></div>' +
+        '<div class="playlist-library-card-actions">' + (songs.some(trackId) ? '<button type="button" class="playlist-round-play" data-action="play" aria-label="Play ' + escapeHTML(playlist.name) + '">▶</button><button type="button" class="playlist-spotify-export" data-action="export" aria-label="Export ' + escapeHTML(playlist.name) + ' to Spotify">Export to Spotify</button>' : '') + '<button type="button" data-action="share" aria-label="Share ' + escapeHTML(playlist.name) + '">Share</button><button type="button" data-action="rename" aria-label="Rename ' + escapeHTML(playlist.name) + '">Rename</button></div>' +
       '</article>';
     }).join('');
   }
@@ -127,7 +237,7 @@
     if (!playlist) { section.hidden = true; section.innerHTML = ''; return; }
     const songs = playlistSongs(playlist);
     section.innerHTML = '<button class="playlist-detail-back" type="button" data-action="close-detail">← All playlists</button>' +
-      '<div class="playlist-detail-hero">' + coverHTML(playlist, 'playlist-detail-cover') + '<div class="playlist-detail-copy"><span>PLAYLIST</span><h2>' + escapeHTML(playlist.name) + '</h2><p>' + songs.length + (songs.length === 1 ? ' song' : ' songs') + ' · ' + escapeHTML(playlistMood(playlist)) + ' · ' + escapeHTML(formatDate(playlist.createdAt)) + '</p><div class="playlist-detail-actions">' + (songs.some(trackId) ? '<button type="button" class="playlist-primary-action" data-action="play">Play all</button>' : '') + '<button type="button" data-action="rename">Rename</button><button type="button" data-action="share">' + (playlist.isPublic ? 'Copy share link' : 'Share') + '</button><button type="button" class="playlist-delete-action" data-action="delete">Delete</button></div></div></div>' +
+      '<div class="playlist-detail-hero">' + coverHTML(playlist, 'playlist-detail-cover') + '<div class="playlist-detail-copy"><span>PLAYLIST</span><h2>' + escapeHTML(playlist.name) + '</h2><p>' + songs.length + (songs.length === 1 ? ' song' : ' songs') + ' · ' + escapeHTML(playlistMood(playlist)) + ' · ' + escapeHTML(formatDate(playlist.createdAt)) + '</p><div class="playlist-detail-actions">' + (songs.some(trackId) ? '<button type="button" class="playlist-primary-action" data-action="play">Play all</button><button type="button" class="playlist-spotify-export" data-action="export">Export to Spotify</button>' : '') + '<button type="button" data-action="rename">Rename</button><button type="button" data-action="share">' + (playlist.isPublic ? 'Copy share link' : 'Share') + '</button><button type="button" class="playlist-delete-action" data-action="delete">Delete</button></div></div></div>' +
       '<div class="playlist-detail-tracks">' + (songs.length ? songs.map(function (song, index) {
         const canPlay = !!trackId(song);
         return '<div class="playlist-detail-track"><span class="playlist-track-number">' + String(index + 1).padStart(2, '0') + '</span>' + (song.album_art ? '<img src="' + escapeHTML(song.album_art) + '" alt="" loading="lazy"/>' : '<div class="playlist-track-art"></div>') + '<div><strong>' + escapeHTML(song.title || 'Untitled song') + '</strong><span>' + escapeHTML(song.artist || 'Unknown artist') + '</span></div>' + (canPlay ? '<button class="playlist-track-play" type="button" data-action="play-song" data-song-index="' + index + '" aria-label="Play ' + escapeHTML(song.title) + '">▶</button>' : '') + (song.spotify_url ? '<a href="' + escapeHTML(song.spotify_url) + '" target="_blank" rel="noopener">Spotify</a>' : '') + '</div>';
@@ -245,6 +355,49 @@
     } catch (_) { showToast('Could not create a share link.', 'error'); }
   }
 
+  async function restoreSpotifySession() {
+    const response = await fetch(API + '/spotify/session', { method: 'POST', headers: authHeaders(false) });
+    const data = await response.json().catch(function () { return {}; });
+    if (!response.ok || !data.spotifyToken) {
+      const guidance = response.status === 404
+        ? 'Connect Spotify in Settings before exporting.'
+        : response.status === 401
+          ? 'Reconnect Spotify in Settings before exporting.'
+          : (data.error || 'Spotify is unavailable right now.');
+      const error = new Error(guidance);
+      error.needsSpotify = true;
+      throw error;
+    }
+    localStorage.setItem('quaver_spotify_token', data.spotifyToken);
+    if (data.displayName) localStorage.setItem('quaver_spotify_name', data.displayName);
+    return data.spotifyToken;
+  }
+  async function exportPlaylist(id, button) {
+    const playlist = playlistById(id);
+    if (!playlist) return;
+    const trackUris = playlistSongs(playlist).map(trackId).filter(Boolean).map(function (id) { return 'spotify:track:' + id; });
+    if (!trackUris.length) { showToast('This playlist has no Spotify tracks to export.', 'error'); return; }
+    const originalLabel = button ? button.textContent : '';
+    if (button) { button.disabled = true; button.textContent = 'Exporting...'; }
+    try {
+      const spotifyToken = await restoreSpotifySession();
+      const response = await fetch(API + '/spotify/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playlistName: playlist.name + ' (from Quaver)', trackUris: trackUris, spotifyToken: spotifyToken }),
+      });
+      const data = await response.json().catch(function () { return {}; });
+      if (!response.ok || !data.playlist_url) throw new Error(data.error || 'Spotify export failed.');
+      showToast('Playlist exported to Spotify.', 'success');
+      const opened = window.open(data.playlist_url, '_blank', 'noopener');
+      if (!opened) window.location.href = data.playlist_url;
+    } catch (error) {
+      showToast(error.message || 'Could not export to Spotify.', 'error');
+    } finally {
+      if (button && button.isConnected) { button.disabled = false; button.textContent = originalLabel || 'Export to Spotify'; }
+    }
+  }
+
   async function playSong(song) {
     const id = trackId(song);
     if (!id) return false;
@@ -274,12 +427,18 @@
     const action = actionButton.dataset.action;
     const card = actionButton.closest('[data-playlist-id]');
     const id = card ? card.dataset.playlistId : selectedPlaylistId;
+    if (action === 'start-create') startCreate();
+    if (action === 'close-create') closeCreate();
+    if (action === 'save-create') saveCreatedPlaylist();
+    if (action === 'add-create-song') addCreateSong(Number(actionButton.dataset.resultIndex));
+    if (action === 'remove-create-song') removeCreateSong(Number(actionButton.dataset.songIndex));
     if (action === 'open') openPlaylist(id);
     if (action === 'close-detail') closeDetail();
     if (action === 'play') playPlaylist(id, 0);
     if (action === 'play-song') playPlaylist(id, Number(actionButton.dataset.songIndex));
     if (action === 'rename') beginRename(id);
     if (action === 'share') sharePlaylist(id);
+    if (action === 'export') exportPlaylist(id, actionButton);
     if (action === 'delete') beginDelete(id);
     if (action === 'clear-filters') { byId('playlist-search').value = ''; byId('playlist-mood-filter').value = ''; renderGrid(); }
   }
@@ -300,8 +459,12 @@
     byId('playlist-mood-filter').addEventListener('change', renderGrid);
     byId('playlist-library-grid').addEventListener('click', handleAction);
     byId('playlist-detail').addEventListener('click', handleAction);
+    byId('playlist-create').addEventListener('click', handleAction);
+    document.querySelector('.playlist-build-button').addEventListener('click', handleAction);
+    byId('playlist-create-search-form').addEventListener('submit', searchCreateSongs);
     byId('library-modal-confirm').addEventListener('click', function () { if (modalAction) modalAction(); });
     byId('library-modal-input').addEventListener('keydown', function (event) { if (event.key === 'Enter' && modalAction) modalAction(); });
     loadPlaylists();
+    if (new URLSearchParams(location.search).get('create') === '1') startCreate();
   });
 })();

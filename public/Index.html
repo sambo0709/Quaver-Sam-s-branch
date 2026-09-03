@@ -213,43 +213,6 @@
   <div id="queue-list" class="queue-list"></div>
 </div>
 
-<div class="playlist-overlay" id="playlist-overlay" onclick="togglePlaylistPanel()"></div>
-
-<div class="rename-modal-overlay" id="confirm-overlay" onclick="closeConfirmModal()"></div>
-<div class="rename-modal" id="confirm-modal">
-  <div class="rename-modal-title" id="confirm-title">Delete playlist?</div>
-  <p id="confirm-message" style="color:var(--text-muted);font-size:0.85rem;margin:0 0 18px;line-height:1.5;"></p>
-  <div class="rename-modal-actions">
-    <button class="rename-modal-cancel" onclick="closeConfirmModal()">Cancel</button>
-    <button class="save-btn" id="confirm-ok-btn" onclick="confirmAction()" style="background:linear-gradient(135deg,#ff4e50,#e02020);border-color:transparent;">Delete</button>
-  </div>
-</div>
-
-<div class="rename-modal-overlay" id="rename-modal-overlay" onclick="closeRenameModal()"></div>
-<div class="rename-modal" id="rename-modal">
-  <div class="rename-modal-title">Rename playlist</div>
-  <input type="text" id="rename-modal-input" class="playlist-input" placeholder="Playlist name..." onkeydown="if(event.key==='Enter')confirmRename();if(event.key==='Escape')closeRenameModal();" />
-  <div class="rename-modal-actions">
-    <button class="rename-modal-cancel" onclick="closeRenameModal()">Cancel</button>
-    <button class="save-btn" onclick="confirmRename()">Save</button>
-  </div>
-</div>
-
-<div class="playlist-panel" id="playlist-panel">
-  <div class="panel-header">
-    <div><h2 class="panel-title">Playlist draft <span id="panel-song-count" class="count-badge">0</span></h2><a class="panel-library-link" href="playlists.html">View saved playlists</a></div>
-    <button class="panel-close" onclick="togglePlaylistPanel()">✕</button>
-  </div>
-  <div class="save-form">
-    <input type="text" id="playlist-name" class="playlist-input" placeholder="Playlist name..." />
-    <button class="save-btn" onclick="savePlaylist()">Save</button>
-  </div>
-  <div id="panel-songs" class="panel-songs">
-    <p class="empty-msg">Add songs from your results.</p>
-  </div>
-  <div id="saved-playlists" class="saved-playlists"></div>
-</div>
-
 <script>
   const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
   const UI_ICONS = {
@@ -321,6 +284,7 @@
   let currentLimit = 5;
   let meaningfulPlayTimer = null;
   let playlistSongs = [];
+  try { playlistSongs = JSON.parse(localStorage.getItem('quaver_playlist_draft') || '[]'); } catch (_) { playlistSongs = []; }
   let savedPlaylists = [];
   let recentMoods = JSON.parse(localStorage.getItem('quaver_moods') || '[]');
   let activePlaylistName = null;
@@ -547,8 +511,7 @@
       document.getElementById('onboarding-overlay').style.display = 'flex';
     }
     if (new URLSearchParams(window.location.search).get('open') === 'playlist') {
-      setTimeout(togglePlaylistPanel, 100);
-      window.history.replaceState({}, '', 'Index.html');
+      window.location.replace('playlists.html?create=1');
     }
     if (window.location.hash === '#search-input') setTimeout(focusSearch, 100);
   });
@@ -834,16 +797,9 @@
     });
     if (isDupe) { showToast(song.title + ' is already in your playlist!', 'error'); return; }
     playlistSongs.push(song);
-    btn.textContent = 'Added';
-    btn.classList.add('added');
-    updatePlaylistBadge();
-    renderPanelSongs();
-    const panel = document.getElementById('playlist-panel');
-    if (panel && !panel.classList.contains('open')) {
-      panel.classList.add('open');
-      document.getElementById('playlist-overlay').classList.add('open');
-    }
-    showToast(song.title + ' added to playlist!', 'success');
+    localStorage.setItem('quaver_playlist_draft', JSON.stringify(playlistSongs));
+    if (btn) { btn.textContent = 'Added'; btn.classList.add('added'); }
+    window.location.href = 'playlists.html?create=1';
   }
 
   function removeFromPlaylist(index) {
@@ -862,9 +818,7 @@
 
   function updatePlaylistBadge() {
     const savedCount = document.getElementById('playlist-count');
-    const draftCount = document.getElementById('panel-song-count');
     if (savedCount) savedCount.textContent = savedPlaylists.length;
-    if (draftCount) draftCount.textContent = playlistSongs.length;
   }
 
   function renderPanelSongs() {
@@ -1131,6 +1085,7 @@
 
   function renderSavedPlaylists() {
     const container = document.getElementById('saved-playlists');
+    if (!container) return;
     if (savedPlaylists.length === 0) { container.innerHTML = ''; return; }
     let html = '<div class="saved-section-label">Saved playlists</div>';
     savedPlaylists.forEach(function(pl, i) {

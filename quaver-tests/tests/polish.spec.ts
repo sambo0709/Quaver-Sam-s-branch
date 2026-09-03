@@ -207,3 +207,101 @@ test('primary playlist navigation opens the full library page', async ({ page })
   await expect(page.locator('.nav-center a[href="playlists.html"]')).toHaveText(/Playlists/);
   await expect(page.locator('.mobile-bottom-nav a[href="playlists.html"]')).toBeAttached();
 });
+
+test('a playlist can be built and saved entirely on the playlist page', async ({ page }) => {
+  let createdBody: any;
+  await page.addInitScript(() => {
+    localStorage.setItem('quaver_token', 'test-token');
+    localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
+  });
+  await page.route('**/api/playlist', async route => {
+    if (route.request().method() === 'POST') {
+      createdBody = route.request().postDataJSON();
+      await route.fulfill({ status: 201, json: { playlist: { id: 'new-playlist', createdAt: '2026-09-02T12:00:00.000Z', ...createdBody } } });
+    } else {
+      await route.fulfill({ json: { playlists: [] } });
+    }
+  });
+  await page.route('**/api/music/search?*', route => route.fulfill({
+    json: { songs: [{ title: 'Quiet Hours', artist: 'Quaver Artist', album_art: '', spotify_url: 'https://open.spotify.com/track/create123' }] },
+  }));
+
+  await page.goto('/playlists.html');
+  await page.getByRole('button', { name: 'Create playlist', exact: true }).click();
+  await expect(page.locator('#playlist-collection')).toBeHidden();
+  await page.getByLabel('Playlist name').fill('Late Night Calm');
+  await page.locator('#playlist-create-mood').selectOption('calm');
+  await page.getByPlaceholder('Song, artist, or album').fill('quiet');
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
+  await page.getByRole('button', { name: 'Save playlist', exact: true }).click();
+
+  await expect(page.getByRole('heading', { name: 'Late Night Calm' })).toBeVisible();
+  expect(createdBody).toMatchObject({ name: 'Late Night Calm', mood: 'calm' });
+  expect(createdBody.songs).toHaveLength(1);
+  await expect(page.locator('#playlist-total')).toHaveText('1');
+});
+
+test('adding a homepage song opens the playlist-page builder instead of a popup', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('quaver_token', 'test-token');
+    localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
+    localStorage.setItem('quaver_onboarded', 'true');
+    sessionStorage.setItem('quaver_launched', '1');
+  });
+  await page.route('**/api/playlist*', route => route.fulfill({ json: { playlists: [] } }));
+  await page.goto('/');
+  await Promise.all([
+    page.waitForURL('**/playlists.html?create=1'),
+    page.evaluate(() => (window as any).addToPlaylist({ title: 'Draft Song', artist: 'Quaver Artist', spotify_url: 'https://open.spotify.com/track/draft123' }, null)),
+  ]);
+  await expect(page.getByRole('heading', { name: 'Create a playlist' })).toBeVisible();
+  await expect(page.getByText('Draft Song', { exact: true })).toBeVisible();
+  await expect(page.locator('#playlist-panel')).toHaveCount(0);
+});
+
+test('Trending Moods uses solid surfaces for both color themes', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('quaver_onboarded', 'true');
+    localStorage.setItem('theme', 'light');
+    sessionStorage.setItem('quaver_launched', '1');
+  });
+  await page.goto('/');
+  await expect.poll(() => page.locator('.trending-section').evaluate(section => getComputedStyle(section).backgroundColor)).toBe('rgb(255, 255, 255)');
+  const colors = await page.locator('.trending-section').evaluate(section => ({ section: getComputedStyle(section).backgroundColor, body: getComputedStyle(document.body).backgroundColor }));
+  expect(colors.section).not.toBe(colors.body);
+  expect(colors.section).not.toBe('rgba(0, 0, 0, 0)');
+  await page.getByRole('button', { name: 'Toggle color theme' }).click();
+  await expect.poll(() => page.locator('.trending-section').evaluate(section => getComputedStyle(section).backgroundColor)).toBe('rgb(23, 28, 43)');
+});
+
+test('saved playlists can be exported to Spotify from the library', async ({ page }) => {
+  let exportBody: any;
+  await page.addInitScript(() => {
+    localStorage.setItem('quaver_token', 'test-token');
+    localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
+    (window as any).__openedSpotifyUrl = '';
+    window.open = ((url?: string | URL) => {
+      (window as any).__openedSpotifyUrl = String(url || '');
+      return {} as Window;
+    }) as typeof window.open;
+  });
+  await page.route('**/api/playlist', route => route.fulfill({
+    json: { playlists: [{ id: 'export-me', name: 'Calm Evening', mood: 'calm', songs: [{ title: 'Quiet Hours', artist: 'Quaver Artist', spotify_url: 'https://open.spotify.com/track/export123?si=test' }] }] },
+  }));
+  await page.route('**/spotify/session', route => route.fulfill({ json: { spotifyToken: 'fresh-spotify-session', displayName: 'Listener' } }));
+  await page.route('**/spotify/export', async route => {
+    exportBody = route.request().postDataJSON();
+    await route.fulfill({ json: { playlist_url: 'https://open.spotify.com/playlist/new123', playlist_id: 'new123' } });
+  });
+
+  await page.goto('/playlists.html');
+  await page.getByRole('button', { name: 'Export Calm Evening to Spotify' }).click();
+  await expect(page.getByText('Playlist exported to Spotify.')).toBeVisible();
+  expect(exportBody).toEqual({
+    playlistName: 'Calm Evening (from Quaver)',
+    trackUris: ['spotify:track:export123'],
+    spotifyToken: 'fresh-spotify-session',
+  });
+  await expect.poll(() => page.evaluate(() => (window as any).__openedSpotifyUrl)).toBe('https://open.spotify.com/playlist/new123');
+});

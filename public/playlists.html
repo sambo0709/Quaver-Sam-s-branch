@@ -32,12 +32,22 @@
     <div class="playlist-library-toolbar">
       <label class="playlist-library-search"><span class="sr-only">Search playlists</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><input id="playlist-search" type="search" placeholder="Search your playlists" autocomplete="off"/></label>
       <label class="playlist-library-filter"><span class="sr-only">Filter by mood</span><select id="playlist-mood-filter"><option value="">All moods</option></select></label>
-      <a class="playlist-build-button" href="Index.html?open=playlist">Create playlist</a>
+      <button class="playlist-build-button" type="button" data-action="start-create">Create playlist</button>
     </div>
+
+    <section id="playlist-create" class="playlist-create" hidden aria-labelledby="playlist-create-title">
+      <div class="playlist-create-heading"><div><span>NEW PLAYLIST</span><h2 id="playlist-create-title">Create a playlist</h2><p>Give it a name, choose its mood, then find the songs you want to keep.</p></div><button type="button" data-action="close-create" aria-label="Close playlist builder">✕</button></div>
+      <div class="playlist-create-fields"><label>Playlist name<input id="playlist-create-name" maxlength="80" placeholder="For example, Late Night Calm"/></label><label>Mood<select id="playlist-create-mood"><option value="mixed">Mixed</option><option value="happy">Happy</option><option value="sad">Sad</option><option value="energetic">Energetic</option><option value="calm">Calm</option><option value="focused">Focused</option><option value="angry">Angry</option><option value="romantic">Romantic</option><option value="nostalgic">Nostalgic</option><option value="party">Party</option><option value="sleepy">Sleepy</option><option value="anxious">Anxious</option></select></label></div>
+      <div class="playlist-create-columns">
+        <div class="playlist-create-search-column"><h3>Find songs</h3><form id="playlist-create-search-form" class="playlist-create-search"><input id="playlist-create-search-input" type="search" placeholder="Song, artist, or album" autocomplete="off" required/><button type="submit">Search</button></form><div id="playlist-create-results" class="playlist-create-results"><p>Search for songs to add to this playlist.</p></div></div>
+        <div class="playlist-create-draft-column"><div class="playlist-create-draft-heading"><h3>Playlist songs</h3><span id="playlist-create-song-count">0 songs</span></div><div id="playlist-create-draft" class="playlist-create-draft"></div></div>
+      </div>
+      <div class="playlist-create-footer"><button type="button" data-action="close-create">Cancel</button><button id="playlist-create-save" type="button" data-action="save-create">Save playlist</button></div>
+    </section>
 
     <section id="playlist-detail" class="playlist-detail" hidden aria-live="polite"></section>
 
-    <section aria-labelledby="playlist-grid-heading">
+    <section id="playlist-collection" aria-labelledby="playlist-grid-heading">
       <div class="playlist-grid-heading"><div><span>COLLECTION</span><h2 id="playlist-grid-heading">Created playlists</h2></div><small id="playlist-result-count">Loading...</small></div>
       <div id="playlist-library-grid" class="playlist-library-grid" aria-live="polite">
         <div class="playlist-library-skeleton"></div><div class="playlist-library-skeleton"></div><div class="playlist-library-skeleton"></div>
