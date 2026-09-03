@@ -120,7 +120,8 @@ function renderRecommendationSongs(songs) {
     html += '<div class="song-card" style="animation-delay:' + (index * 0.07) + 's">';
     html += '<span class="song-num">' + String(index + 1).padStart(2, '0') + '</span>';
     html += song.album_art ? '<img class="album-art" src="' + escapeHTML(song.album_art) + '" alt="art"/>' : '<div class="album-art"></div>';
-    html += '<div class="song-info"><div class="song-title">' + escapeHTML(song.title) + '</div><div class="song-artist">' + escapeHTML(song.artist) + '</div><div class="recommendation-reason">Fits your ' + escapeHTML(currentMood) + ' mood</div></div>';
+    const reasons = Array.isArray(song.recommendation_reasons) && song.recommendation_reasons.length ? song.recommendation_reasons.join(' · ') : 'Fits your ' + currentMood + ' mood';
+    html += '<div class="song-info"><div class="song-title">' + escapeHTML(song.title) + '</div><div class="song-artist">' + escapeHTML(song.artist) + '</div><div class="recommendation-reason">' + escapeHTML(reasons) + '</div></div>';
     html += '<div class="song-actions">';
     if (trackId) html += '<button class="play-btn" data-result-index="' + index + '" aria-label="Play ' + escapeHTML(song.title) + '">&#9654;</button>';
     html += '<span class="song-duration">' + escapeHTML(song.duration) + '</span>';
@@ -134,14 +135,35 @@ async function fetchSongs() {
   showSkeletons(currentLimit);
   try {
     const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
-    const url = API + '/api/music/recommend?mood=' + encodeURIComponent(currentMood) + '&limit=' + currentLimit + '&explicit=' + (preferences.explicitContent !== false) + '&variety=' + encodeURIComponent(preferences.recommendationVariety || 'balanced');
+    const context = {
+      secondaryMood: document.getElementById('secondary-mood').value,
+      intensity: document.getElementById('mood-intensity').value,
+      activity: document.getElementById('mood-activity').value,
+      direction: document.getElementById('mood-direction').value,
+      artist: document.getElementById('preferred-artist').value.trim(),
+      genre: document.getElementById('preferred-genre').value.trim(),
+      minutes: document.getElementById('session-minutes').value,
+    };
+    const params = new URLSearchParams({ mood: currentMood, limit: currentLimit, explicit: String(preferences.explicitContent !== false), variety: preferences.recommendationVariety || 'balanced', ...context });
+    const url = API + '/api/music/recommend?' + params.toString();
     const res = await fetch(url, { credentials: 'include' });
     const data = await res.json();
-    if (data.songs && data.songs.length > 0) renderRecommendationSongs(data.songs);
+    if (data.songs && data.songs.length > 0) {
+      renderRecommendationSongs(data.songs);
+      trackRecommendationEvent('impression', '', { count: data.songs.length, context: data.context });
+    }
     else document.getElementById('results').innerHTML = '<p class="no-results">No songs found. Try another mood!</p>';
   } catch (_) {
     document.getElementById('results').innerHTML = '<div class="error-state"><p>Could not load songs.</p><button class="retry-btn" onclick="fetchSongs()">Try again</button></div>';
   }
+}
+
+function trackRecommendationEvent(type, trackId, details) {
+  if (!localStorage.getItem('quaver_user')) return;
+  fetch(API + '/api/music/events', {
+    method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: type, trackId: trackId || '', mood: currentMood || '', details: details || {} })
+  }).catch(function() {});
 }
 
 function sendRecommendationFeedback(trackId, helpful, button) {

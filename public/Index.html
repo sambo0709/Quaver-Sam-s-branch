@@ -85,6 +85,18 @@
     </select>
   </div>
   <button class="mood-select random-btn" onclick="randomMood()">✨ Surprise Me</button>
+  <details class="mood-context" id="mood-context">
+    <summary>Shape this recommendation</summary>
+    <div class="mood-context-grid">
+      <label>Also feeling<select id="secondary-mood"><option value="">One clear mood</option><option value="happy">Happy</option><option value="sad">Sad</option><option value="energetic">Energetic</option><option value="calm">Calm</option><option value="focused">Focused</option><option value="angry">Angry</option><option value="romantic">Romantic</option><option value="nostalgic">Nostalgic</option><option value="party">Party</option><option value="sleepy">Sleepy</option><option value="anxious">Anxious</option></select></label>
+      <label>Intensity <output id="intensity-output">3</output><input id="mood-intensity" type="range" min="1" max="5" value="3" oninput="document.getElementById('intensity-output').value=this.value"/></label>
+      <label>What are you doing?<select id="mood-activity"><option value="none">Nothing specific</option><option value="studying">Studying</option><option value="working out">Working out</option><option value="commuting">Commuting</option><option value="relaxing">Relaxing</option><option value="sleeping">Sleeping</option><option value="socializing">Socializing</option></select></label>
+      <label>Where should the music take you?<select id="mood-direction"><option value="stay">Stay with this feeling</option><option value="uplift">Gently uplift me</option><option value="calm down">Calm me down</option><option value="energize">Energize me</option><option value="focus">Help me focus</option></select></label>
+      <label>Artist preference<input id="preferred-artist" maxlength="80" placeholder="Optional artist"/></label>
+      <label>Genre preference<input id="preferred-genre" maxlength="40" placeholder="Optional genre"/></label>
+      <label>Time available<select id="session-minutes"><option value="15">15 minutes</option><option value="30" selected>30 minutes</option><option value="60">1 hour</option><option value="90">90 minutes</option></select></label>
+    </div>
+  </details>
   <div id="streak-banner" class="streak-banner" style="display:none"></div>
   <div id="loading" class="loading" style="display:none">
     <div class="loading-bar" aria-hidden="true"></div>

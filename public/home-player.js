@@ -4,6 +4,7 @@ async function playInApp(trackId, title, artist, albumArt) {
   if (qp && qp.classList.contains('open')) renderQueuePanel();
   const started = await QuaverPlayer.play({ trackId: trackId, title: title, artist: artist || '', albumArt: albumArt || '' });
   if (!started) return false;
+  trackRecommendationEvent('play', trackId);
   clearTimeout(meaningfulPlayTimer);
   meaningfulPlayTimer = setTimeout(function() {
     try {
@@ -14,9 +15,23 @@ async function playInApp(trackId, title, artist, albumArt) {
       localStorage.setItem('quaver_recently_played', JSON.stringify(deduped.slice(0, 20)));
     } catch(e) {}
     if (localStorage.getItem('quaver_user')) fetch(API + '/api/listening/history', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trackId: trackId, title: title, artist: artist || '', albumArt: albumArt || '', mood: currentMood || '' }) }).catch(function() {});
+    trackRecommendationEvent('meaningful_play', trackId);
   }, 10000);
   return true;
 }
+
+window.addEventListener('quaver:playback-outcome', function(event) {
+  const outcome = event.detail || {};
+  if (outcome.type !== 'skip' && outcome.type !== 'complete') return;
+  clearTimeout(meaningfulPlayTimer);
+  trackRecommendationEvent(outcome.type, outcome.trackId, {
+    title: outcome.title || '',
+    artist: outcome.artist || '',
+    listenedMs: outcome.listenedMs || 0,
+    durationMs: outcome.durationMs || 0,
+    completionRate: outcome.completionRate || 0,
+  });
+});
 
 function addToQueue(song) {
   songQueue.push(song);

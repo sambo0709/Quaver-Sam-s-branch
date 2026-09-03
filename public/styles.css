@@ -128,6 +128,14 @@ body::after {
   border-radius: 16px;
 }
 
+.mood-context { width:min(760px,calc(100% - 32px)); margin:14px auto 0; position:relative; z-index:1; color:var(--text); }
+.mood-context summary { cursor:pointer; color:var(--text-muted); font-weight:700; text-align:center; }
+.mood-context-grid { margin-top:14px; padding:18px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; border:1px solid var(--glass-border); border-radius:18px; background:var(--glass); backdrop-filter:blur(18px); }
+.mood-context-grid label { display:flex; flex-direction:column; gap:7px; text-align:left; color:var(--text-muted); font-size:.78rem; font-weight:700; }
+.mood-context-grid select,.mood-context-grid input:not([type="range"]) { width:100%; border:1px solid var(--glass-border); border-radius:10px; padding:10px 12px; background:var(--card-solid); color:var(--text); font:inherit; }
+.mood-context-grid input[type="range"] { width:100%; accent-color:var(--accent); }
+@media (max-width:600px){.mood-context-grid{grid-template-columns:1fr;}}
+
 /* ═══════════════════════════════════════
    NAVIGATION — Portfolio style (grid)
 ═══════════════════════════════════════ */

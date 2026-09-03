@@ -69,4 +69,26 @@ test.describe('Quaver Homepage Interactions', () => {
     expect(await page.evaluate(() => (window as any).__playedTrack)).toBe('abc123');
   });
 
+  test('expressive context is sent and recommendation explanations are shown', async ({ page }) => {
+    await page.addInitScript(() => { localStorage.setItem('quaver_onboarded', 'true'); sessionStorage.setItem('quaver_launched', '1'); });
+    let requestUrl = '';
+    await page.route('**/api/music/recommend?**', async route => {
+      requestUrl = route.request().url();
+      await route.fulfill({ json: { context: { activity: 'studying' }, songs: [{ title: 'Focus Song', artist: 'SZA', duration: '3:00', album_art: '', spotify_url: 'https://open.spotify.com/track/focus123', recommendation_reasons: ['Chosen for studying', 'Designed to help you focus'] }] } });
+    });
+    await page.goto('/');
+    await page.getByText('Shape this recommendation').click();
+    await page.locator('#secondary-mood').selectOption('calm');
+    await page.locator('#mood-activity').selectOption('studying');
+    await page.locator('#mood-direction').selectOption('focus');
+    await page.locator('#preferred-artist').fill('SZA');
+    await page.locator('#mood-select').selectOption('focused');
+
+    await expect(page.getByText('Chosen for studying · Designed to help you focus')).toBeVisible();
+    expect(requestUrl).toContain('secondaryMood=calm');
+    expect(requestUrl).toContain('activity=studying');
+    expect(requestUrl).toContain('direction=focus');
+    expect(requestUrl).toContain('artist=SZA');
+  });
+
 });

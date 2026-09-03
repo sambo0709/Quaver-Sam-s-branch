@@ -19,6 +19,50 @@
   let readyWaiters = [];
   let readinessError = null;
   let previousVolume = 0.7;
+  let playbackObservation = null;
+
+  function emitPlaybackOutcome(type, observation) {
+    if (!observation || !observation.trackId) return;
+    window.dispatchEvent(new CustomEvent('quaver:playback-outcome', { detail: {
+      type: type,
+      trackId: observation.trackId,
+      title: observation.title || '',
+      artist: observation.artist || '',
+      listenedMs: Math.round(observation.maxPosition || 0),
+      durationMs: Math.round(observation.duration || 0),
+      completionRate: observation.duration ? Math.min(1, observation.maxPosition / observation.duration) : 0,
+    } }));
+  }
+
+  function finishObservation(observation) {
+    if (!observation || observation.reported || !observation.duration) return;
+    const remaining = observation.duration - observation.maxPosition;
+    const completionRate = observation.maxPosition / observation.duration;
+    if (completionRate >= 0.9 || remaining <= 10000) emitPlaybackOutcome('complete', observation);
+    else if (observation.maxPosition <= 30000 || completionRate <= 0.25) emitPlaybackOutcome('skip', observation);
+    observation.reported = true;
+  }
+
+  function observePlayback(track, nextPosition, nextDuration) {
+    if (!track || !track.id) return;
+    if (playbackObservation && playbackObservation.trackId !== track.id) finishObservation(playbackObservation);
+    if (!playbackObservation || playbackObservation.trackId !== track.id) {
+      playbackObservation = {
+        trackId: track.id,
+        title: track.name || '',
+        artist: (track.artists || []).map(function (item) { return item.name; }).join(', '),
+        maxPosition: 0,
+        duration: Number(nextDuration) || 0,
+        reported: false,
+      };
+    }
+    const priorPosition = playbackObservation.maxPosition;
+    playbackObservation.maxPosition = Math.max(priorPosition, Number(nextPosition) || 0);
+    playbackObservation.duration = Math.max(playbackObservation.duration, Number(nextDuration) || 0);
+    if (priorPosition > 0 && Number(nextPosition) < 2000 && priorPosition >= playbackObservation.duration * 0.9) {
+      finishObservation(playbackObservation);
+    }
+  }
 
   function element(id) {
     return document.getElementById(id);
@@ -121,6 +165,7 @@
 
     const spotifyTrack = state.track_window && state.track_window.current_track;
     if (spotifyTrack) {
+      observePlayback(spotifyTrack, state.position, state.duration);
       const image = spotifyTrack.album && spotifyTrack.album.images && spotifyTrack.album.images[0];
       updateMetadata({
         trackId: spotifyTrack.id,

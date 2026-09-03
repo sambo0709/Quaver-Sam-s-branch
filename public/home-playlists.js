@@ -19,6 +19,7 @@ function addToPlaylist(song, btn) {
   });
   if (isDupe) { showToast(song.title + ' is already in your playlist!', 'error'); return; }
   playlistSongs.push(song);
+  trackRecommendationEvent('save', spotifyTrackId(song.spotify_url));
   localStorage.setItem('quaver_playlist_draft', JSON.stringify(playlistSongs));
   if (btn) { btn.textContent = 'Added'; btn.classList.add('added'); }
   window.location.href = 'playlists.html?create=1';
