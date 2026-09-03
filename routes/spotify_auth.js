@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { ObjectId } = require('mongodb');
 const { getDB } = require('./db');
+const { getUser: getQuaverUser } = require('./session');
 
 const SCOPES = [
   'playlist-modify-public',
@@ -21,13 +22,6 @@ const PLAYBACK_SCOPES = [
   'user-read-playback-state',
   'user-modify-playback-state',
 ];
-
-function getQuaverUser(req) {
-  const header = req.headers.authorization;
-  if (!header) return null;
-  try { return jwt.verify(header.split(' ')[1], process.env.JWT_SECRET); }
-  catch (_) { return null; }
-}
 
 function encryptionKey() {
   return crypto.createHash('sha256').update(process.env.JWT_SECRET).digest();
@@ -61,18 +55,6 @@ function authorizationUrl(state) {
 function hasPlaybackScopes(scopes) {
   const granted = new Set(String(scopes || '').split(/\s+/).filter(Boolean));
   return PLAYBACK_SCOPES.every((scope) => granted.has(scope));
-}
-
-function createSpotifySession(accessToken, refreshToken, spotifyUser) {
-  const payload = {
-    spotify_access_token: accessToken,
-    spotify_user_id: spotifyUser.id,
-    spotify_display_name: spotifyUser.displayName,
-  };
-  // Kept only for the legacy direct-login flow. Account-linked sessions keep
-  // the reusable refresh credential encrypted on the server.
-  if (refreshToken) payload.spotify_refresh_token = refreshToken;
-  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 }
 
 async function refreshAccessToken(refreshToken) {
@@ -179,14 +161,8 @@ router.post('/session', async (req, res) => {
     const db = await getDB();
     const found = await db.collection('users').findOne({ _id: new ObjectId(user.userId) }, { projection: { spotifyConnection: 1 } });
     if (!found?.spotifyConnection?.refreshToken) return res.status(404).json({ error: 'Spotify is not connected' });
-    const refreshToken = decrypt(found.spotifyConnection.refreshToken);
-    const tokenData = await refreshAccessToken(refreshToken);
-    const activeRefreshToken = tokenData.refresh_token || refreshToken;
-    if (tokenData.refresh_token) {
-      await db.collection('users').updateOne({ _id: found._id }, { $set: { 'spotifyConnection.refreshToken': encrypt(activeRefreshToken) } });
-    }
     const identity = { id: found.spotifyConnection.userId, displayName: found.spotifyConnection.displayName };
-    res.json({ spotifyToken: createSpotifySession(tokenData.access_token, null, identity), displayName: identity.displayName });
+    res.json({ connected: true, displayName: identity.displayName });
   } catch (error) {
     console.error('Spotify account session error:', error);
     res.status(401).json({ error: 'Spotify needs to be reconnected' });
@@ -252,20 +228,24 @@ router.delete('/connection', async (req, res) => {
 
 // POST /spotify/export - create playlist on Spotify
 router.post('/export', async (req, res) => {
-  const { playlistName, trackUris, spotifyToken } = req.body;
+  const user = getQuaverUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
+  const { playlistName, trackUris } = req.body;
 
-  if (!playlistName || !trackUris || !spotifyToken) {
+  if (typeof playlistName !== 'string' || !playlistName.trim() || playlistName.length > 100 || !Array.isArray(trackUris) || trackUris.length < 1 || trackUris.length > 100 || !trackUris.every(uri => /^spotify:track:[A-Za-z0-9]+$/.test(uri))) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
   try {
-    let decoded;
-    try {
-      decoded = jwt.verify(spotifyToken, process.env.JWT_SECRET);
-    } catch (jwtErr) {
-      return res.status(401).json({ error: 'Spotify session expired. Please login with Spotify again.' });
+    const db = await getDB();
+    const found = await db.collection('users').findOne({ _id: new ObjectId(user.userId) }, { projection: { spotifyConnection: 1 } });
+    if (!found?.spotifyConnection?.refreshToken) return res.status(404).json({ error: 'Connect Spotify in Settings before exporting.' });
+    const refreshToken = decrypt(found.spotifyConnection.refreshToken);
+    const tokenData = await refreshAccessToken(refreshToken);
+    const accessToken = tokenData.access_token;
+    if (tokenData.refresh_token) {
+      await db.collection('users').updateOne({ _id: found._id }, { $set: { 'spotifyConnection.refreshToken': encrypt(tokenData.refresh_token) } });
     }
-    const accessToken = decoded.spotify_access_token;
 
     // Create the playlist
     const createRes = await fetch('https://api.spotify.com/v1/me/playlists', {
@@ -275,7 +255,7 @@ router.post('/export', async (req, res) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        name: playlistName,
+        name: playlistName.trim(),
         description: 'Created with Quaver 🎵',
         public: true,
       }),

@@ -173,11 +173,10 @@
       if (!localStorage.getItem('theme')) applyTheme('system');
     });
 
-    function logout() {
-      localStorage.removeItem('quaver_token');
+    async function logout() {
+      try { await fetch(API + '/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch (_) {}
       localStorage.removeItem('quaver_user');
       localStorage.removeItem('quaver_playlists');
-      localStorage.removeItem('quaver_spotify_token');
       localStorage.removeItem('quaver_spotify_name');
       window.location.href = 'login.html';
     }
@@ -209,10 +208,9 @@
           const deduped = recent.filter(function(s) { if (seen.has(s.trackId)) return false; seen.add(s.trackId); return true; });
           localStorage.setItem('quaver_recently_played', JSON.stringify(deduped.slice(0, 20)));
         } catch(e) {}
-        const token = localStorage.getItem('quaver_token');
-        if (token) {
+        if (localStorage.getItem('quaver_user')) {
           const mood = (window._profileMoods && window._profileMoods[0]) ? window._profileMoods[0].mood : '';
-          fetch(API + '/api/listening/history', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ trackId, title, artist: artist || '', albumArt: albumArt || '', mood }) }).catch(function() {});
+          fetch(API + '/api/listening/history', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trackId, title, artist: artist || '', albumArt: albumArt || '', mood }) }).catch(function() {});
         }
       }, 10000);
       return true;
@@ -340,7 +338,7 @@
       container.innerHTML = '<p class="box-empty">Loading for <strong>' + topMood + '</strong>...</p>';
       try {
         const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
-        const res = await fetch(API + '/api/music/recommend?mood=' + topMood + '&limit=5&explicit=' + (preferences.explicitContent !== false) + '&variety=' + encodeURIComponent(preferences.recommendationVariety || 'balanced'), { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('quaver_token') } });
+        const res = await fetch(API + '/api/music/recommend?mood=' + topMood + '&limit=5&explicit=' + (preferences.explicitContent !== false) + '&variety=' + encodeURIComponent(preferences.recommendationVariety || 'balanced'), { credentials: 'include' });
         const data = await res.json();
         if (data.songs && data.songs.length > 0) {
           container.innerHTML =
@@ -377,7 +375,7 @@
       container.innerHTML = '<p class="box-empty">Building your ' + topMood + ' mix...</p>';
       try {
         const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
-        const res = await fetch(API + '/api/music/recommend?mood=' + topMood + '&limit=5&explicit=' + (preferences.explicitContent !== false) + '&variety=' + encodeURIComponent(preferences.recommendationVariety || 'balanced'), { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('quaver_token') } });
+        const res = await fetch(API + '/api/music/recommend?mood=' + topMood + '&limit=5&explicit=' + (preferences.explicitContent !== false) + '&variety=' + encodeURIComponent(preferences.recommendationVariety || 'balanced'), { credentials: 'include' });
         const data = await res.json();
         if (!data.songs || !data.songs.length) throw new Error('No songs');
         container.innerHTML = '<div class="mix-intro">Based on your most frequent mood this week: <strong>' + topMood + '</strong></div>' +
@@ -395,12 +393,12 @@
     }
 
     async function loadProfileData() {
-      const token = localStorage.getItem('quaver_token');
+      const hasSession = !!localStorage.getItem('quaver_user');
       let playlists = JSON.parse(localStorage.getItem('quaver_playlists') || '[]');
-      if (token) {
+      if (hasSession) {
         try {
           const res = await fetch(API + '/api/playlist', {
-            headers: { 'Authorization': 'Bearer ' + token }
+            credentials: 'include'
           });
           const data = await res.json();
           if (data.playlists) {
@@ -413,7 +411,7 @@
       if (token) {
         try {
           const moodRes = await fetch(API + '/api/mood/history', {
-            headers: { 'Authorization': 'Bearer ' + token }
+            credentials: 'include'
           });
           const moodData = await moodRes.json();
           if (moodData.moods) moods = [...moodData.moods].reverse();
@@ -422,9 +420,9 @@
       window._profileMoods = moods;
 
       let plays = JSON.parse(localStorage.getItem('quaver_recently_played') || '[]');
-      if (token) {
+      if (hasSession) {
         try {
-          const playRes = await fetch(API + '/api/listening/history', { headers: { 'Authorization': 'Bearer ' + token } });
+          const playRes = await fetch(API + '/api/listening/history', { credentials: 'include' });
           const playData = await playRes.json();
           if (playData.plays && playData.plays.length) plays = playData.plays;
         } catch (_) {}
@@ -503,7 +501,7 @@
     }
 
   window.addEventListener('DOMContentLoaded', function() {
-      if (!localStorage.getItem('quaver_token')) {
+      if (!localStorage.getItem('quaver_user')) {
         window.location.href = 'login.html';
         return;
       }

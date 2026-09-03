@@ -1,16 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const { ObjectId } = require('mongodb');
 const { getDB } = require('./db');
-
-function getUser(req) {
-  const header = req.headers.authorization;
-  if (!header) return null;
-  try { return jwt.verify(header.split(' ')[1], process.env.JWT_SECRET); }
-  catch (_) { return null; }
-}
+const { getUser, createSession, clearSession } = require('./session');
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
@@ -44,13 +37,8 @@ router.post('/register', async (req, res) => {
       createdAt: new Date(),
     });
 
-    const token = jwt.sign(
-      { userId: result.insertedId, username, email },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    res.status(201).json({ message: 'Registered successfully!', token, username, email });
+    createSession(res, { userId: result.insertedId, username, email });
+    res.status(201).json({ message: 'Registered successfully!', username, email });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -77,13 +65,8 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Email or password is incorrect' });
     }
 
-    const token = jwt.sign(
-      { userId: user._id, username: user.username, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    res.json({ message: 'Login successful!', token, username: user.username, email: user.email });
+    createSession(res, { userId: user._id, username: user.username, email: user.email });
+    res.json({ message: 'Login successful!', username: user.username, email: user.email });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -92,16 +75,14 @@ router.post('/login', async (req, res) => {
 
 // GET /api/auth/me - verify token and return user info
 router.get('/me', async (req, res) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: 'No token' });
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
+  res.json({ userId: user.userId, username: user.username, email: user.email });
+});
 
-  const token = authHeader.split(' ')[1];
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    res.json({ userId: decoded.userId, username: decoded.username, email: decoded.email });
-  } catch (err) {
-    res.status(401).json({ error: 'Invalid token' });
-  }
+router.post('/logout', function(req, res) {
+  clearSession(res);
+  res.json({ message: 'Logged out' });
 });
 
 router.get('/settings', async function(req, res) {
@@ -144,12 +125,13 @@ router.patch('/password', async function(req, res) {
   const user = getUser(req);
   if (!user) return res.status(401).json({ error: 'Not logged in' });
   const { currentPassword, newPassword } = req.body;
-  if (!currentPassword || !newPassword || newPassword.length < 8) return res.status(400).json({ error: 'New password must be at least 8 characters' });
+  if (!currentPassword || typeof newPassword !== 'string' || newPassword.length < 10 || newPassword.length > 128) return res.status(400).json({ error: 'New password must be between 10 and 128 characters' });
   try {
     const db = await getDB();
     const found = await db.collection('users').findOne({ _id: new ObjectId(user.userId) });
     if (!found || !(await bcrypt.compare(currentPassword, found.password))) return res.status(401).json({ error: 'Current password is incorrect' });
     await db.collection('users').updateOne({ _id: found._id }, { $set: { password: await bcrypt.hash(newPassword, 10) } });
+    createSession(res, { userId: found._id, username: found.username, email: found.email });
     res.json({ message: 'Password updated' });
   } catch (_) { res.status(500).json({ error: 'Server error' }); }
 });
@@ -172,6 +154,7 @@ router.delete('/account', async function(req, res) {
   try {
     const db = await getDB();
     await db.collection('users').deleteOne({ _id: new ObjectId(user.userId) });
+    clearSession(res);
     res.json({ message: 'Account deleted' });
   } catch (_) { res.status(500).json({ error: 'Server error' }); }
 });

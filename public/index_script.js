@@ -36,12 +36,12 @@ function setMood(mood) {
 }
 
 async function saveMoodHistory(mood) {
-  const token = localStorage.getItem('quaver_token');
-  if (!token) return;
+  if (!localStorage.getItem('quaver_user')) return;
   try {
     await fetch('http://localhost:3000/api/mood/history', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mood })
     });
   } catch (e) {}

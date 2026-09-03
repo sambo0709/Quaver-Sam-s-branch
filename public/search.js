@@ -29,7 +29,7 @@
   }
 
   function addToPlaylist(index) {
-    if (!localStorage.getItem('quaver_token')) {
+    if (!localStorage.getItem('quaver_user')) {
       showToast('Log in to add songs to a playlist.', 'error');
       return;
     }

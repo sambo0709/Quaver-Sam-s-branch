@@ -179,12 +179,11 @@
       return accessToken;
     }
 
-    const quaverToken = localStorage.getItem('quaver_token');
-    if (!quaverToken) throw makeError('Log in to Quaver first.', 'QUAVER_LOGIN_REQUIRED', 401);
+    if (!localStorage.getItem('quaver_user')) throw makeError('Log in to Quaver first.', 'QUAVER_LOGIN_REQUIRED', 401);
 
     const response = await fetch(API + '/spotify/playback-token', {
       method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + quaverToken },
+      credentials: 'include',
     });
     const data = await response.json().catch(function () { return {}; });
     if (!response.ok || !data.accessToken) {
@@ -232,7 +231,7 @@
     readinessError = null;
 
     initializePromise = (async function () {
-      if (!localStorage.getItem('quaver_token')) throw makeError('Log in to Quaver first.', 'QUAVER_LOGIN_REQUIRED', 401);
+      if (!localStorage.getItem('quaver_user')) throw makeError('Log in to Quaver first.', 'QUAVER_LOGIN_REQUIRED', 401);
       setStatus('Connecting to Spotify…', 'loading');
       // Fail quickly with a useful connect/reconnect message before loading the
       // heavier SDK. The SDK will reuse this cached, short-lived token.
@@ -353,7 +352,7 @@
     showPlayer(track);
     setStatus('Connecting to Spotify…', 'loading');
 
-    if (!localStorage.getItem('quaver_token')) {
+    if (!localStorage.getItem('quaver_user')) {
       handleError(makeError('Log in to Quaver first.', 'QUAVER_LOGIN_REQUIRED', 401), true);
       return false;
     }
@@ -461,7 +460,7 @@
       slider.value = String(volume);
       slider.style.setProperty('--player-volume', volume + '%');
     }
-    if (localStorage.getItem('quaver_token') && localStorage.getItem('quaver_spotify_token')) {
+    if (localStorage.getItem('quaver_user') && localStorage.getItem('quaver_spotify_name')) {
       initialize(true).catch(function () {});
     }
   }

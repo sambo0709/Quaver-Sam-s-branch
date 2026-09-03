@@ -1,18 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const jwt = require('jsonwebtoken');
 const { ObjectId } = require('mongodb');
 const { getDB } = require('./db');
-
-function getUser(req) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return null;
-  try {
-    return jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
-  } catch {
-    return null;
-  }
-}
+const { getUser } = require('./session');
 
 const moodMap = {
   happy:     { energy: 'high',   tempo: 'fast',   genre: 'pop' },

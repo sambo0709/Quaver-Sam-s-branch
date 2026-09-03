@@ -186,11 +186,10 @@
     });
   }
   async function syncAccountPreferences() {
-    const token = localStorage.getItem('quaver_token');
-    if (!token) return;
+    if (!localStorage.getItem('quaver_user')) return;
     const deviceTheme = localStorage.getItem('theme');
     try {
-      const res = await fetch(API + '/api/auth/settings', { headers: { 'Authorization': 'Bearer ' + token } });
+      const res = await fetch(API + '/api/auth/settings', { credentials: 'include' });
       if (!res.ok) return;
       const data = await res.json();
       localStorage.setItem('quaver_preferences', JSON.stringify(data.preferences || {}));
@@ -245,7 +244,7 @@
   let savedPlaylists = [];
   let recentMoods = JSON.parse(localStorage.getItem('quaver_moods') || '[]');
   let activePlaylistName = null;
-  let spotifyToken = localStorage.getItem('quaver_spotify_token') || null;
+  let spotifyToken = null;
   let songQueue = [];
   let queueIndex = -1;
   let songActionItems = [];
@@ -287,8 +286,7 @@
   }
 
   function requireLogin(msg) {
-    const token = localStorage.getItem('quaver_token');
-    if (!token) {
+    if (!localStorage.getItem('quaver_user')) {
       showToast(msg || 'You need an account to do that!', 'error');
       setTimeout(function() { window.location.href = 'login.html'; }, 1200);
       return false;
@@ -296,10 +294,9 @@
     return true;
   }
 
-  function logout() {
-    localStorage.removeItem('quaver_token');
+  async function logout() {
+    try { await fetch(API + '/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch (_) {}
     localStorage.removeItem('quaver_user');
-    localStorage.removeItem('quaver_spotify_token');
     localStorage.removeItem('quaver_spotify_name');
     localStorage.removeItem('quaver_playlists');
     window.location.href = 'login.html';
@@ -363,8 +360,7 @@
   async function connectSpotifyAccount() {
     if (!requireLogin('Log in to connect Spotify.')) return;
     try {
-      const token = localStorage.getItem('quaver_token');
-      const res = await fetch(API + '/spotify/connect', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
+      const res = await fetch(API + '/spotify/connect', { method: 'POST', credentials: 'include' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not connect Spotify.');
       window.location.href = data.url;
@@ -372,14 +368,12 @@
   }
 
   async function restoreSpotifySession() {
-    const token = localStorage.getItem('quaver_token');
-    if (!token) return;
+    if (!localStorage.getItem('quaver_user')) return;
     try {
-      const res = await fetch(API + '/spotify/session', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
+      const res = await fetch(API + '/spotify/session', { method: 'POST', credentials: 'include' });
       const data = await res.json();
       if (!res.ok) return;
-      spotifyToken = data.spotifyToken;
-      localStorage.setItem('quaver_spotify_token', data.spotifyToken);
+      spotifyToken = !!data.connected;
       localStorage.setItem('quaver_spotify_name', data.displayName || 'Spotify User');
       updateSpotifyUI();
       if (window.QuaverPlayer) window.QuaverPlayer.init();
@@ -387,12 +381,10 @@
   }
 
   async function disconnectSpotify() {
-    const token = localStorage.getItem('quaver_token');
-    if (token) {
-      try { await fetch(API + '/spotify/connection', { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } }); }
+    if (localStorage.getItem('quaver_user')) {
+      try { await fetch(API + '/spotify/connection', { method: 'DELETE', credentials: 'include' }); }
       catch (_) {}
     }
-    localStorage.removeItem('quaver_spotify_token');
     localStorage.removeItem('quaver_spotify_name');
     spotifyToken = null;
     updateSpotifyUI();
@@ -467,12 +459,9 @@
   }
 
   async function loadPlaylists() {
-    const token = localStorage.getItem('quaver_token');
-    if (token) {
+    if (localStorage.getItem('quaver_user')) {
       try {
-        const res = await fetch(API + '/api/playlist', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
+        const res = await fetch(API + '/api/playlist', { credentials: 'include' });
         const data = await res.json();
         if (data.playlists) {
           savedPlaylists = data.playlists;
@@ -530,11 +519,11 @@
     if (recentMoods.length > 10) recentMoods.pop();
     localStorage.setItem('quaver_moods', JSON.stringify(recentMoods));
     checkMoodStreak(mood);
-    const token = localStorage.getItem('quaver_token');
-    if (token) {
+    if (localStorage.getItem('quaver_user')) {
       fetch(API + '/api/mood/history', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mood: mood })
       }).catch(function() {});
     }
@@ -594,12 +583,10 @@
     let plays = [];
     let moods = recentMoods.slice();
     try { plays = JSON.parse(localStorage.getItem('quaver_recently_played') || '[]'); } catch(_) {}
-    const token = localStorage.getItem('quaver_token');
-    if (token) {
-      const headers = { 'Authorization':'Bearer '+token };
+    if (localStorage.getItem('quaver_user')) {
       const responses = await Promise.allSettled([
-        fetch(API+'/api/listening/history',{headers:headers}).then(function(res){return res.ok?res.json():null;}),
-        fetch(API+'/api/mood/history',{headers:headers}).then(function(res){return res.ok?res.json():null;})
+        fetch(API+'/api/listening/history',{credentials:'include'}).then(function(res){return res.ok?res.json():null;}),
+        fetch(API+'/api/mood/history',{credentials:'include'}).then(function(res){return res.ok?res.json():null;})
       ]);
       if (responses[0].status==='fulfilled' && responses[0].value?.plays) plays=responses[0].value.plays;
       if (responses[1].status==='fulfilled' && responses[1].value?.moods) moods=responses[1].value.moods;
@@ -613,8 +600,7 @@
     showSkeletons(currentLimit);
     try {
       const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
-      const token = localStorage.getItem('quaver_token');
-      const res = await fetch(API + '/api/music/recommend?mood=' + currentMood + '&limit=' + currentLimit + '&explicit=' + (preferences.explicitContent !== false) + '&variety=' + encodeURIComponent(preferences.recommendationVariety || 'balanced'), { headers: token ? { 'Authorization': 'Bearer ' + token } : {} });
+      const res = await fetch(API + '/api/music/recommend?mood=' + currentMood + '&limit=' + currentLimit + '&explicit=' + (preferences.explicitContent !== false) + '&variety=' + encodeURIComponent(preferences.recommendationVariety || 'balanced'), { credentials: 'include' });
       const data = await res.json();
       if (data.songs && data.songs.length > 0) {
         window._lastResults = data.songs;
@@ -656,18 +642,17 @@
         const deduped = recent.filter(function(s) { if (seen.has(s.trackId)) return false; seen.add(s.trackId); return true; });
         localStorage.setItem('quaver_recently_played', JSON.stringify(deduped.slice(0, 20)));
       } catch(e) {}
-      const token = localStorage.getItem('quaver_token');
-      if (token) fetch(API + '/api/listening/history', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify({ trackId: trackId, title: title, artist: artist || '', albumArt: albumArt || '', mood: currentMood || '' }) }).catch(function() {});
+      if (localStorage.getItem('quaver_user')) fetch(API + '/api/listening/history', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trackId: trackId, title: title, artist: artist || '', albumArt: albumArt || '', mood: currentMood || '' }) }).catch(function() {});
     }, 10000);
     return true;
   }
 
   function sendRecommendationFeedback(trackId, helpful, button) {
-    const token = localStorage.getItem('quaver_token');
-    if (!token) return showToast('Log in to save recommendation feedback.', 'error');
+    if (!localStorage.getItem('quaver_user')) return showToast('Log in to save recommendation feedback.', 'error');
     fetch(API + '/api/music/feedback', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ trackId: trackId, mood: currentMood || '', helpful: helpful })
     }).then(function(res) {
       if (!res.ok) throw new Error('Feedback failed');
@@ -807,10 +792,10 @@
     if (!name) { document.getElementById('playlist-name').focus(); return; }
     if (playlistSongs.length === 0) { showToast('Add some songs first!', 'error'); return; }
     try {
-      const token = localStorage.getItem('quaver_token');
       const res = await fetch(API + '/api/playlist', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name, mood: currentMood || 'mixed', songs: playlistSongs }),
       });
       const data = await res.json();
@@ -873,12 +858,11 @@
     try {
       const res = await fetch(API + '/spotify/session', {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('quaver_token') },
+        credentials: 'include',
       });
       const data = await res.json();
-      if (res.ok && data.spotifyToken) {
-        spotifyToken = data.spotifyToken;
-        localStorage.setItem('quaver_spotify_token', spotifyToken);
+      if (res.ok && data.connected) {
+        spotifyToken = true;
         return true;
       }
     } catch(e) {}
@@ -930,12 +914,12 @@
     const idx = renamingIndex;
     const pl = savedPlaylists[idx];
     if (!newName || newName === pl.name) { closeRenameModal(); return; }
-    const token = localStorage.getItem('quaver_token');
     closeRenameModal();
     try {
       await fetch(API + '/api/playlist/' + pl.id, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newName }),
       });
       savedPlaylists[idx].name = newName;
@@ -949,11 +933,11 @@
 
   async function sharePlaylist(index) {
     const pl = savedPlaylists[index];
-    const token = localStorage.getItem('quaver_token');
     try {
       await fetch(API + '/api/playlist/' + pl.id + '/share', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isPublic: true }),
       });
       savedPlaylists[index].isPublic = true;
@@ -981,7 +965,8 @@
       const res = await fetch(API + '/spotify/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ playlistName: pl.name + ' (from Quaver)', trackUris, spotifyToken }),
+        credentials: 'include',
+        body: JSON.stringify({ playlistName: pl.name + ' (from Quaver)', trackUris }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -996,7 +981,8 @@
           const retry = await fetch(API + '/spotify/export', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ playlistName: pl.name + ' (from Quaver)', trackUris, spotifyToken }),
+            credentials: 'include',
+            body: JSON.stringify({ playlistName: pl.name + ' (from Quaver)', trackUris }),
           });
           const retryData = await retry.json();
           if (retry.ok) {
@@ -1007,7 +993,6 @@
             showToast(retryData.error || 'Export failed.', 'error');
           }
         } else {
-          localStorage.removeItem('quaver_spotify_token');
           localStorage.removeItem('quaver_spotify_name');
           spotifyToken = null;
           updateSpotifyUI();
@@ -1300,11 +1285,10 @@
       'Delete "' + pl.name + '"?',
       'This playlist and all its songs will be permanently removed.',
       async function() {
-        const token = localStorage.getItem('quaver_token');
         try {
           await fetch(API + '/api/playlist/' + pl.id, {
             method: 'DELETE',
-            headers: { 'Authorization': 'Bearer ' + token }
+            credentials: 'include'
           });
         } catch(e) {}
         savedPlaylists.splice(index, 1);

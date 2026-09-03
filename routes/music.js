@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getDB } = require('./db');
+const { getUser } = require('./session');
 
 const moodToSearch = {
   happy:      ['happy pop upbeat', 'feel good hits', 'happy dance music'],
@@ -29,13 +30,6 @@ const POOL_TTL = 2 * 60 * 60 * 1000; // 2 hours
 // Tracks recently served song IDs per mood to avoid repeats
 const recentlyServed = {};
 const MAX_SEEN = 8; // remember last 8 served per mood
-
-function getUser(req) {
-  const header = req.headers.authorization;
-  if (!header) return null;
-  try { return require('jsonwebtoken').verify(header.split(' ')[1], process.env.JWT_SECRET); }
-  catch (_) { return null; }
-}
 
 async function spotifyApiError(response, context) {
   let details = '';

@@ -25,7 +25,8 @@ app.use(cors({
     return callback(new Error('Origin not allowed'));
   },
   methods: ['GET', 'POST', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type'],
+  credentials: true,
 }));
 app.use(express.json({ limit: '100kb' }));
 app.use((req, res, next) => {
@@ -50,6 +51,15 @@ const spotifyLimiter = rateLimit({
   max: 20,
   message: { error: 'Too many Spotify requests, please slow down.' },
 });
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Please try again later.' },
+});
+app.use(['/api/auth/login', '/api/auth/register'], authLimiter);
 app.use('/api/', limiter);
 app.use('/spotify/', spotifyLimiter);
 app.use(['/api/auth', '/spotify'], (req, res, next) => {

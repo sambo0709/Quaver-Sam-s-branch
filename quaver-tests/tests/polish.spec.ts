@@ -2,7 +2,6 @@ import { test, expect } from '@playwright/test';
 
 test('profile exposes the polished dashboard and dedicated settings navigation', async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('quaver_token', 'test-token');
     localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
     localStorage.setItem('theme', 'dark');
   });
@@ -23,7 +22,6 @@ test('profile exposes the polished dashboard and dedicated settings navigation',
 
 test('settings are organized on a dedicated page', async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('quaver_token', 'test-token');
     localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
   });
   await page.goto('/settings.html');
@@ -44,7 +42,6 @@ test('homepage keeps the primary mood flow focused and leaves theme controls in 
 test('homepage renders personalized rails and contextual song actions', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('quaver_onboarded', 'true');
-    localStorage.setItem('quaver_token', 'test-token');
     localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
   });
   await page.route('**/api/listening/history', route => route.fulfill({ json: { plays: [{ trackId: 'abc123', title: 'A familiar song', artist: 'Quaver Artist', albumArt: '' }] } }));
@@ -102,7 +99,6 @@ test('Quaver player starts a Spotify SDK track without rendering an embed', asyn
   let playbackBody: unknown;
   await page.addInitScript(() => {
     localStorage.setItem('quaver_onboarded', 'true');
-    localStorage.setItem('quaver_token', 'test-token');
     localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
     class MockSpotifyPlayer {
       listeners: Record<string, (event: any) => void> = {};
@@ -216,7 +212,6 @@ test('Mood of the Day cards stay inside a narrow mobile viewport', async ({ page
 
 test('playlist library reports saved totals and opens playlist details', async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('quaver_token', 'test-token');
     localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
     localStorage.setItem('theme', 'dark');
   });
@@ -313,7 +308,6 @@ test('header remains visible while scrolling and resizing', async ({ page }) => 
 test('a playlist can be built and saved entirely on the playlist page', async ({ page }) => {
   let createdBody: any;
   await page.addInitScript(() => {
-    localStorage.setItem('quaver_token', 'test-token');
     localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
   });
   await page.route('**/api/playlist', async route => {
@@ -346,7 +340,6 @@ test('a playlist can be built and saved entirely on the playlist page', async ({
 
 test('adding a homepage song opens the playlist-page builder instead of a popup', async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem('quaver_token', 'test-token');
     localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
     localStorage.setItem('quaver_onboarded', 'true');
     sessionStorage.setItem('quaver_launched', '1');
@@ -383,7 +376,6 @@ test('Trending Moods uses solid surfaces for both color themes', async ({ page }
 test('saved playlists can be exported to Spotify from the library', async ({ page }) => {
   let exportBody: any;
   await page.addInitScript(() => {
-    localStorage.setItem('quaver_token', 'test-token');
     localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
     (window as any).__openedSpotifyUrl = '';
     window.open = ((url?: string | URL) => {
@@ -394,7 +386,7 @@ test('saved playlists can be exported to Spotify from the library', async ({ pag
   await page.route('**/api/playlist', route => route.fulfill({
     json: { playlists: [{ id: 'export-me', name: 'Calm Evening', mood: 'calm', songs: [{ title: 'Quiet Hours', artist: 'Quaver Artist', spotify_url: 'https://open.spotify.com/track/export123?si=test' }] }] },
   }));
-  await page.route('**/spotify/session', route => route.fulfill({ json: { spotifyToken: 'fresh-spotify-session', displayName: 'Listener' } }));
+  await page.route('**/spotify/session', route => route.fulfill({ json: { connected: true, displayName: 'Listener' } }));
   await page.route('**/spotify/export', async route => {
     exportBody = route.request().postDataJSON();
     await route.fulfill({ json: { playlist_url: 'https://open.spotify.com/playlist/new123', playlist_id: 'new123' } });
@@ -406,7 +398,6 @@ test('saved playlists can be exported to Spotify from the library', async ({ pag
   expect(exportBody).toEqual({
     playlistName: 'Calm Evening (from Quaver)',
     trackUris: ['spotify:track:export123'],
-    spotifyToken: 'fresh-spotify-session',
   });
   await expect.poll(() => page.evaluate(() => (window as any).__openedSpotifyUrl)).toBe('https://open.spotify.com/playlist/new123');
 });

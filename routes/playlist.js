@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const jwt = require('jsonwebtoken');
 const { ObjectId } = require('mongodb');
 const { getDB } = require('./db');
+const { getUser } = require('./session');
 
-const ALLOWED_MOODS = new Set(['happy', 'sad', 'angry', 'calm', 'energetic', 'romantic', 'focused', 'nostalgic', 'party', 'sleepy', 'anxious']);
+const ALLOWED_MOODS = new Set(['happy', 'sad', 'angry', 'calm', 'energetic', 'romantic', 'focused', 'nostalgic', 'party', 'sleepy', 'anxious', 'mixed']);
 function cleanText(value, max) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
 }
@@ -36,16 +36,6 @@ function cleanSongs(value) {
     };
   });
   return songs.every(Boolean) ? songs : null;
-}
-
-function getUser(req) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return null;
-  try {
-    return jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET);
-  } catch {
-    return null;
-  }
 }
 
 // GET /api/playlist

@@ -19,7 +19,7 @@
     });
   }
   function authHeaders(json) {
-    return Object.assign(json ? { 'Content-Type': 'application/json' } : {}, { 'Authorization': 'Bearer ' + localStorage.getItem('quaver_token') });
+    return json ? { 'Content-Type': 'application/json' } : {};
   }
   function applyTheme(theme) {
     const active = theme === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : theme;
@@ -36,8 +36,9 @@
     toast.className = 'toast ' + (type || 'success') + ' show';
     toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 3200);
   };
-  window.logout = function () {
-    ['quaver_token', 'quaver_user', 'quaver_playlists', 'quaver_spotify_token', 'quaver_spotify_name'].forEach(function (key) { localStorage.removeItem(key); });
+  window.logout = async function () {
+    try { await fetch(API + '/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch (_) {}
+    ['quaver_user', 'quaver_playlists', 'quaver_spotify_name'].forEach(function (key) { localStorage.removeItem(key); });
     location.href = 'login.html';
   };
   window.toggleUserMenu = function (event) {
@@ -348,9 +349,9 @@
   }
 
   async function restoreSpotifySession() {
-    const response = await fetch(API + '/spotify/session', { method: 'POST', headers: authHeaders(false) });
+    const response = await fetch(API + '/spotify/session', { method: 'POST', credentials: 'include', headers: authHeaders(false) });
     const data = await response.json().catch(function () { return {}; });
-    if (!response.ok || !data.spotifyToken) {
+    if (!response.ok || !data.connected) {
       const guidance = response.status === 404
         ? 'Connect Spotify in Settings before exporting.'
         : response.status === 401
@@ -360,9 +361,8 @@
       error.needsSpotify = true;
       throw error;
     }
-    localStorage.setItem('quaver_spotify_token', data.spotifyToken);
     if (data.displayName) localStorage.setItem('quaver_spotify_name', data.displayName);
-    return data.spotifyToken;
+    return true;
   }
   async function exportPlaylist(id, button) {
     const playlist = playlistById(id);
@@ -372,11 +372,12 @@
     const originalLabel = button ? button.textContent : '';
     if (button) { button.disabled = true; button.textContent = 'Exporting...'; }
     try {
-      const spotifyToken = await restoreSpotifySession();
+      await restoreSpotifySession();
       const response = await fetch(API + '/spotify/export', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ playlistName: playlist.name + ' (from Quaver)', trackUris: trackUris, spotifyToken: spotifyToken }),
+        body: JSON.stringify({ playlistName: playlist.name + ' (from Quaver)', trackUris: trackUris }),
       });
       const data = await response.json().catch(function () { return {}; });
       if (!response.ok || !data.playlist_url) throw new Error(data.error || 'Spotify export failed.');
@@ -438,7 +439,7 @@
   document.addEventListener('click', function (event) { if (!event.target.closest('#user-menu')) closeUserMenu(); });
   document.addEventListener('keydown', function (event) { if (event.key === 'Escape') { closeUserMenu(); closeLibraryModal(); } });
   document.addEventListener('DOMContentLoaded', function () {
-    if (!localStorage.getItem('quaver_token')) { location.href = 'login.html'; return; }
+    if (!localStorage.getItem('quaver_user')) { location.href = 'login.html'; return; }
     const savedTheme = localStorage.getItem('theme') || 'system';
     applyTheme(savedTheme);
     const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');

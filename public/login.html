@@ -69,11 +69,13 @@
       if (!localStorage.getItem('theme')) applyTheme('system');
     });
 
-    window.addEventListener('DOMContentLoaded', function() {
+    window.addEventListener('DOMContentLoaded', async function() {
       applyTheme(localStorage.getItem('theme') || 'system');
-      if (localStorage.getItem('quaver_token')) {
-        window.location.href = 'Index.html';
-      }
+      localStorage.removeItem('quaver_token');
+      try {
+        const res = await fetch(API + '/api/auth/me', { credentials: 'include' });
+        if (res.ok) window.location.href = 'Index.html';
+      } catch (_) {}
     });
 
     function showTab(tab) {
@@ -104,12 +106,12 @@
       try {
         const res = await fetch(API + '/api/auth/login', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password }),
         });
         const data = await res.json();
         if (!res.ok) { showError(data.error); return; }
-        localStorage.setItem('quaver_token', data.token);
         localStorage.setItem('quaver_user', JSON.stringify({ username: data.username, email: data.email }));
         showSuccess('Logged in! Redirecting...');
         setTimeout(function() { window.location.href = 'Index.html'; }, 1000);
@@ -126,12 +128,12 @@
       try {
         const res = await fetch(API + '/api/auth/register', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, email, password }),
         });
         const data = await res.json();
         if (!res.ok) { showError(data.error); return; }
-        localStorage.setItem('quaver_token', data.token);
         localStorage.setItem('quaver_user', JSON.stringify({ username: data.username, email: data.email }));
         showSuccess('Account created! Redirecting...');
         setTimeout(function() { window.location.href = 'Index.html'; }, 1000);

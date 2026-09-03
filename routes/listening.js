@@ -1,16 +1,9 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const { ObjectId } = require('mongodb');
 const { getDB } = require('./db');
+const { getUser } = require('./session');
 
 const router = express.Router();
-
-function getUser(req) {
-  const header = req.headers.authorization;
-  if (!header) return null;
-  try { return jwt.verify(header.split(' ')[1], process.env.JWT_SECRET); }
-  catch (_) { return null; }
-}
 
 router.get('/history', async function(req, res) {
   const user = getUser(req);
