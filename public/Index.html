@@ -343,15 +343,16 @@
 
   function checkSpotifyCallback() {
     const params = new URLSearchParams(window.location.search);
-    const token = params.get('spotify_token');
-    const name = params.get('spotify_name');
+    const connected = params.get('spotify_connected');
     const error = params.get('error');
-    if (token) {
-      localStorage.setItem('quaver_spotify_token', token);
-      localStorage.setItem('quaver_spotify_name', name || 'Spotify User');
-      spotifyToken = token;
+    if (connected) {
       window.history.replaceState({}, '', window.location.pathname);
-      showToast('Connected to Spotify as ' + (name || 'Spotify User') + '!', 'success');
+      restoreSpotifySession().then(function() {
+        updateSpotifyUI();
+        showToast('Spotify connected successfully.', 'success');
+      }).catch(function() {
+        showToast('Spotify connected, but the session could not be started.', 'error');
+      });
     }
     if (error) {
       showToast('Spotify connection failed. Try again.', 'error');
@@ -870,10 +871,9 @@
 
   async function refreshSpotifyToken() {
     try {
-      const res = await fetch(API + '/spotify/refresh', {
+      const res = await fetch(API + '/spotify/session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spotifyToken }),
+        headers: { 'Authorization': 'Bearer ' + localStorage.getItem('quaver_token') },
       });
       const data = await res.json();
       if (res.ok && data.spotifyToken) {

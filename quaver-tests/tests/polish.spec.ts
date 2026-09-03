@@ -157,6 +157,30 @@ test('shared playlists use the same Quaver player instead of a second Spotify em
   await expect(page.getByRole('link', { name: 'Log in', exact: true })).toBeVisible();
 });
 
+test('shared playlist data is rendered as text instead of executable HTML', async ({ page }) => {
+  await page.route('**/api/playlist/public/security-test', route => route.fulfill({
+    json: {
+      owner: '<img src=x onerror="window.__quaverXss=true">',
+      playlist: {
+        name: '<img src=x onerror="window.__quaverXss=true">',
+        mood: 'calm',
+        songs: [{ title: '<img src=x onerror="window.__quaverXss=true">', artist: 'Safe artist', album_art: '', spotify_url: '' }],
+      },
+    },
+  }));
+  await page.goto('/share.html?id=security-test');
+  await expect(page.getByRole('heading', { name: '<img src=x onerror="window.__quaverXss=true">' })).toBeVisible();
+  expect(await page.evaluate(() => (window as any).__quaverXss)).toBeUndefined();
+  await expect(page.locator('#share-content img')).toHaveCount(0);
+});
+
+test('server sends baseline browser security headers', async ({ page }) => {
+  const response = await page.goto('/');
+  expect(response?.headers()['x-content-type-options']).toBe('nosniff');
+  expect(response?.headers()['x-frame-options']).toBe('DENY');
+  expect(response?.headers()['referrer-policy']).toBe('no-referrer');
+});
+
 test('Mood of the Day cards stay inside a narrow mobile viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => {

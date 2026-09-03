@@ -74,6 +74,56 @@
     QuaverPlayer.hide();
   }
 
+  function appendText(parent, tag, className, text) {
+    const element = document.createElement(tag);
+    if (className) element.className = className;
+    element.textContent = String(text == null ? '' : text);
+    parent.appendChild(element);
+    return element;
+  }
+
+  function renderSharedPlaylist(container, playlist, owner) {
+    container.replaceChildren();
+    const heading = document.createElement('div');
+    heading.style.marginBottom = '32px';
+    const eyebrow = appendText(heading, 'div', '', 'SHARED PLAYLIST');
+    eyebrow.style.cssText = 'font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);opacity:.6;margin-bottom:8px';
+    const title = appendText(heading, 'h1', '', playlist.name);
+    title.style.cssText = 'font-size:clamp(1.6rem,5vw,2.8rem);font-weight:700;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px';
+    appendText(heading, 'div', 'shared-playlist-meta', playlist.songs.length + ' songs · ' + playlist.mood + ' · by ' + owner).style.cssText = 'color:var(--text-muted);font-size:.88rem';
+    container.appendChild(heading);
+
+    playlist.songs.forEach(function(song, index) {
+      const card = document.createElement('div');
+      card.className = 'song-card';
+      appendText(card, 'span', 'song-num', String(index + 1).padStart(2, '0'));
+      if (song.album_art) {
+        const art = document.createElement('img');
+        art.className = 'album-art'; art.src = song.album_art; art.alt = '';
+        card.appendChild(art);
+      } else appendText(card, 'div', 'album-art', '');
+      const info = document.createElement('div');
+      info.className = 'song-info';
+      appendText(info, 'div', 'song-title', song.title);
+      appendText(info, 'div', 'song-artist', song.artist);
+      card.appendChild(info);
+      const match = /^https:\/\/open\.spotify\.com\/track\/([A-Za-z0-9]+)$/.exec(song.spotify_url || '');
+      if (match) {
+        const actions = document.createElement('div'); actions.className = 'song-actions';
+        const play = appendText(actions, 'button', 'play-btn', '▶');
+        play.type = 'button'; play.setAttribute('aria-label', 'Play ' + song.title);
+        play.addEventListener('click', function() { playInApp(match[1], song.title, song.artist, song.album_art); });
+        card.appendChild(actions);
+      }
+      container.appendChild(card);
+    });
+
+    const footer = document.createElement('div'); footer.style.cssText = 'text-align:center;margin-top:40px';
+    const link = appendText(footer, 'a', '', 'Make your own playlist');
+    link.href = 'Index.html'; link.style.cssText = 'display:inline-block;padding:12px 28px;background:var(--gradient);color:#fff;border-radius:999px;text-decoration:none;font-weight:700';
+    container.appendChild(footer);
+  }
+
   async function loadSharedPlaylist() {
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id');
@@ -96,30 +146,7 @@
 
       document.title = pl.name + ' - Quaver';
 
-      let html = '<div style="margin-bottom:32px;">';
-      html += '<div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);opacity:0.6;margin-bottom:8px;">SHARED PLAYLIST</div>';
-      html += '<h1 style="font-size:clamp(1.6rem,5vw,2.8rem);font-weight:700;background:var(--gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;">' + pl.name + '</h1>';
-      html += '<div style="color:var(--text-muted);font-size:0.88rem;">' + pl.songs.length + ' songs · ' + pl.mood + ' · by <strong style="color:var(--text);">' + owner + '</strong></div>';
-      html += '</div>';
-
-      pl.songs.forEach(function(song, i) {
-        const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
-        html += '<div class="song-card">';
-        html += '<span class="song-num">' + String(i + 1).padStart(2, '0') + '</span>';
-        html += song.album_art ? '<img class="album-art" src="' + song.album_art + '" alt="art"/>' : '<div class="album-art"></div>';
-        html += '<div class="song-info"><div class="song-title">' + song.title + '</div><div class="song-artist">' + song.artist + '</div></div>';
-        html += '<div class="song-actions">';
-        if (trackId) {
-          html += '<button class="play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\', \'' + (song.artist || '').replace(/'/g, "\\'") + '\', \'' + (song.album_art || '') + '\')">&#9654;</button>';
-        }
-        html += '</div></div>';
-      });
-
-      html += '<div style="text-align:center;margin-top:40px;">';
-      html += '<a href="Index.html" style="display:inline-block;padding:12px 28px;background:var(--gradient);color:#fff;border-radius:999px;text-decoration:none;font-weight:700;">Make your own playlist</a>';
-      html += '</div>';
-
-      container.innerHTML = html;
+      renderSharedPlaylist(container, pl, owner);
     } catch (err) {
       container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:60px 0;">Could not load playlist.</p>';
     }

@@ -14,10 +14,15 @@ function getUser(req) {
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
-  const { username, email, password } = req.body;
+  const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
+  const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  const password = typeof req.body.password === 'string' ? req.body.password : '';
   if (!username || !email || !password) {
     return res.status(400).json({ error: 'username, email and password are required' });
   }
+  if (username.length > 40 || !/^[\p{L}\p{N}_. -]+$/u.test(username)) return res.status(400).json({ error: 'Invalid username' });
+  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Invalid email' });
+  if (password.length < 10 || password.length > 128) return res.status(400).json({ error: 'Password must be between 10 and 128 characters' });
 
   try {
     const db = await getDB();
@@ -54,7 +59,8 @@ router.post('/register', async (req, res) => {
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+  const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  const password = typeof req.body.password === 'string' ? req.body.password : '';
   if (!email || !password) {
     return res.status(400).json({ error: 'email and password are required' });
   }
@@ -64,13 +70,11 @@ router.post('/login', async (req, res) => {
     const users = db.collection('users');
 
     const user = await users.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ error: 'No account found with that email' });
-    }
+    if (!user) return res.status(401).json({ error: 'Email or password is incorrect' });
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
-      return res.status(401).json({ error: 'Incorrect password' });
+      return res.status(401).json({ error: 'Email or password is incorrect' });
     }
 
     const token = jwt.sign(

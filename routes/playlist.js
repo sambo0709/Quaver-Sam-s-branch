@@ -4,6 +4,40 @@ const jwt = require('jsonwebtoken');
 const { ObjectId } = require('mongodb');
 const { getDB } = require('./db');
 
+const ALLOWED_MOODS = new Set(['happy', 'sad', 'angry', 'calm', 'energetic', 'romantic', 'focused', 'nostalgic', 'party', 'sleepy', 'anxious']);
+function cleanText(value, max) {
+  return typeof value === 'string' ? value.trim().slice(0, max) : '';
+}
+function cleanHttpsUrl(value, max) {
+  const text = cleanText(value, max);
+  if (!text) return '';
+  try { return new URL(text).protocol === 'https:' ? text : ''; } catch (_) { return ''; }
+}
+function cleanSpotifyUrl(value) {
+  const text = cleanHttpsUrl(value, 300);
+  if (!text) return '';
+  try {
+    const url = new URL(text);
+    return url.hostname === 'open.spotify.com' && /^\/track\/[A-Za-z0-9]+$/.test(url.pathname) ? url.origin + url.pathname : '';
+  } catch (_) { return ''; }
+}
+function cleanSongs(value) {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 100) return null;
+  const songs = value.map(function(song) {
+    if (!song || typeof song !== 'object' || Array.isArray(song)) return null;
+    const title = cleanText(song.title, 200);
+    if (!title) return null;
+    return {
+      title,
+      artist: cleanText(song.artist, 300),
+      duration: cleanText(song.duration, 12),
+      album_art: cleanHttpsUrl(song.album_art, 500),
+      spotify_url: cleanSpotifyUrl(song.spotify_url),
+    };
+  });
+  return songs.every(Boolean) ? songs : null;
+}
+
 function getUser(req) {
   const authHeader = req.headers.authorization;
   if (!authHeader) return null;
@@ -34,10 +68,10 @@ router.post('/', async (req, res) => {
   const user = getUser(req);
   if (!user) return res.status(401).json({ error: 'Not logged in' });
 
-  const { name, mood, songs } = req.body;
-  if (!name || !mood || !songs) {
-    return res.status(400).json({ error: 'name, mood and songs required' });
-  }
+  const name = cleanText(req.body.name, 80);
+  const mood = cleanText(req.body.mood, 20).toLowerCase();
+  const songs = cleanSongs(req.body.songs);
+  if (!name || !ALLOWED_MOODS.has(mood) || !songs) return res.status(400).json({ error: 'Invalid playlist data' });
 
   const playlist = {
     id: Date.now().toString(),
@@ -64,13 +98,13 @@ router.post('/', async (req, res) => {
 router.patch('/:id', async (req, res) => {
   const user = getUser(req);
   if (!user) return res.status(401).json({ error: 'Not logged in' });
-  const { name } = req.body;
-  if (!name || !name.trim()) return res.status(400).json({ error: 'name required' });
+  const name = cleanText(req.body.name, 80);
+  if (!name) return res.status(400).json({ error: 'name required' });
   try {
     const db = await getDB();
     await db.collection('users').updateOne(
       { _id: new ObjectId(user.userId), 'playlists.id': req.params.id },
-      { $set: { 'playlists.$.name': name.trim() } }
+      { $set: { 'playlists.$.name': name } }
     );
     res.json({ message: 'Playlist renamed' });
   } catch (err) {

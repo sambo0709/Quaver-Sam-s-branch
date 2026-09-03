@@ -94,23 +94,15 @@ router.post('/connect', (req, res) => {
   res.json({ url: authorizationUrl(state) });
 });
 
-// GET /spotify/login - redirect to Spotify auth
-router.get('/login', (req, res) => {
-  res.redirect(authorizationUrl());
-});
-
 // GET /spotify/callback - Spotify redirects here
 router.get('/callback', async (req, res) => {
   const code = req.query.code;
-  if (!code) return res.redirect('/Index.html?error=spotify_denied');
+  if (!code || !req.query.state) return res.redirect('/Index.html?error=spotify_denied');
 
   try {
-    let quaverUserId = null;
-    if (req.query.state) {
-      const state = jwt.verify(req.query.state, process.env.JWT_SECRET);
-      if (state.purpose !== 'spotify-connect') throw new Error('Invalid Spotify state');
-      quaverUserId = state.userId;
-    }
+    const state = jwt.verify(req.query.state, process.env.JWT_SECRET);
+    if (state.purpose !== 'spotify-connect') throw new Error('Invalid Spotify state');
+    const quaverUserId = state.userId;
     const credentials = Buffer.from(
       process.env.SPOTIFY_CLIENT_ID + ':' + process.env.SPOTIFY_CLIENT_SECRET
     ).toString('base64');
@@ -153,11 +145,9 @@ router.get('/callback', async (req, res) => {
       );
     }
 
-    // Create a short-lived JWT with Spotify tokens
-    const spotifyToken = createSpotifySession(tokenData.access_token, quaverUserId ? null : tokenData.refresh_token, spotifyIdentity);
-
-    // Redirect back to app with token in URL fragment
-    res.redirect('/Index.html?spotify_token=' + spotifyToken + '&spotify_name=' + encodeURIComponent(spotifyUser.display_name || spotifyUser.id));
+    // The browser obtains a short-lived session from /spotify/session after
+    // redirect. No Spotify credential is placed in browser history or logs.
+    res.redirect('/Index.html?spotify_connected=1');
   } catch (err) {
     console.error('Spotify callback error:', err);
     res.redirect('/Index.html?error=spotify_error');
@@ -334,51 +324,6 @@ router.post('/export', async (req, res) => {
   } catch (err) {
     console.error('Export error:', err);
     res.status(500).json({ error: 'Export failed. Please login with Spotify again.' });
-  }
-});
-
-// POST /spotify/refresh - silently get a new access token using the refresh token
-router.post('/refresh', async (req, res) => {
-  const { spotifyToken } = req.body;
-  if (!spotifyToken) return res.status(400).json({ error: 'Missing token' });
-
-  try {
-    const decoded = jwt.verify(spotifyToken, process.env.JWT_SECRET, { ignoreExpiration: true });
-    const refreshToken = decoded.spotify_refresh_token;
-    if (!refreshToken) return res.status(400).json({ error: 'No refresh token available' });
-
-    const credentials = Buffer.from(
-      process.env.SPOTIFY_CLIENT_ID + ':' + process.env.SPOTIFY_CLIENT_SECRET
-    ).toString('base64');
-
-    const tokenRes = await fetch('https://accounts.spotify.com/api/token', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Basic ' + credentials,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: refreshToken,
-      }),
-    });
-
-    const tokenData = await tokenRes.json();
-    if (!tokenData.access_token) {
-      return res.status(401).json({ error: 'Could not refresh. Please login with Spotify again.' });
-    }
-
-    const newSpotifyToken = jwt.sign({
-      spotify_access_token: tokenData.access_token,
-      spotify_refresh_token: tokenData.refresh_token || refreshToken,
-      spotify_user_id: decoded.spotify_user_id,
-      spotify_display_name: decoded.spotify_display_name,
-    }, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-    res.json({ spotifyToken: newSpotifyToken });
-  } catch (err) {
-    console.error('Refresh error:', err);
-    res.status(401).json({ error: 'Session expired. Please login with Spotify again.' });
   }
 });
 
