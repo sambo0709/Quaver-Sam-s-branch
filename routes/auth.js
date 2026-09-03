@@ -40,6 +40,9 @@ router.post('/register', async (req, res) => {
     createSession(res, { userId: result.insertedId, username, email });
     res.status(201).json({ message: 'Registered successfully!', username, email });
   } catch (err) {
+    if (err && err.code === 11000) {
+      return res.status(409).json({ error: 'Username or email already taken' });
+    }
     console.error(err);
     res.status(500).json({ error: 'Server error' });
   }
@@ -118,7 +121,10 @@ router.patch('/settings', async function(req, res) {
       { $set: { username: displayName, defaultTheme, preferences: { defaultMood, songCount, reducedMotion, explicitContent, recommendationVariety } } }
     );
     res.json({ message: 'Settings saved', username: displayName, defaultTheme, preferences: { defaultMood, songCount, reducedMotion, explicitContent, recommendationVariety } });
-  } catch (_) { res.status(500).json({ error: 'Server error' }); }
+  } catch (err) {
+    if (err && err.code === 11000) return res.status(409).json({ error: 'Display name already taken' });
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 router.patch('/password', async function(req, res) {

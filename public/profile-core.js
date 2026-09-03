@@ -32,8 +32,7 @@ async function logout() {
   window.location.href = 'login.html';
 }
 
-function updateAuthUI() {
-  const user = JSON.parse(localStorage.getItem('quaver_user') || 'null');
+function updateAuthUI(user) {
   const usernameEl = document.getElementById('nav-username');
   if (user) {
     usernameEl.textContent = user.username;
@@ -46,15 +45,22 @@ function toggleUserMenu(event){event.stopPropagation();const menu=document.getEl
 function closeUserMenu(){const menu=document.getElementById('user-menu-dropdown');if(!menu)return;menu.hidden=true;document.getElementById('user-menu-button').setAttribute('aria-expanded','false');}
 document.addEventListener('click',closeUserMenu);
 document.addEventListener('keydown',function(event){if(event.key==='Escape')closeUserMenu();});
-  window.addEventListener('DOMContentLoaded', function() {
-  if (!localStorage.getItem('quaver_user')) {
-    window.location.href = 'login.html';
-    return;
-  }
+window.addEventListener('DOMContentLoaded', async function() {
   const theme = localStorage.getItem('theme') || 'system';
   const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
   applyTheme(theme);
   document.documentElement.classList.toggle('reduce-motion', !!preferences.reducedMotion);
-  updateAuthUI();
+  try {
+    const response = await fetch(API + '/api/auth/me', { credentials: 'include' });
+    if (!response.ok) throw new Error('No active session');
+    const user = await response.json();
+    localStorage.setItem('quaver_user', JSON.stringify({ username: user.username, email: user.email }));
+    updateAuthUI(user);
+  } catch (_) {
+    localStorage.removeItem('quaver_user');
+    localStorage.removeItem('quaver_spotify_name');
+    window.location.href = 'login.html';
+    return;
+  }
   loadProfileData();
 });

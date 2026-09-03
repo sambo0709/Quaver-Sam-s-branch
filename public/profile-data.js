@@ -168,7 +168,7 @@ document.addEventListener('keydown', function(event) {
 });
 
 async function loadProfileData() {
-  const hasSession = !!localStorage.getItem('quaver_user');
+  const hasSession = true;
   let playlists = JSON.parse(localStorage.getItem('quaver_playlists') || '[]');
   if (hasSession) {
     try {

@@ -6,6 +6,7 @@ test('profile exposes the polished dashboard and dedicated settings navigation',
     localStorage.setItem('theme', 'dark');
   });
   await page.route('**/api/playlist', route => route.fulfill({ json: { playlists: [] } }));
+  await page.route('**/api/auth/me', route => route.fulfill({ json: { username: 'Listener', email: 'listener@example.com' } }));
   await page.route('**/api/mood/history', route => route.fulfill({ json: { moods: [] } }));
   await page.route('**/api/listening/history', route => route.fulfill({ json: { plays: [] } }));
 
@@ -28,6 +29,7 @@ test('authenticated profile loads mood, listening, and playlist data', async ({ 
   await page.route('**/api/playlist', route => route.fulfill({
     json: { playlists: [{ id: 'evening', name: 'Evening Mix', mood: 'calm', songs: [] }] },
   }));
+  await page.route('**/api/auth/me', route => route.fulfill({ json: { username: 'Listener', email: 'listener@example.com' } }));
   await page.route('**/api/mood/history', route => route.fulfill({
     json: { moods: [{ mood: 'calm', time: '8:00 PM', ts: Date.now() }] },
   }));
@@ -44,6 +46,16 @@ test('authenticated profile loads mood, listening, and playlist data', async ({ 
   await expect(page.getByText('calm', { exact: true }).first()).toBeVisible();
   expect(await page.evaluate(() => (window as any).__profileXss)).toBeUndefined();
   await expect(page.locator('[data-profile-song="0"]')).not.toHaveAttribute('onclick');
+});
+
+test('profile rejects stale local authentication when the server session is missing', async ({ page }) => {
+  await page.route('**/api/auth/me', route => route.fulfill({ status: 401, json: { error: 'Not logged in' } }));
+  await page.goto('/');
+  await page.evaluate(() => localStorage.setItem('quaver_user', JSON.stringify({ username: 'Stale User' })));
+  await page.goto('/profile.html');
+
+  await expect(page).toHaveURL(/login\.html/);
+  expect(await page.evaluate(() => localStorage.getItem('quaver_user'))).toBeNull();
 });
 
 test('settings are organized on a dedicated page', async ({ page }) => {
