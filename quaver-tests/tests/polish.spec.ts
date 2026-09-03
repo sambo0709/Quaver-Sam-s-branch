@@ -32,16 +32,18 @@ test('authenticated profile loads mood, listening, and playlist data', async ({ 
     json: { moods: [{ mood: 'calm', time: '8:00 PM', ts: Date.now() }] },
   }));
   await page.route('**/api/listening/history', route => route.fulfill({
-    json: { plays: [{ trackId: 'played123', title: 'Loaded Song', artist: 'Loaded Artist', albumArt: '', playedAt: Date.now() }] },
+    json: { plays: [{ trackId: 'played123', title: 'Loaded <img src=x onerror="window.__profileXss=true"> Song', artist: 'Loaded Artist', albumArt: '', playedAt: Date.now() }] },
   }));
   await page.route('**/api/music/recommend?**', route => route.fulfill({ json: { songs: [] } }));
 
   await page.goto('/profile.html');
 
   await expect(page.getByText('Recorded moods')).toBeVisible();
-  await expect(page.getByText('Loaded Song')).toBeVisible();
+  await expect(page.getByText('Loaded <img src=x onerror="window.__profileXss=true"> Song')).toBeVisible();
   await expect(page.getByText('Evening Mix')).toBeVisible();
   await expect(page.getByText('calm', { exact: true }).first()).toBeVisible();
+  expect(await page.evaluate(() => (window as any).__profileXss)).toBeUndefined();
+  await expect(page.locator('[data-profile-song="0"]')).not.toHaveAttribute('onclick');
 });
 
 test('settings are organized on a dedicated page', async ({ page }) => {

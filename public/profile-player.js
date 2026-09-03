@@ -1,0 +1,38 @@
+async function playInApp(trackId, title, artist, albumArt) {
+  const started = await QuaverPlayer.play({ trackId: trackId, title: title, artist: artist || '', albumArt: albumArt || '' });
+  if (!started) return false;
+  clearTimeout(meaningfulPlayTimer);
+  meaningfulPlayTimer = setTimeout(function() {
+    try {
+      const recent = JSON.parse(localStorage.getItem('quaver_recently_played') || '[]');
+      recent.unshift({ trackId, title, artist: artist || '', albumArt: albumArt || '', playedAt: Date.now() });
+      const seen = new Set();
+      const deduped = recent.filter(function(s) { if (seen.has(s.trackId)) return false; seen.add(s.trackId); return true; });
+      localStorage.setItem('quaver_recently_played', JSON.stringify(deduped.slice(0, 20)));
+    } catch(e) {}
+    if (localStorage.getItem('quaver_user')) {
+      const mood = (window._profileMoods && window._profileMoods[0]) ? window._profileMoods[0].mood : '';
+      fetch(API + '/api/listening/history', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trackId, title, artist: artist || '', albumArt: albumArt || '', mood }) }).catch(function() {});
+    }
+  }, 10000);
+  return true;
+}
+
+function renderRecentlyPlayed() {
+  const container = document.getElementById('recently-played-list');
+  try {
+    const recent = window._profilePlays || JSON.parse(localStorage.getItem('quaver_recently_played') || '[]');
+    if (recent.length === 0) {
+      container.innerHTML = '<div class="box-empty"><p>No songs played yet.</p><a href="Index.html">Find something to play</a></div>';
+      return;
+    }
+      container.innerHTML = recent.slice(0, 10).map(function(song) { return profileSongHTML(song); }).join('');
+  } catch(e) {
+    container.innerHTML = '<p class="box-empty">No songs played yet.</p>';
+  }
+}
+
+function closePlayer() {
+  clearTimeout(meaningfulPlayTimer);
+  QuaverPlayer.hide();
+}
