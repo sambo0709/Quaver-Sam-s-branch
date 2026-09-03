@@ -320,6 +320,33 @@ test('search results can play through the shared Quaver player', async ({ page }
   await expect(page.locator('#spotify-player')).toBeAttached();
 });
 
+test('a searched song can be added to an existing playlist', async ({ page }) => {
+  let addedBody: any;
+  await page.addInitScript(() => localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' })));
+  await page.route('**/api/music/search?*', route => route.fulfill({ json: { songs: [{ title: 'Search Pick', artist: 'Quaver Artist', album_art: '', spotify_url: 'https://open.spotify.com/track/searchadd123' }] } }));
+  await page.route('**/api/playlist/search-list/songs', async route => {
+    addedBody = route.request().postDataJSON();
+    await route.fulfill({ status: 201, json: { song: addedBody.song } });
+  });
+  await page.route('**/api/playlist', route => route.fulfill({ json: { playlists: [{ id: 'search-list', name: 'Saved Mix', mood: 'mixed', songs: [] }] } }));
+  await page.goto('/search.html?q=pick');
+  await page.getByRole('button', { name: 'Add to playlist' }).click();
+  await expect(page.getByRole('dialog', { name: 'Add to playlist' })).toBeVisible();
+  await page.getByRole('button', { name: /Saved Mix/ }).click();
+  expect(addedBody.song).toMatchObject({ title: 'Search Pick', spotify_url: 'https://open.spotify.com/track/searchadd123' });
+  await expect(page.getByText('Search Pick added to “Saved Mix”.')).toBeVisible();
+});
+
+test('a searched song can start a new playlist', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' })));
+  await page.route('**/api/music/search?*', route => route.fulfill({ json: { songs: [{ title: 'Draft Search Pick', artist: 'Quaver Artist', album_art: '', spotify_url: 'https://open.spotify.com/track/searchdraft123' }] } }));
+  await page.route('**/api/playlist', route => route.fulfill({ json: { playlists: [{ id: 'existing', name: 'Existing Mix', mood: 'mixed', songs: [] }] } }));
+  await page.goto('/search.html?q=draft');
+  await page.getByRole('button', { name: 'Add to playlist' }).click();
+  await Promise.all([page.waitForURL('**/playlists.html?create=1'), page.getByRole('button', { name: /Create new playlist/ }).click()]);
+  await expect(page.getByText('Draft Search Pick', { exact: true })).toBeVisible();
+});
+
 test('header uses a non-linking compact Quaver mark', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('quaver_onboarded', '1');
