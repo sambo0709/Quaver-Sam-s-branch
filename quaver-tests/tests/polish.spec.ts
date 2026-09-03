@@ -69,6 +69,35 @@ test('mobile navigation and persistent player fit the compact layout', async ({ 
   await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
 });
 
+test('Play All stays readable as the results layout narrows', async ({ page }) => {
+  await page.setViewportSize({ width: 700, height: 800 });
+  await page.addInitScript(() => localStorage.setItem('quaver_onboarded', 'true'));
+  await page.goto('/');
+  await page.evaluate(() => {
+    document.getElementById('results')!.innerHTML = '<div class="results-header"><span>8 tracks — nostalgic</span><button class="play-all-btn">▶ Play All</button></div>';
+  });
+  const button = page.getByRole('button', { name: /Play All/ });
+  await expect(button).toBeVisible();
+  const box = await button.boundingBox();
+  expect(box?.width).toBeGreaterThanOrEqual(104);
+  expect(box?.height).toBeGreaterThanOrEqual(36);
+  const fits = await page.locator('.results-header').evaluate(element => element.scrollWidth <= element.clientWidth);
+  expect(fits).toBe(true);
+});
+
+test('player close button stays inside every intermediate viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 800 });
+  await page.addInitScript(() => localStorage.setItem('quaver_onboarded', 'true'));
+  await page.goto('/');
+  await page.evaluate(() => (window as any).playInApp('abc123', 'Now Playing', 'Quaver Artist', ''));
+  const closeButton = page.getByRole('button', { name: 'Close player' });
+  await expect(closeButton).toBeVisible();
+  const box = await closeButton.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(800);
+});
+
 test('Quaver player starts a Spotify SDK track without rendering an embed', async ({ page }) => {
   let playbackBody: unknown;
   await page.addInitScript(() => {

@@ -984,6 +984,38 @@ h1 span {
   box-shadow: 0 0 16px var(--accent-glow);
 }
 
+@media (max-width: 900px) {
+  .results-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+
+  .results-header > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .play-all-btn {
+    min-width: 104px;
+    min-height: 36px;
+    padding: 7px 16px;
+  }
+}
+
+@media (max-width: 420px) {
+  .results-header {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .play-all-btn {
+    width: 100%;
+  }
+}
+
 .no-results {
   text-align: center;
   color: var(--text-muted);
@@ -3551,6 +3583,16 @@ html.reduce-motion *::after {
   nav, .top-nav { padding-inline: 20px; }
   .nav-link { padding-inline: 12px; }
   .nav-username { display: none; }
+
+  .spotify-player {
+    grid-template-columns: minmax(180px, 1fr) minmax(270px, 1.2fr) auto;
+    gap: 12px;
+    padding-inline: 16px;
+  }
+
+  .player-volume-controls { display: none; }
+  .player-actions { min-width: 30px; }
+  .player-close-btn { flex: 0 0 30px; }
 }
 
 /* ═══════════════════════════════════════
