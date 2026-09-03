@@ -65,12 +65,22 @@ function randomMood() {
 }
 
 function onMoodSelect(value) {
-  if (value) setMood(value);
+  if (!value) return;
+  currentMood = value;
+  applyMoodColors(value);
 }
 
 function onCountSelect(value) {
   currentLimit = parseInt(value, 10);
-  if (currentMood) fetchSongs();
+}
+
+function submitRecommendation(event) {
+  if (event) event.preventDefault();
+  const mood = document.getElementById('mood-select').value;
+  const count = parseInt(document.getElementById('count-select').value, 10);
+  if (!mood || !count) return;
+  currentLimit = count;
+  setMood(mood);
 }
 
 function checkMoodStreak(mood) {

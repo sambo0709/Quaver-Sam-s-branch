@@ -62,8 +62,8 @@
 <main>
   <h1>How are <span>you feeling?</span></h1>
   <p class="subtitle">Pick your mood and we'll choose a playlist for you.</p>
-  <div class="dropdown-row">
-    <select class="mood-select" id="mood-select" onchange="onMoodSelect(this.value)">
+  <form class="dropdown-row" id="recommendation-form" onsubmit="submitRecommendation(event)">
+    <select class="mood-select" id="mood-select" onchange="onMoodSelect(this.value)" required>
       <option disabled selected value="">Select Mood</option>
       <option value="happy">Happy</option>
       <option value="sad">Sad</option>
@@ -77,13 +77,14 @@
       <option value="sleepy">Sleepy</option>
       <option value="anxious">Anxious</option>
     </select>
-    <select class="mood-select" id="count-select" onchange="onCountSelect(this.value)">
+    <select class="mood-select" id="count-select" onchange="onCountSelect(this.value)" required>
       <option disabled selected value="">How many songs?</option>
       <option value="5">5 songs</option>
       <option value="8">8 songs</option>
       <option value="10">10 songs</option>
     </select>
-  </div>
+    <button class="mood-select recommendation-go-btn" type="submit">Go</button>
+  </form>
   <button class="mood-select random-btn" onclick="randomMood()">✨ Surprise Me</button>
   <details class="mood-context" id="mood-context">
     <summary>Shape this recommendation</summary>

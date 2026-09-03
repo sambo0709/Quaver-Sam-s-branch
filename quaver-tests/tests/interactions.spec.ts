@@ -31,10 +31,16 @@ test.describe('Quaver Homepage Interactions', () => {
 
   test('clicking Surprise Me triggers a response', async ({ page }) => {
     const homePage = new HomePage(page);
+    let recommendationRequested = false;
+    await page.route('**/api/music/recommend?**', route => {
+      recommendationRequested = true;
+      return route.fulfill({ json: { songs: [{ title: 'Surprise Song', artist: 'Quaver', duration: '3:00', album_art: '', spotify_url: 'https://open.spotify.com/track/surprise123' }] } });
+    });
     await homePage.goto();
     await homePage.dismissOverlay();
     await homePage.surpriseMeButton.click();
-    await expect(page.locator('body')).not.toBeEmpty();
+    await expect(page.getByText('Surprise Song')).toBeVisible();
+    expect(recommendationRequested).toBe(true);
   });
 
   test('mood recommendations render safely and play through data actions', async ({ page }) => {
@@ -60,6 +66,8 @@ test.describe('Quaver Homepage Interactions', () => {
       (window as any).playInApp = (trackId: string) => { (window as any).__playedTrack = trackId; };
     });
     await page.locator('#mood-select').selectOption('happy');
+    await page.locator('#count-select').selectOption('5');
+    await page.getByRole('button', { name: 'Go', exact: true }).click();
 
     const playButton = page.locator('.play-btn[data-result-index="0"]');
     await expect(page.locator('.song-title')).toHaveText(`Listener's <img src=x onerror="window.__quaverXss=true"> Song`);
@@ -83,6 +91,8 @@ test.describe('Quaver Homepage Interactions', () => {
     await page.locator('#mood-direction').selectOption('focus');
     await page.locator('#preferred-artist').fill('SZA');
     await page.locator('#mood-select').selectOption('focused');
+    await page.locator('#count-select').selectOption('5');
+    await page.getByRole('button', { name: 'Go', exact: true }).click();
 
     await expect(page.getByText('Chosen for studying · Designed to help you focus')).toBeVisible();
     expect(requestUrl).toContain('secondaryMood=calm');

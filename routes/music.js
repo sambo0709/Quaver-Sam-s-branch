@@ -27,6 +27,25 @@ let sotdExpiresAt = 0;
 // Per-mood pool cache — avoids hitting Spotify on every recommend request
 const moodPoolCache = {};
 const POOL_TTL = 2 * 60 * 60 * 1000; // 2 hours
+const POOL_STALE_TTL = 24 * 60 * 60 * 1000; // retain a fallback during Spotify outages
+const SEARCH_TTL = 6 * 60 * 60 * 1000;
+const SEARCH_STALE_TTL = 7 * 24 * 60 * 60 * 1000;
+const searchCache = new Map();
+const searchRequests = new Map();
+let lastSpotifySearchAt = 0;
+let spotifySearchGate = Promise.resolve();
+const SPOTIFY_SEARCH_INTERVAL = 250;
+
+async function waitForSpotifySearchSlot() {
+  let release;
+  const previous = spotifySearchGate;
+  spotifySearchGate = new Promise(function(resolve) { release = resolve; });
+  await previous;
+  const wait = Math.max(0, SPOTIFY_SEARCH_INTERVAL - (Date.now() - lastSpotifySearchAt));
+  if (wait) await new Promise(function(resolve) { setTimeout(resolve, wait); });
+  lastSpotifySearchAt = Date.now();
+  release();
+}
 
 // Tracks recently served song IDs per mood to avoid repeats
 const recentlyServed = {};
@@ -48,9 +67,17 @@ async function getMoodPool(context, token) {
   if (entry && Date.now() < entry.expiresAt) {
     return entry.songs;
   }
-  const songs = await searchTracks(buildSearchQueries(context), token, 40);
-  moodPoolCache[cacheKey] = { songs, expiresAt: Date.now() + POOL_TTL };
-  return songs;
+  try {
+    // Spotify Search currently returns at most 10 tracks per request, which is
+    // also Quaver's maximum result count. A second query is only used if the
+    // first one returns no tracks.
+    const songs = await searchTracks(buildSearchQueries(context), token, 10);
+    moodPoolCache[cacheKey] = { songs, expiresAt: Date.now() + POOL_TTL, staleUntil: Date.now() + POOL_STALE_TTL };
+    return songs;
+  } catch (error) {
+    if (entry && Date.now() < entry.staleUntil) return entry.songs;
+    throw error;
+  }
 }
 
 function pickUnseenSongs(pool, mood, limit) {
@@ -116,33 +143,58 @@ async function getSpotifyToken() {
 }
 
 async function searchTracks(queries, token, limit) {
-  const query = queries[Math.floor(Math.random() * queries.length)];
-  const url = 'https://api.spotify.com/v1/search?q=' + encodeURIComponent(query) + '&type=track&limit=' + Math.min(50, Math.max(10, limit));
-  let res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+  for (const query of queries) {
+    const songs = await cachedSpotifySearch(query, token);
+    if (songs.length) return songs.slice(0, limit);
+  }
+  return [];
+}
 
-  if (res.status === 429) {
-    const retryAfter = parseInt(res.headers.get('Retry-After') || '60', 10);
-    if (retryAfter > 15) {
-      throw new Error('Spotify rate limit active for ' + retryAfter + 's. Try again later.');
+async function loadSearchCache(query) {
+  const memoryEntry = searchCache.get(query);
+  if (memoryEntry) return memoryEntry;
+  try {
+    const db = await getDB();
+    const entry = await db.collection('spotify_search_cache').findOne({ _id: query });
+    if (entry && Array.isArray(entry.songs)) {
+      searchCache.set(query, entry);
+      return entry;
     }
-    await new Promise(r => setTimeout(r, retryAfter * 1000));
-    res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
-  }
+  } catch (_) {}
+  return null;
+}
 
-  if (res.status === 429) {
-    throw await spotifyApiError(res, 'Spotify rate limit reached');
-  }
-  if (!res.ok) {
-    throw await spotifyApiError(res, 'Spotify search failed');
-  }
-  const data = await res.json();
-  if (!data.tracks || !data.tracks.items) {
-    throw new Error('Spotify error: ' + JSON.stringify(data));
-  }
-  return data.tracks.items
-    .sort(() => Math.random() - 0.5)
-    .slice(0, limit)
-    .map(function(track) {
+async function saveSearchCache(query, songs) {
+  const entry = { songs, expiresAt: Date.now() + SEARCH_TTL, staleUntil: Date.now() + SEARCH_STALE_TTL };
+  searchCache.set(query, entry);
+  try {
+    const db = await getDB();
+    await db.collection('spotify_search_cache').updateOne({ _id: query }, { $set: entry }, { upsert: true });
+  } catch (_) {}
+  return songs;
+}
+
+async function cachedSpotifySearch(query, token) {
+  const cached = await loadSearchCache(query);
+  if (cached && Date.now() < cached.expiresAt) return cached.songs;
+  if (searchRequests.has(query)) return searchRequests.get(query);
+
+  const request = (async function() {
+    try {
+      await waitForSpotifySearchSlot();
+      const url = 'https://api.spotify.com/v1/search?q=' + encodeURIComponent(query) + '&type=track&limit=10';
+      let res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+    if (res.status === 429) {
+      const retryAfter = parseInt(res.headers.get('Retry-After') || '60', 10);
+      if (retryAfter > 15) throw new Error('Spotify rate limit active for ' + retryAfter + 's. Try again later.');
+      await new Promise(r => setTimeout(r, retryAfter * 1000));
+      res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+    }
+    if (res.status === 429) throw await spotifyApiError(res, 'Spotify rate limit reached');
+    if (!res.ok) throw await spotifyApiError(res, 'Spotify search failed');
+    const data = await res.json();
+    if (!data.tracks || !data.tracks.items) throw new Error('Spotify error: ' + JSON.stringify(data));
+      const songs = data.tracks.items.map(function(track) {
       return {
         trackId: track.id,
         title: track.name,
@@ -153,7 +205,17 @@ async function searchTracks(queries, token, limit) {
         spotify_url: track.external_urls.spotify,
         album_art: track.album.images[1] ? track.album.images[1].url : null,
       };
-    });
+      });
+      return saveSearchCache(query, songs);
+    } catch (error) {
+      if (cached && Date.now() < cached.staleUntil) return cached.songs;
+      throw error;
+    } finally {
+      searchRequests.delete(query);
+    }
+  })();
+  searchRequests.set(query, request);
+  return request;
 }
 
 function msToMinSec(ms) {

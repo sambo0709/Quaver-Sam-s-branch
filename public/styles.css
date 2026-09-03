@@ -134,6 +134,8 @@ body::after {
 .mood-context-grid label { display:flex; flex-direction:column; gap:7px; text-align:left; color:var(--text-muted); font-size:.78rem; font-weight:700; }
 .mood-context-grid select,.mood-context-grid input:not([type="range"]) { width:100%; border:1px solid var(--glass-border); border-radius:10px; padding:10px 12px; background:var(--card-solid); color:var(--text); font:inherit; }
 .mood-context-grid input[type="range"] { width:100%; accent-color:var(--accent); }
+.recommendation-go-btn { cursor:pointer; font-weight:800; color:#fff; border-color:transparent; background:var(--gradient); }
+.recommendation-go-btn:hover,.recommendation-go-btn:focus { color:#fff; transform:translateY(-2px); box-shadow:0 10px 24px var(--accent-glow); }
 @media (max-width:600px){.mood-context-grid{grid-template-columns:1fr;}}
 
 /* ═══════════════════════════════════════
