@@ -37,4 +37,36 @@ test.describe('Quaver Homepage Interactions', () => {
     await expect(page.locator('body')).not.toBeEmpty();
   });
 
+  test('mood recommendations render safely and play through data actions', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('quaver_onboarded', 'true');
+      sessionStorage.setItem('quaver_launched', '1');
+    });
+    await page.route('**/api/music/recommend?**', route => route.fulfill({
+      json: {
+        songs: [{
+          title: `Listener's <img src=x onerror="window.__quaverXss=true"> Song`,
+          artist: 'Safe Artist',
+          duration: '3:12',
+          album_art: 'https://i.scdn.co/image/test',
+          spotify_url: 'https://open.spotify.com/track/abc123',
+        }],
+      },
+    }));
+
+    await page.goto('/');
+    await page.evaluate(() => {
+      (window as any).__playedTrack = null;
+      (window as any).playInApp = (trackId: string) => { (window as any).__playedTrack = trackId; };
+    });
+    await page.locator('#mood-select').selectOption('happy');
+
+    const playButton = page.locator('.play-btn[data-result-index="0"]');
+    await expect(page.locator('.song-title')).toHaveText(`Listener's <img src=x onerror="window.__quaverXss=true"> Song`);
+    await expect(playButton).not.toHaveAttribute('onclick');
+    expect(await page.evaluate(() => (window as any).__quaverXss)).toBeUndefined();
+    await playButton.click();
+    expect(await page.evaluate(() => (window as any).__playedTrack)).toBe('abc123');
+  });
+
 });
