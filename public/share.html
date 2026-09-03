@@ -19,9 +19,7 @@
   <div class="nav-center">
     <a class="nav-link" href="Index.html">Home</a>
   </div>
-  <div class="nav-right">
-    <button class="toggle" onclick="toggleTheme()" aria-label="Toggle color theme"></button>
-  </div>
+  <div class="nav-right"></div>
 </nav>
 
 <div id="spotify-player" class="spotify-player" style="display:none" role="region" aria-label="Now playing">
@@ -58,22 +56,15 @@
   const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
   let toastTimer;
   function showToast(message, type) { const toast=document.getElementById('toast'); clearTimeout(toastTimer); toast.textContent=message; toast.className='toast '+(type||'success')+' show'; toastTimer=setTimeout(function(){toast.classList.remove('show');},3200); }
-  function themeIcon(theme) {
-    return theme === 'light'
-      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>'
-      : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>';
+  function applyTheme(theme) {
+    const active = theme === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : theme;
+    document.documentElement.setAttribute('data-theme', active);
+    document.getElementById('logo').src = active === 'light' ? 'quaver_lightmode1.png' : 'quaver_nightmode1.png';
   }
 
-  function toggleTheme() {
-    const html = document.documentElement;
-    const btn = document.querySelector('.toggle');
-    const logo = document.getElementById('logo');
-    const isDark = html.getAttribute('data-theme') === 'dark';
-    html.setAttribute('data-theme', isDark ? 'light' : 'dark');
-    btn.innerHTML = themeIcon(isDark ? 'light' : 'dark');
-    logo.src = isDark ? 'quaver_lightmode1.png' : 'quaver_nightmode1.png';
-    localStorage.setItem('theme', isDark ? 'light' : 'dark');
-  }
+  matchMedia('(prefers-color-scheme: light)').addEventListener('change', function() {
+    if (!localStorage.getItem('theme')) applyTheme('system');
+  });
 
   function playInApp(trackId, title, artist, albumArt) {
     return QuaverPlayer.play({ trackId: trackId, title: title, artist: artist || '', albumArt: albumArt || '' });
@@ -135,11 +126,7 @@
   }
 
   window.addEventListener('DOMContentLoaded', function() {
-    const saved = localStorage.getItem('theme');
-    const isDark = !saved || saved === 'dark';
-    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    document.querySelector('.toggle').innerHTML = themeIcon(isDark ? 'dark' : 'light');
-    document.getElementById('logo').src = isDark ? 'quaver_nightmode1.png' : 'quaver_lightmode1.png';
+    applyTheme(localStorage.getItem('theme') || 'system');
     loadSharedPlaylist();
   });
 </script>

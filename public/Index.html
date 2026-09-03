@@ -38,7 +38,6 @@
   </div>
   <div class="nav-right">
     <a id="nav-login-link" href="login.html" class="login-nav-btn" style="display:none">Login</a>
-    <button class="toggle" id="theme-btn" onclick="toggleTheme()" aria-label="Toggle color theme"></button>
     <div id="user-menu" class="user-menu" style="display:none"><button id="user-menu-button" class="user-menu-button" onclick="toggleUserMenu(event)" aria-label="Open account menu" aria-expanded="false"><span id="user-avatar">U</span></button><div id="user-menu-dropdown" class="user-menu-dropdown" hidden><div class="user-menu-header"><strong id="nav-username"></strong><small>Quaver account</small></div><a href="profile.html">Profile</a><a href="settings.html">Settings</a><button onclick="logout()">Log out</button></div></div>
   </div>
 </nav>
@@ -329,19 +328,18 @@
   document.addEventListener('keydown', function(event) { if(event.key==='Escape') closeUserMenu(); });
 
   function applyTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    document.getElementById('theme-btn').innerHTML = uiIcon(theme === 'dark' ? 'moon' : 'sun');
-    document.getElementById('logo').src = theme === 'dark' ? 'nightmode_logo.png' : 'lightmode_logo.png';
+    const activeTheme = theme === 'system'
+      ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+      : theme;
+    document.documentElement.setAttribute('data-theme', activeTheme);
+    document.getElementById('logo').src = activeTheme === 'dark' ? 'nightmode_logo.png' : 'lightmode_logo.png';
     const splashLogo = document.getElementById('splash-logo');
-    if (splashLogo) splashLogo.src = theme === 'dark' ? 'quaver_nightmode1.png' : 'quaver_lightmode1.png';
+    if (splashLogo) splashLogo.src = activeTheme === 'dark' ? 'quaver_nightmode1.png' : 'quaver_lightmode1.png';
   }
 
-  function toggleTheme() {
-    const current = document.documentElement.getAttribute('data-theme') || 'dark';
-    const next = current === 'dark' ? 'light' : 'dark';
-    applyTheme(next);
-    localStorage.setItem('theme', next);
-  }
+  window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function() {
+    if (!localStorage.getItem('theme')) applyTheme('system');
+  });
 
   function checkSpotifyCallback() {
     const params = new URLSearchParams(window.location.search);
@@ -413,9 +411,7 @@
   }
 
   window.addEventListener('DOMContentLoaded', function() {
-    const savedTheme = localStorage.getItem('theme');
-    const systemTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-    applyTheme(savedTheme || systemTheme);
+    applyTheme(localStorage.getItem('theme') || 'system');
     const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
     document.documentElement.classList.toggle('reduce-motion', !!preferences.reducedMotion);
     if (preferences.defaultMood) {

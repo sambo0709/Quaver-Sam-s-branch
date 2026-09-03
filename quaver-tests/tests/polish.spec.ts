@@ -18,7 +18,7 @@ test('profile exposes the polished dashboard and dedicated settings navigation',
   await expect(page.getByRole('heading', { name: '30-Day Mood Timeline' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Open account menu' }).click();
   await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Toggle color theme' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Toggle color theme' })).toHaveCount(0);
 });
 
 test('settings are organized on a dedicated page', async ({ page }) => {
@@ -34,11 +34,11 @@ test('settings are organized on a dedicated page', async ({ page }) => {
   await expect(page.getByText("Connect a Premium account to play full songs through Quaver's player.")).toBeVisible();
 });
 
-test('homepage keeps the primary mood flow focused and has an accessible theme control', async ({ page }) => {
+test('homepage keeps the primary mood flow focused and leaves theme controls in settings', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('quaver_onboarded', 'true'));
   await page.goto('/');
   await expect(page.getByPlaceholder('Add an optional note about how you feel')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Toggle color theme' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Toggle color theme' })).toHaveCount(0);
 });
 
 test('homepage renders personalized rails and contextual song actions', async ({ page }) => {
@@ -223,16 +223,18 @@ test('global search opens a dedicated discovery page', async ({ page }) => {
 });
 
 test('header uses a non-linking compact Quaver mark', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('quaver_onboarded', '1'));
+  await page.addInitScript(() => {
+    localStorage.setItem('quaver_onboarded', '1');
+    localStorage.removeItem('theme');
+  });
+  await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('/');
   const mark = page.locator('.nav-left .brand-mark');
-  const initialTheme = await page.locator('html').getAttribute('data-theme');
-  const initialAsset = initialTheme === 'light' ? 'lightmode_logo.png' : 'nightmode_logo.png';
-  const nextAsset = initialTheme === 'light' ? 'nightmode_logo.png' : 'lightmode_logo.png';
-  await expect(mark).toHaveAttribute('src', initialAsset);
+  await expect(mark).toHaveAttribute('src', 'nightmode_logo.png');
   await expect(mark.locator('xpath=ancestor::a')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Toggle color theme' }).click();
-  await expect(mark).toHaveAttribute('src', nextAsset);
+  await page.emulateMedia({ colorScheme: 'light' });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(mark).toHaveAttribute('src', 'lightmode_logo.png');
 });
 
 test('header remains visible while scrolling and resizing', async ({ page }) => {
@@ -318,7 +320,10 @@ test('Trending Moods uses solid surfaces for both color themes', async ({ page }
   const colors = await page.locator('.trending-section').evaluate(section => ({ section: getComputedStyle(section).backgroundColor, body: getComputedStyle(document.body).backgroundColor }));
   expect(colors.section).not.toBe(colors.body);
   expect(colors.section).not.toBe('rgba(0, 0, 0, 0)');
-  await page.getByRole('button', { name: 'Toggle color theme' }).click();
+  await page.evaluate(() => {
+    localStorage.setItem('theme', 'dark');
+    document.documentElement.setAttribute('data-theme', 'dark');
+  });
   await expect.poll(() => page.locator('.trending-section').evaluate(section => getComputedStyle(section).backgroundColor)).toBe('rgb(23, 28, 43)');
 });
 

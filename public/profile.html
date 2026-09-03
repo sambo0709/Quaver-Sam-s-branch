@@ -21,7 +21,6 @@
       <a class="nav-link" href="playlists.html">Playlists</a>
     </div>
     <div class="nav-right">
-      <button class="toggle" onclick="toggleTheme()" aria-label="Toggle color theme"></button>
       <div id="user-menu" class="user-menu" style="display:none"><button id="user-menu-button" class="user-menu-button" onclick="toggleUserMenu(event)" aria-label="Open account menu" aria-expanded="false"><span id="user-avatar">U</span></button><div id="user-menu-dropdown" class="user-menu-dropdown" hidden><div class="user-menu-header"><strong id="nav-username"></strong><small>Quaver account</small></div><a class="active" href="profile.html">Profile</a><a href="settings.html">Settings</a><button onclick="logout()">Log out</button></div></div>
     </div>
   </nav>
@@ -149,11 +148,6 @@
 
   <script>
     const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
-    function themeIcon(theme) {
-      return theme === 'light'
-        ? '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>'
-        : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>';
-    }
     function escapeHTML(value) {
       return String(value == null ? '' : value).replace(/[&<>"']/g, function(char) {
         return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char];
@@ -169,22 +163,15 @@
       toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 3200);
     }
 
-    function toggleTheme() {
-      const html = document.documentElement;
-      const btn = document.querySelector('.toggle');
-      const logo = document.getElementById('logo');
-      if (html.getAttribute('data-theme') === 'dark') {
-        html.setAttribute('data-theme', 'light');
-        btn.innerHTML = themeIcon('light');
-        logo.src = 'lightmode_logo.png';
-        localStorage.setItem('theme', 'light');
-      } else {
-        html.setAttribute('data-theme', 'dark');
-        btn.innerHTML = themeIcon('dark');
-        logo.src = 'nightmode_logo.png';
-        localStorage.setItem('theme', 'dark');
-      }
+    function applyTheme(theme) {
+      const active = theme === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : theme;
+      document.documentElement.setAttribute('data-theme', active);
+      document.getElementById('logo').src = active === 'light' ? 'lightmode_logo.png' : 'nightmode_logo.png';
     }
+
+    matchMedia('(prefers-color-scheme: light)').addEventListener('change', function() {
+      if (!localStorage.getItem('theme')) applyTheme('system');
+    });
 
     function logout() {
       localStorage.removeItem('quaver_token');
@@ -520,14 +507,10 @@
         window.location.href = 'login.html';
         return;
       }
-      const saved = localStorage.getItem('theme');
-      const systemTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-      const theme = saved || systemTheme;
+      const theme = localStorage.getItem('theme') || 'system';
       const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
-      document.documentElement.setAttribute('data-theme', theme);
+      applyTheme(theme);
       document.documentElement.classList.toggle('reduce-motion', !!preferences.reducedMotion);
-      document.querySelector('.toggle').innerHTML = themeIcon(theme);
-      document.getElementById('logo').src = theme === 'light' ? 'lightmode_logo.png' : 'nightmode_logo.png';
       updateAuthUI();
       loadProfileData();
     });

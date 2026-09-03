@@ -11,18 +11,15 @@
     });
   }
 
-  function themeIcon(theme) {
-    return theme === 'light'
-      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M2 12h2M20 12h2M4.9 19.1l1.5-1.5M17.6 6.4l1.5-1.5"/></svg>'
-      : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>';
-  }
-
   function applyTheme(theme) {
     const active = theme === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : theme;
     document.documentElement.setAttribute('data-theme', active);
-    document.getElementById('theme-btn').innerHTML = themeIcon(active);
     document.getElementById('logo').src = active === 'light' ? 'lightmode_logo.png' : 'nightmode_logo.png';
   }
+
+  matchMedia('(prefers-color-scheme: light)').addEventListener('change', function () {
+    if (!localStorage.getItem('theme')) applyTheme('system');
+  });
 
   function showToast(message, type) {
     const toast = document.getElementById('toast');
@@ -72,11 +69,6 @@
     }
   }
 
-  document.getElementById('theme-btn').addEventListener('click', function () {
-    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    localStorage.setItem('theme', next);
-    applyTheme(next);
-  });
   document.getElementById('search-page-form').addEventListener('submit', function (event) { event.preventDefault(); search(input.value); });
   results.addEventListener('click', function (event) { const button = event.target.closest('[data-add-index]'); if (button) addToPlaylist(Number(button.dataset.addIndex)); });
 

@@ -15,10 +15,7 @@
       </a>
     </div>
 
-    <!-- Right: theme toggle -->
-    <div class="nav-right">
-      <button class="toggle" onclick="toggleTheme()" aria-label="Toggle color theme"></button>
-    </div>
+    <div class="nav-right"></div>
   </nav>
 
   <div class="auth-wrap">
@@ -62,36 +59,18 @@
 
   <script>
     const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
-    function themeIcon(theme) {
-      return theme === 'light'
-        ? '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>'
-        : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>';
+    function applyTheme(theme) {
+      const active = theme === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : theme;
+      document.documentElement.setAttribute('data-theme', active);
+      document.getElementById('logo').src = active === 'light' ? 'quaver_lightmode1.png' : 'quaver_nightmode1.png';
     }
 
-    function toggleTheme() {
-      const html = document.documentElement;
-      const btn = document.querySelector('.toggle');
-      const logo = document.getElementById('logo');
-      if (html.getAttribute('data-theme') === 'dark') {
-        html.setAttribute('data-theme', 'light');
-        btn.innerHTML = themeIcon('light');
-        logo.src = 'quaver_lightmode1.png';
-        localStorage.setItem('theme', 'light');
-      } else {
-        html.setAttribute('data-theme', 'dark');
-        btn.innerHTML = themeIcon('dark');
-        logo.src = 'quaver_nightmode1.png';
-        localStorage.setItem('theme', 'dark');
-      }
-    }
+    matchMedia('(prefers-color-scheme: light)').addEventListener('change', function() {
+      if (!localStorage.getItem('theme')) applyTheme('system');
+    });
 
     window.addEventListener('DOMContentLoaded', function() {
-      const saved = localStorage.getItem('theme');
-      const systemTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-      const theme = saved || systemTheme;
-      document.documentElement.setAttribute('data-theme', theme);
-      document.querySelector('.toggle').innerHTML = themeIcon(theme);
-      document.getElementById('logo').src = theme === 'light' ? 'quaver_lightmode1.png' : 'quaver_nightmode1.png';
+      applyTheme(localStorage.getItem('theme') || 'system');
       if (localStorage.getItem('quaver_token')) {
         window.location.href = 'Index.html';
       }
