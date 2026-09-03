@@ -240,8 +240,9 @@ router.get('/recommend', async function(req, res) {
   try {
     const token = await getSpotifyToken();
     let pool = (await getMoodPool(context, token)).filter(function(song) { return allowExplicit || !song.explicit; });
+    const unfilteredForVariety = pool.slice();
     const user = getUser(req);
-    const history = { liked: new Set(), disliked: new Set(), played: new Set(), likedArtists: new Set() };
+    const history = { liked: new Set(), disliked: new Set(), played: new Set(), likedArtists: new Set(), skipped: new Map(), completed: new Map(), artistAffinity: new Map() };
     if (user) {
       try {
         const db = await getDB();
@@ -256,9 +257,6 @@ router.get('/recommend', async function(req, res) {
           if (item.helpful && played?.artist) history.likedArtists.add(String(played.artist).toLowerCase());
         });
         (found?.listeningHistory || []).forEach(function(item) { if (item.trackId) history.played.add(item.trackId); });
-        history.skipped = new Map();
-        history.completed = new Map();
-        history.artistAffinity = new Map();
         (found?.recommendationEvents || []).forEach(function(item) {
           if (!item.trackId) return;
           if (item.type === 'skip') history.skipped.set(item.trackId, (history.skipped.get(item.trackId) || 0) + 1);
@@ -273,8 +271,17 @@ router.get('/recommend', async function(req, res) {
     }
     function trackId(song) { return song.spotify_url ? song.spotify_url.split('/track/')[1]?.split('?')[0] : ''; }
     if (variety === 'adventurous') pool = pool.filter(function(song) { return !history.liked.has(trackId(song)) && !history.played.has(trackId(song)); });
+    if (!pool.length && unfilteredForVariety.length) pool = unfilteredForVariety;
     const songs = rankSongs(pool, context, history, songLimit);
-    res.json({ mood: mood, context, profile: MOOD_PROFILES[context.mood], count: songs.length, songs: songs });
+    const learning = user ? {
+      personalized: history.liked.size + history.disliked.size + history.played.size + history.skipped.size + history.completed.size > 0,
+      ratings: history.liked.size + history.disliked.size,
+      completed: Array.from(history.completed.values()).reduce(function(total, count) { return total + count; }, 0),
+      skipped: Array.from(history.skipped.values()).reduce(function(total, count) { return total + count; }, 0),
+      familiarTracks: history.played.size,
+      variety,
+    } : { personalized: false, loggedOut: true, ratings: 0, completed: 0, skipped: 0, familiarTracks: 0, variety };
+    res.json({ mood: mood, context, profile: MOOD_PROFILES[context.mood], learning, count: songs.length, songs: songs });
   } catch (err) {
     console.error('Spotify error:', err.message);
     res.status(500).json({ error: err.message });

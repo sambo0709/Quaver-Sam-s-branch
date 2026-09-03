@@ -82,7 +82,7 @@ test.describe('Quaver Homepage Interactions', () => {
     let requestUrl = '';
     await page.route('**/api/music/recommend?**', async route => {
       requestUrl = route.request().url();
-      await route.fulfill({ json: { context: { activity: 'studying' }, songs: [{ title: 'Focus Song', artist: 'SZA', duration: '3:00', album_art: '', spotify_url: 'https://open.spotify.com/track/focus123', recommendation_reasons: ['Chosen for studying', 'Designed to help you focus'] }] } });
+      await route.fulfill({ json: { context: { activity: 'studying' }, learning: { personalized: true, completed: 4, skipped: 1, ratings: 2, familiarTracks: 3, variety: 'balanced' }, songs: [{ title: 'Focus Song', artist: 'SZA', duration: '3:00', album_art: '', spotify_url: 'https://open.spotify.com/track/focus123', recommendation_reasons: ['Chosen for studying', 'Designed to help you focus'] }] } });
     });
     await page.goto('/');
     await page.getByText('Shape this recommendation').click();
@@ -95,6 +95,8 @@ test.describe('Quaver Homepage Interactions', () => {
     await page.getByRole('button', { name: 'Go', exact: true }).click();
 
     await expect(page.getByText('Chosen for studying · Designed to help you focus')).toBeVisible();
+    await expect(page.getByText('Tuned for you')).toBeVisible();
+    await expect(page.getByText(/4 completed/)).toBeVisible();
     expect(requestUrl).toContain('secondaryMood=calm');
     expect(requestUrl).toContain('activity=studying');
     expect(requestUrl).toContain('direction=focus');

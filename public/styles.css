@@ -3261,6 +3261,9 @@ html.reduce-motion *::after {
   font-weight: 500;
   opacity: 0.75;
 }
+.recommendation-learning { display:flex; align-items:center; gap:10px; margin:0 0 14px; padding:11px 14px; border:1px solid var(--glass-border); border-radius:13px; background:var(--glass); color:var(--text-muted); font-size:.78rem; text-align:left; }
+.recommendation-learning strong { flex:none; color:var(--accent); font-size:.8rem; }
+@media (max-width:600px) { .recommendation-learning { align-items:flex-start; flex-direction:column; gap:3px; } }
 
 .mix-intro {
   color: var(--text-muted);

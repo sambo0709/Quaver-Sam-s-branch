@@ -122,9 +122,22 @@ function showSkeletons(count) {
   document.getElementById('results').innerHTML = card.repeat(count);
 }
 
-function renderRecommendationSongs(songs) {
+function recommendationLearningHTML(learning) {
+  if (!learning) return '';
+  if (learning.loggedOut) return '<div class="recommendation-learning"><strong>Fresh mix</strong><span>Log in to let completions, skips, and ratings shape future picks.</span></div>';
+  if (!learning.personalized) return '<div class="recommendation-learning"><strong>Learning your taste</strong><span>Play, finish, skip, or rate songs and Quaver will adapt.</span></div>';
+  const signals = [];
+  if (learning.completed) signals.push(learning.completed + ' completed');
+  if (learning.skipped) signals.push(learning.skipped + ' skipped');
+  if (learning.ratings) signals.push(learning.ratings + ' rated');
+  if (learning.familiarTracks) signals.push(learning.familiarTracks + ' from your history');
+  return '<div class="recommendation-learning"><strong>Tuned for you</strong><span>Using ' + escapeHTML(signals.slice(0, 3).join(' · ')) + ' · ' + escapeHTML(learning.variety || 'balanced') + ' discovery</span></div>';
+}
+
+function renderRecommendationSongs(songs, learning) {
   window._lastResults = songs;
   let html = '<div class="results-header"><span>' + songs.length + ' tracks — ' + escapeHTML(currentMood) + '</span><button class="play-all-btn" onclick="playAll(window._lastResults)">▶ Play All</button></div>';
+  html += recommendationLearningHTML(learning);
   songs.forEach(function(song, index) {
     const trackId = spotifyTrackId(song.spotify_url);
     html += '<div class="song-card" style="animation-delay:' + (index * 0.07) + 's">';
@@ -159,10 +172,10 @@ async function fetchSongs() {
     const res = await fetch(url, { credentials: 'include' });
     const data = await res.json();
     if (data.songs && data.songs.length > 0) {
-      renderRecommendationSongs(data.songs);
+      renderRecommendationSongs(data.songs, data.learning);
       trackRecommendationEvent('impression', '', { count: data.songs.length, context: data.context });
     }
-    else document.getElementById('results').innerHTML = '<p class="no-results">No songs found. Try another mood!</p>';
+    else document.getElementById('results').innerHTML = '<div class="error-state"><p>No matches for that exact combination.</p><button class="retry-btn" onclick="document.getElementById(\'preferred-artist\').value=\'\';fetchSongs()">Try without the artist</button></div>';
   } catch (_) {
     document.getElementById('results').innerHTML = '<div class="error-state"><p>Could not load songs.</p><button class="retry-btn" onclick="fetchSongs()">Try again</button></div>';
   }
