@@ -233,7 +233,7 @@
       '<div class="playlist-detail-hero">' + coverHTML(playlist, 'playlist-detail-cover') + '<div class="playlist-detail-copy"><span>PLAYLIST</span><h2>' + escapeHTML(playlist.name) + '</h2><p>' + songs.length + (songs.length === 1 ? ' song' : ' songs') + ' · ' + escapeHTML(playlistMood(playlist)) + ' · ' + escapeHTML(formatDate(playlist.createdAt)) + '</p><div class="playlist-detail-actions">' + (songs.some(trackId) ? '<button type="button" class="playlist-primary-action" data-action="play">Play all</button><button type="button" class="playlist-spotify-export" data-action="export">Export to Spotify</button>' : '') + '<button type="button" data-action="rename">Rename</button><button type="button" data-action="share">' + (playlist.isPublic ? 'Copy share link' : 'Share') + '</button><button type="button" class="playlist-delete-action" data-action="delete">Delete</button></div></div></div>' +
       '<div class="playlist-detail-tracks">' + (songs.length ? songs.map(function (song, index) {
         const canPlay = !!trackId(song);
-        return '<div class="playlist-detail-track"><span class="playlist-track-number">' + String(index + 1).padStart(2, '0') + '</span>' + (song.album_art ? '<img src="' + escapeHTML(song.album_art) + '" alt="" loading="lazy"/>' : '<div class="playlist-track-art"></div>') + '<div><strong>' + escapeHTML(song.title || 'Untitled song') + '</strong><span>' + escapeHTML(song.artist || 'Unknown artist') + '</span></div>' + (canPlay ? '<button class="playlist-track-play" type="button" data-action="play-song" data-song-index="' + index + '" aria-label="Play ' + escapeHTML(song.title) + '">▶</button>' : '') + (song.spotify_url ? '<a href="' + escapeHTML(song.spotify_url) + '" target="_blank" rel="noopener">Spotify</a>' : '') + '</div>';
+        return '<div class="playlist-detail-track"><span class="playlist-track-number">' + String(index + 1).padStart(2, '0') + '</span>' + (song.album_art ? '<img src="' + escapeHTML(song.album_art) + '" alt="" loading="lazy"/>' : '<div class="playlist-track-art"></div>') + '<div><strong>' + escapeHTML(song.title || 'Untitled song') + '</strong><span>' + escapeHTML(song.artist || 'Unknown artist') + '</span></div>' + (canPlay ? '<button class="playlist-track-play" type="button" data-action="play-song" data-song-index="' + index + '" aria-label="Play ' + escapeHTML(song.title) + '">▶</button>' : '') + (song.spotify_url ? '<a href="' + escapeHTML(song.spotify_url) + '" target="_blank" rel="noopener">Spotify</a>' : '') + (canPlay ? '<button class="playlist-track-remove" type="button" data-action="remove-song" data-song-index="' + index + '" aria-label="Remove ' + escapeHTML(song.title) + '">Remove</button>' : '') + '</div>';
       }).join('') : '<p class="playlist-detail-empty">There are no songs in this playlist yet.</p>') + '</div>';
     section.hidden = false;
   }
@@ -274,6 +274,24 @@
     selectedPlaylistId = null;
     renderDetail();
     history.replaceState({}, '', 'playlists.html');
+  }
+  async function removePlaylistSong(id, index, button) {
+    const playlist = playlistById(id);
+    const song = playlistSongs(playlist)[index];
+    const spotifyTrackId = song && trackId(song);
+    if (!playlist || !spotifyTrackId) return;
+    if (button) button.disabled = true;
+    try {
+      const response = await fetch(API + '/api/playlist/' + encodeURIComponent(playlist.id) + '/songs/' + encodeURIComponent(spotifyTrackId), { method: 'DELETE', headers: authHeaders(false) });
+      const data = await response.json().catch(function() { return {}; });
+      if (!response.ok) throw new Error(data.error || 'Could not remove song.');
+      playlist.songs.splice(index, 1);
+      renderAll();
+      showToast('Song removed from “' + playlist.name + '”.', 'success');
+    } catch (error) {
+      if (button && button.isConnected) button.disabled = false;
+      showToast(error.message || 'Could not remove song.', 'error');
+    }
   }
   function beginRename(id) {
     const playlist = playlistById(id);
@@ -429,6 +447,7 @@
     if (action === 'close-detail') closeDetail();
     if (action === 'play') playPlaylist(id, 0);
     if (action === 'play-song') playPlaylist(id, Number(actionButton.dataset.songIndex));
+    if (action === 'remove-song') removePlaylistSong(id, Number(actionButton.dataset.songIndex), actionButton);
     if (action === 'rename') beginRename(id);
     if (action === 'share') sharePlaylist(id);
     if (action === 'export') exportPlaylist(id, actionButton);

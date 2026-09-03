@@ -21,10 +21,8 @@ function cleanSpotifyUrl(value) {
     return url.hostname === 'open.spotify.com' && /^\/track\/[A-Za-z0-9]+$/.test(url.pathname) ? url.origin + url.pathname : '';
   } catch (_) { return ''; }
 }
-function cleanSongs(value) {
-  if (!Array.isArray(value) || value.length < 1 || value.length > 100) return null;
-  const songs = value.map(function(song) {
-    if (!song || typeof song !== 'object' || Array.isArray(song)) return null;
+function cleanSong(song) {
+  if (!song || typeof song !== 'object' || Array.isArray(song)) return null;
     const title = cleanText(song.title, 200);
     if (!title) return null;
     return {
@@ -34,7 +32,10 @@ function cleanSongs(value) {
       album_art: cleanHttpsUrl(song.album_art, 500),
       spotify_url: cleanSpotifyUrl(song.spotify_url),
     };
-  });
+}
+function cleanSongs(value) {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 100) return null;
+  const songs = value.map(cleanSong);
   return songs.every(Boolean) ? songs : null;
 }
 
@@ -82,6 +83,50 @@ router.post('/', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
+});
+
+// POST /api/playlist/:id/songs - add one track to an existing playlist
+router.post('/:id/songs', async (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
+  const song = cleanSong(req.body.song);
+  if (!song || !song.spotify_url) return res.status(400).json({ error: 'Valid Spotify song required' });
+  try {
+    const db = await getDB();
+    const users = db.collection('users');
+    const found = await users.findOne(
+      { _id: new ObjectId(user.userId), 'playlists.id': req.params.id },
+      { projection: { 'playlists.$': 1 } }
+    );
+    const playlist = found?.playlists?.[0];
+    if (!playlist) return res.status(404).json({ error: 'Playlist not found' });
+    if ((playlist.songs || []).some(function(item) { return item.spotify_url === song.spotify_url; })) {
+      return res.status(409).json({ error: 'Song is already in this playlist' });
+    }
+    if ((playlist.songs || []).length >= 100) return res.status(400).json({ error: 'Playlist is full' });
+    await users.updateOne(
+      { _id: new ObjectId(user.userId), 'playlists.id': req.params.id },
+      { $push: { 'playlists.$.songs': song } }
+    );
+    res.status(201).json({ message: 'Song added', song });
+  } catch (_) { res.status(500).json({ error: 'Server error' }); }
+});
+
+// DELETE /api/playlist/:id/songs/:trackId - remove one Spotify track
+router.delete('/:id/songs/:trackId', async (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
+  if (!/^[A-Za-z0-9]+$/.test(req.params.trackId)) return res.status(400).json({ error: 'Invalid track ID' });
+  const spotifyUrl = 'https://open.spotify.com/track/' + req.params.trackId;
+  try {
+    const db = await getDB();
+    const result = await db.collection('users').updateOne(
+      { _id: new ObjectId(user.userId), 'playlists.id': req.params.id, 'playlists.songs.spotify_url': spotifyUrl },
+      { $pull: { 'playlists.$.songs': { spotify_url: spotifyUrl } } }
+    );
+    if (!result.modifiedCount) return res.status(404).json({ error: 'Song or playlist not found' });
+    res.json({ message: 'Song removed' });
+  } catch (_) { res.status(500).json({ error: 'Server error' }); }
 });
 
 // PATCH /api/playlist/:id - rename a playlist

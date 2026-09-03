@@ -393,6 +393,43 @@ test('adding a homepage song opens the playlist-page builder instead of a popup'
   await expect(page.locator('#playlist-panel')).toHaveCount(0);
 });
 
+test('a homepage song can be added directly to an existing playlist', async ({ page }) => {
+  let addedBody: any;
+  await page.addInitScript(() => {
+    localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
+    localStorage.setItem('quaver_onboarded', 'true');
+    sessionStorage.setItem('quaver_launched', '1');
+  });
+  await page.route('**/api/playlist/existing/songs', async route => {
+    addedBody = route.request().postDataJSON();
+    await route.fulfill({ status: 201, json: { song: addedBody.song } });
+  });
+  await page.route('**/api/playlist', route => route.fulfill({ json: { playlists: [{ id: 'existing', name: 'Night Drive', mood: 'calm', songs: [] }] } }));
+  await page.goto('/');
+  await expect(page.locator('#playlist-count')).toHaveText('1');
+  await page.evaluate(() => (window as any).addToPlaylist({ title: 'New Song', artist: 'Quaver Artist', album_art: '', spotify_url: 'https://open.spotify.com/track/add123' }, null));
+  await expect(page.getByRole('dialog', { name: 'Add to playlist' })).toBeVisible();
+  await page.getByRole('button', { name: /Night Drive/ }).click();
+  expect(addedBody.song).toMatchObject({ title: 'New Song', spotify_url: 'https://open.spotify.com/track/add123' });
+  await expect(page.getByText('New Song added to “Night Drive”.')).toBeVisible();
+});
+
+test('songs can be removed from an existing playlist', async ({ page }) => {
+  let removedUrl = '';
+  await page.addInitScript(() => localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' })));
+  await page.route('**/api/playlist/remove-me/songs/remove123', async route => {
+    removedUrl = route.request().url();
+    await route.fulfill({ json: { message: 'Song removed' } });
+  });
+  await page.route('**/api/playlist', route => route.fulfill({ json: { playlists: [{ id: 'remove-me', name: 'Editable Mix', mood: 'mixed', createdAt: '2026-09-01T12:00:00.000Z', songs: [{ title: 'Remove Me', artist: 'Quaver Artist', album_art: '', spotify_url: 'https://open.spotify.com/track/remove123' }] }] } }));
+  await page.goto('/playlists.html?id=remove-me');
+  await expect(page.getByText('Remove Me', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Remove Remove Me' }).click();
+  await expect(page.getByText('There are no songs in this playlist yet.')).toBeVisible();
+  expect(removedUrl).toContain('/api/playlist/remove-me/songs/remove123');
+  await expect(page.locator('#playlist-song-total')).toHaveText('0');
+});
+
 test('Trending Moods uses solid surfaces for both color themes', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('quaver_onboarded', 'true');

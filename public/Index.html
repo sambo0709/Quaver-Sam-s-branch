@@ -183,6 +183,14 @@
   <div id="queue-list" class="queue-list"></div>
 </div>
 
+<div class="playlist-picker-overlay" id="playlist-picker-overlay" onclick="closePlaylistPicker()"></div>
+<div class="playlist-picker" id="playlist-picker" role="dialog" aria-modal="true" aria-labelledby="playlist-picker-title" hidden>
+  <div class="playlist-picker-heading"><strong id="playlist-picker-title">Add to playlist</strong><button type="button" onclick="closePlaylistPicker()" aria-label="Close">✕</button></div>
+  <p id="playlist-picker-song"></p>
+  <div id="playlist-picker-list" class="playlist-picker-list"></div>
+  <button class="playlist-picker-create" type="button" onclick="addPendingSongToNewPlaylist()">＋ Create new playlist</button>
+</div>
+
 <script src="home-core.js"></script>
 <script src="home-state.js"></script>
 <script src="home-recommendations.js"></script>

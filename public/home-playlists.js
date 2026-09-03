@@ -12,17 +12,55 @@ async function loadPlaylists() {
   renderSavedPlaylists();
   updatePlaylistBadge();
 }
+let pendingPlaylistSong = null;
+
 function addToPlaylist(song, btn) {
   if (!requireLogin('You need an account to save songs!')) return;
-  const isDupe = playlistSongs.some(function(s) {
-    return song.spotify_url ? s.spotify_url === song.spotify_url : s.title === song.title;
-  });
-  if (isDupe) { showToast(song.title + ' is already in your playlist!', 'error'); return; }
-  playlistSongs.push(song);
-  trackRecommendationEvent('save', spotifyTrackId(song.spotify_url));
+  if (!savedPlaylists.length) return stageNewPlaylistSong(song);
+  pendingPlaylistSong = song;
+  const list = document.getElementById('playlist-picker-list');
+  document.getElementById('playlist-picker-song').textContent = song.title + ' · ' + (song.artist || 'Unknown artist');
+  list.innerHTML = savedPlaylists.map(function(playlist, index) {
+    const duplicate = (playlist.songs || []).some(function(saved) { return spotifyTrackId(saved.spotify_url) === spotifyTrackId(song.spotify_url); });
+    return '<button type="button" onclick="addPendingSongToPlaylist(' + index + ')"' + (duplicate ? ' disabled' : '') + '><span>' + escapeHTML(playlist.name) + '</span><small>' + (duplicate ? 'Already added' : (playlist.songs || []).length + ' songs') + '</small></button>';
+  }).join('');
+  document.getElementById('playlist-picker').hidden = false;
+  document.getElementById('playlist-picker-overlay').classList.add('open');
+}
+
+function closePlaylistPicker() {
+  document.getElementById('playlist-picker').hidden = true;
+  document.getElementById('playlist-picker-overlay').classList.remove('open');
+  pendingPlaylistSong = null;
+}
+
+function stageNewPlaylistSong(song) {
+  playlistSongs = [song];
   localStorage.setItem('quaver_playlist_draft', JSON.stringify(playlistSongs));
-  if (btn) { btn.textContent = 'Added'; btn.classList.add('added'); }
   window.location.href = 'playlists.html?create=1';
+}
+
+function addPendingSongToNewPlaylist() {
+  if (pendingPlaylistSong) stageNewPlaylistSong(pendingPlaylistSong);
+}
+
+async function addPendingSongToPlaylist(index) {
+  const song = pendingPlaylistSong;
+  const playlist = savedPlaylists[index];
+  if (!song || !playlist) return;
+  try {
+    const response = await fetch(API + '/api/playlist/' + encodeURIComponent(playlist.id) + '/songs', {
+      method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ song: song })
+    });
+    const data = await response.json().catch(function() { return {}; });
+    if (!response.ok) throw new Error(data.error || 'Could not add song.');
+    playlist.songs = playlist.songs || [];
+    playlist.songs.push(data.song || song);
+    localStorage.setItem('quaver_playlists', JSON.stringify(savedPlaylists));
+    trackRecommendationEvent('save', spotifyTrackId(song.spotify_url));
+    closePlaylistPicker();
+    showToast(song.title + ' added to “' + playlist.name + '”.', 'success');
+  } catch (error) { showToast(error.message || 'Could not add song.', 'error'); }
 }
 
 function removeFromPlaylist(index) {
