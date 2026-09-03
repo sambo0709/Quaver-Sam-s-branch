@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="theme-color" content="#00d4ff"/>
+  <title>Search - Quaver</title>
+  <link rel="icon" href="nightmode_logo.png"/>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body class="profile-page search-page">
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <nav class="top-nav">
+    <div class="nav-left"><img class="logo brand-mark" id="logo" src="nightmode_logo.png" alt="Quaver"/></div>
+    <div class="nav-center"><a class="nav-link home-nav-link" href="Index.html" aria-label="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 10 8-6 8 6v9H5v-9Z"/><path d="M9 19v-6h6v6"/></svg><span>Home</span></a><form class="global-search" action="search.html" method="get" role="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg><input name="q" type="search" placeholder="What do you want to play?" aria-label="Search songs, artists, or albums"/></form><a class="nav-link" href="playlists.html">Playlists</a></div>
+    <div class="nav-right"><button class="toggle" id="theme-btn" type="button" aria-label="Toggle color theme"></button></div>
+  </nav>
+
+  <main class="search-main">
+    <header class="search-header"><span>DISCOVER</span><h1>Search</h1><p>Find a song, artist, or album.</p></header>
+    <form id="search-page-form" class="search-page-form" role="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+      <input id="search-page-input" type="search" placeholder="Song, artist, or album" autocomplete="off" aria-label="Search songs, artists, or albums" required/>
+      <button type="submit">Search</button>
+    </form>
+    <div id="search-page-status" class="search-page-status" aria-live="polite">Start with a song, artist, or album.</div>
+    <section id="search-page-results" class="search-page-results" aria-label="Search results"></section>
+  </main>
+
+  <nav class="mobile-bottom-nav" aria-label="Mobile navigation"><a href="Index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 10 8-6 8 6v9H5v-9Z"/><path d="M9 19v-6h6v6"/></svg>Home</a><a class="active" href="search.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>Search</a><a href="playlists.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 11h11M9 16h7"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="11" r="1"/><circle cx="4.5" cy="16" r="1"/></svg>Playlists</a><a href="profile.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.6-4 3-6 7-6s6.4 2 7 6"/></svg>Account</a></nav>
+  <script src="search.js"></script>
+</body>
+</html>

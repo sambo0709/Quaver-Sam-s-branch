@@ -30,7 +30,7 @@
     const active = theme === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : theme;
     document.documentElement.setAttribute('data-theme', active);
     byId('theme-btn').innerHTML = themeIcon(active);
-    byId('logo').src = active === 'light' ? 'quaver_lightmode1.png' : 'quaver_nightmode1.png';
+    byId('logo').src = active === 'light' ? 'lightmode_logo.png' : 'nightmode_logo.png';
   }
   window.toggleTheme = function () {
     const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';

@@ -208,6 +208,53 @@ test('primary playlist navigation opens the full library page', async ({ page })
   await expect(page.locator('.mobile-bottom-nav a[href="playlists.html"]')).toBeAttached();
 });
 
+test('global search opens a dedicated discovery page', async ({ page }) => {
+  await page.goto('/');
+  const search = page.getByPlaceholder('What do you want to play?');
+  const collapsedWidth = await page.locator('.global-search').evaluate((element) => element.getBoundingClientRect().width);
+  expect(collapsedWidth).toBeLessThanOrEqual(50);
+  await search.focus();
+  await expect.poll(() => page.locator('.global-search').evaluate((element) => element.getBoundingClientRect().width)).toBeGreaterThan(200);
+  await search.fill('SZA');
+  await search.press('Enter');
+  await expect(page).toHaveURL(/search\.html\?q=SZA/);
+  await expect(page.getByRole('heading', { name: 'Search' })).toBeVisible();
+  await expect(page.locator('.mobile-bottom-nav a.active')).toHaveText(/Search/);
+});
+
+test('header uses a non-linking compact Quaver mark', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('quaver_onboarded', '1'));
+  await page.goto('/');
+  const mark = page.locator('.nav-left .brand-mark');
+  const initialTheme = await page.locator('html').getAttribute('data-theme');
+  const initialAsset = initialTheme === 'light' ? 'lightmode_logo.png' : 'nightmode_logo.png';
+  const nextAsset = initialTheme === 'light' ? 'nightmode_logo.png' : 'lightmode_logo.png';
+  await expect(mark).toHaveAttribute('src', initialAsset);
+  await expect(mark.locator('xpath=ancestor::a')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Toggle color theme' }).click();
+  await expect(mark).toHaveAttribute('src', nextAsset);
+});
+
+test('header remains visible while scrolling and resizing', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('quaver_onboarded', '1'));
+  await page.setViewportSize({ width: 700, height: 720 });
+  await page.goto('/');
+  const header = page.locator('body > nav').first();
+  await page.evaluate(() => window.scrollTo(0, 900));
+  await expect(header).toBeVisible();
+  await expect.poll(() => header.evaluate((element) => element.getBoundingClientRect().top)).toBeGreaterThanOrEqual(0);
+  const splitHeaderStyle = await header.evaluate((element) => ({
+    background: getComputedStyle(element).backgroundColor,
+    height: element.getBoundingClientRect().height
+  }));
+  expect(splitHeaderStyle.background).not.toBe('rgba(0, 0, 0, 0)');
+  expect(splitHeaderStyle.height).toBeGreaterThanOrEqual(60);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.evaluate(() => window.scrollTo(0, 1500));
+  await expect(header).toBeVisible();
+  await expect(header).not.toHaveClass(/nav-hidden/);
+});
+
 test('a playlist can be built and saved entirely on the playlist page', async ({ page }) => {
   let createdBody: any;
   await page.addInitScript(() => {

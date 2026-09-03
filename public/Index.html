@@ -22,12 +22,11 @@
 
 <nav>
   <div class="nav-left">
-    <a href="Index.html">
-      <img class="logo" id="logo" src="quaver_nightmode1.png" alt="Quaver Logo">
-    </a>
+    <img class="logo brand-mark" id="logo" src="nightmode_logo.png" alt="Quaver">
   </div>
   <div class="nav-center">
-    <a class="nav-link active" href="Index.html">Home</a>
+    <a class="nav-link home-nav-link active" href="Index.html" aria-label="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 10 8-6 8 6v9H5v-9Z"/><path d="M9 19v-6h6v6"/></svg><span>Home</span></a>
+    <form class="global-search" action="search.html" method="get" role="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg><input name="q" type="search" placeholder="What do you want to play?" aria-label="Search songs, artists, or albums"/></form>
     <a class="nav-link" href="playlists.html">Playlists <span id="playlist-count" class="count-badge">0</span></a>
     <div id="spotify-login-btn" style="display:none">
       <button onclick="connectSpotifyAccount()" class="nav-link spotify-nav-link">Spotify</button>
@@ -87,51 +86,10 @@
     </select>
   </div>
   <button class="mood-select random-btn" onclick="randomMood()">✨ Surprise Me</button>
-  <div class="search-divider"><span>or search directly</span></div>
-  <div class="search-row">
-    <div class="search-input-wrap">
-      <input type="text" id="search-input" class="search-input" placeholder="Song, artist, album..."
-        onkeydown="if(event.key==='Enter')searchSongs()"
-        oninput="document.getElementById('search-clear').style.display=this.value?'flex':'none'"
-        onfocus="document.getElementById('search-filters').classList.add('visible')"
-        onblur="if(!this.value.trim())document.getElementById('search-filters').classList.remove('visible')"/>
-      <button class="search-clear-btn" id="search-clear" onclick="clearSearch()" style="display:none" title="Clear">✕</button>
-    </div>
-    <button class="search-btn" onclick="searchSongs()">&#9906; Search</button>
-  </div>
-  <div class="search-filters" id="search-filters">
-    <select class="filter-select" id="filter-genre">
-      <option value="">Any genre</option>
-      <option value="pop">Pop</option>
-      <option value="hip-hop">Hip-Hop</option>
-      <option value="rock">Rock</option>
-      <option value="r-n-b">R&amp;B</option>
-      <option value="electronic">Electronic</option>
-      <option value="jazz">Jazz</option>
-      <option value="classical">Classical</option>
-      <option value="country">Country</option>
-      <option value="lo-fi">Lo-Fi</option>
-      <option value="afrobeats">Afrobeats</option>
-    </select>
-    <select class="filter-select" id="filter-year">
-      <option value="">Any era</option>
-      <option value="2020-2025">2020s</option>
-      <option value="2010-2019">2010s</option>
-      <option value="2000-2009">2000s</option>
-      <option value="1990-1999">90s</option>
-      <option value="1980-1989">80s</option>
-      <option value="1970-1979">70s</option>
-    </select>
-  </div>
   <div id="streak-banner" class="streak-banner" style="display:none"></div>
   <div id="loading" class="loading" style="display:none">
-    <div class="music-notes-loader">
-      <span class="music-note">♩</span>
-      <span class="music-note">♪</span>
-      <span class="music-note">♫</span>
-      <span class="music-note">♬</span>
-    </div>
-    <span>finding your sound...</span>
+    <div class="loading-bar" aria-hidden="true"></div>
+    <span>Finding your sound…</span>
   </div>
   <div id="results" class="results"></div>
 </main>
@@ -194,10 +152,10 @@
 </div>
 
 <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
-  <a class="active" href="Index.html"><span aria-hidden="true">⌂</span>Home</a>
-  <button onclick="focusSearch()"><span aria-hidden="true">⌕</span>Search</button>
-  <a href="playlists.html"><span aria-hidden="true">♫</span>Playlists</a>
-  <a href="profile.html"><span aria-hidden="true">◉</span>Account</a>
+  <a class="active" href="Index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 10 8-6 8 6v9H5v-9Z"/><path d="M9 19v-6h6v6"/></svg>Home</a>
+  <a href="search.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>Search</a>
+  <a href="playlists.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 11h11M9 16h7"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="11" r="1"/><circle cx="4.5" cy="16" r="1"/></svg>Playlists</a>
+  <a href="profile.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.6-4 3-6 7-6s6.4 2 7 6"/></svg>Account</a>
 </nav>
 
 <div class="queue-overlay" id="queue-overlay" onclick="toggleQueuePanel()"></div>
@@ -257,17 +215,17 @@
   const moods = ['happy', 'sad', 'energetic', 'calm', 'focused', 'angry', 'romantic', 'nostalgic', 'party', 'sleepy', 'anxious'];
 
   const moodColors = {
-    happy:     { accent: '#FFD700', accent2: '#FF9500' },
-    sad:       { accent: '#4A90D9', accent2: '#9B59B6' },
-    energetic: { accent: '#FF4E50', accent2: '#F9D423' },
-    calm:      { accent: '#43B89C', accent2: '#6BC5F8' },
-    focused:   { accent: '#7B61FF', accent2: '#00D4FF' },
-    angry:     { accent: '#FF2D2D', accent2: '#FF6B35' },
-    romantic:  { accent: '#FF6B9D', accent2: '#FF4E50' },
-    nostalgic: { accent: '#F7971E', accent2: '#FFD200' },
-    party:     { accent: '#FF006E', accent2: '#FB5607' },
-    sleepy:    { accent: '#4776E6', accent2: '#8E54E9' },
-    anxious:   { accent: '#11998E', accent2: '#38EF7D' },
+    happy:     { accent: '#D7A300', accent2: '#E8B923' },
+    sad:       { accent: '#2878D0', accent2: '#3157A4' },
+    energetic: { accent: '#E85D04', accent2: '#F48C06' },
+    calm:      { accent: '#168C8C', accent2: '#2AA7A1' },
+    focused:   { accent: '#4F46E5', accent2: '#7C3AED' },
+    angry:     { accent: '#C1121F', accent2: '#780000' },
+    romantic:  { accent: '#D63384', accent2: '#F06595' },
+    nostalgic: { accent: '#9C6644', accent2: '#C08457' },
+    party:     { accent: '#9D00C6', accent2: '#E0008A' },
+    sleepy:    { accent: '#40577A', accent2: '#68769B' },
+    anxious:   { accent: '#3A8D44', accent2: '#78A641' },
   };
 
   function applyMoodColors(mood) {
@@ -373,7 +331,7 @@
   function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     document.getElementById('theme-btn').innerHTML = uiIcon(theme === 'dark' ? 'moon' : 'sun');
-    document.getElementById('logo').src = theme === 'dark' ? 'quaver_nightmode1.png' : 'quaver_lightmode1.png';
+    document.getElementById('logo').src = theme === 'dark' ? 'nightmode_logo.png' : 'lightmode_logo.png';
     const splashLogo = document.getElementById('splash-logo');
     if (splashLogo) splashLogo.src = theme === 'dark' ? 'quaver_nightmode1.png' : 'quaver_lightmode1.png';
   }
@@ -453,18 +411,6 @@
       document.getElementById('spotify-user-info').style.display = 'none';
     }
   }
-
-  (function() {
-    var lastY = 0, nav = null;
-    window.addEventListener('scroll', function() {
-      if (window.innerWidth > 768) return;
-      if (!nav) nav = document.querySelector('nav, .top-nav');
-      var y = window.scrollY;
-      if (y > lastY && y > 60) nav.classList.add('nav-hidden');
-      else nav.classList.remove('nav-hidden');
-      lastY = y;
-    }, { passive: true });
-  })();
 
   window.addEventListener('DOMContentLoaded', function() {
     const savedTheme = localStorage.getItem('theme');
@@ -604,9 +550,7 @@
   }
 
   function focusSearch() {
-    const input = document.getElementById('search-input');
-    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    setTimeout(function(){ input.focus(); }, 350);
+    window.location.href = 'search.html';
   }
 
   function playPersonalized(index) {
@@ -1310,12 +1254,7 @@
 
   function moreLikeThis(title, artist) {
     const q = artist ? title + ' ' + artist : title;
-    const input = document.getElementById('search-input');
-    input.value = q;
-    document.getElementById('search-filters').classList.add('visible');
-    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    showToast('Finding songs like "' + title + '"...', 'success');
-    searchSongs();
+    window.location.href = 'search.html?q=' + encodeURIComponent(q);
   }
 
   function fireConfetti() {

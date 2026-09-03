@@ -20,8 +20,8 @@ export class HomePage {
     this.selectMoodButton = page.locator('#mood-select');
     this.howManySongsButton = page.locator('#count-select');
     this.surpriseMeButton = page.getByText('Surprise Me');
-    this.searchInput = page.getByPlaceholder('Song, artist, album...');
-    this.searchButton = page.getByRole('button', { name: /search/i });
+    this.searchInput = page.getByPlaceholder('What do you want to play?');
+    this.searchButton = page.locator('.global-search');
     this.letsGoButton = page.getByRole('button', { name: "Let's go" });
   }
 

@@ -24,7 +24,7 @@ test.describe('Quaver Homepage', () => {
     await expect(homePage.surpriseMeButton).toBeVisible();
   });
 
-  test('shows search bar and search button', async ({ page }) => {
+  test('shows global search in the desktop navigation', async ({ page }) => {
     const homePage = new HomePage(page);
     await homePage.goto();
     await expect(homePage.searchInput).toBeVisible();
