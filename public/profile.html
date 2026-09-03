@@ -408,7 +408,7 @@
         } catch (e) {}
       }
       let moods = [];
-      if (token) {
+      if (hasSession) {
         try {
           const moodRes = await fetch(API + '/api/mood/history', {
             credentials: 'include'

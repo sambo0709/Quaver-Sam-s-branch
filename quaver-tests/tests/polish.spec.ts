@@ -20,6 +20,30 @@ test('profile exposes the polished dashboard and dedicated settings navigation',
   await expect(page.getByRole('button', { name: 'Toggle color theme' })).toHaveCount(0);
 });
 
+test('authenticated profile loads mood, listening, and playlist data', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
+    localStorage.setItem('theme', 'dark');
+  });
+  await page.route('**/api/playlist', route => route.fulfill({
+    json: { playlists: [{ id: 'evening', name: 'Evening Mix', mood: 'calm', songs: [] }] },
+  }));
+  await page.route('**/api/mood/history', route => route.fulfill({
+    json: { moods: [{ mood: 'calm', time: '8:00 PM', ts: Date.now() }] },
+  }));
+  await page.route('**/api/listening/history', route => route.fulfill({
+    json: { plays: [{ trackId: 'played123', title: 'Loaded Song', artist: 'Loaded Artist', albumArt: '', playedAt: Date.now() }] },
+  }));
+  await page.route('**/api/music/recommend?**', route => route.fulfill({ json: { songs: [] } }));
+
+  await page.goto('/profile.html');
+
+  await expect(page.getByText('Recorded moods')).toBeVisible();
+  await expect(page.getByText('Loaded Song')).toBeVisible();
+  await expect(page.getByText('Evening Mix')).toBeVisible();
+  await expect(page.getByText('calm', { exact: true }).first()).toBeVisible();
+});
+
 test('settings are organized on a dedicated page', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
