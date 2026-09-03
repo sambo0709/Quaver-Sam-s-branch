@@ -1,8 +1,8 @@
 const CACHE = 'quaver-v3';
 // Only cache images — HTML and CSS are always served fresh from the network
 const ASSETS = [
-  '/quaver_nightmode1.png',
-  '/quaver_lightmode1.png',
+  '/quaver-q-dark.png',
+  '/quaver-q-light.png',
   '/manifest.json',
 ];
 

@@ -67,10 +67,10 @@ function applyTheme(theme) {
     ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
     : theme;
   document.documentElement.setAttribute('data-theme', activeTheme);
-  document.getElementById('logo').src = activeTheme === 'dark' ? 'nightmode_logo.png' : 'lightmode_logo.png';
+  document.getElementById('logo').src = activeTheme === 'dark' ? 'quaver-q-dark.png' : 'quaver-q-light.png';
   const splashLogo = document.getElementById('splash-logo');
   if (splashLogo) {
-    splashLogo.src = activeTheme === 'dark' ? 'quaver_nightmode1.png' : 'quaver_lightmode1.png';
+    splashLogo.src = activeTheme === 'dark' ? 'quaver-q-dark.png' : 'quaver-q-light.png';
   }
 }
 

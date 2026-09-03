@@ -13,7 +13,7 @@
 <nav class="top-nav">
   <div class="nav-left">
     <a href="Index.html">
-      <img class="logo" id="logo" src="quaver_nightmode1.png" alt="Quaver Logo">
+      <img class="logo" id="logo" src="quaver-q-dark.png" alt="Quaver Logo">
     </a>
   </div>
   <div class="nav-center">
@@ -59,7 +59,7 @@
   function applyTheme(theme) {
     const active = theme === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : theme;
     document.documentElement.setAttribute('data-theme', active);
-    document.getElementById('logo').src = active === 'light' ? 'quaver_lightmode1.png' : 'quaver_nightmode1.png';
+    document.getElementById('logo').src = active === 'light' ? 'quaver-q-light.png' : 'quaver-q-dark.png';
   }
 
   matchMedia('(prefers-color-scheme: light)').addEventListener('change', function() {

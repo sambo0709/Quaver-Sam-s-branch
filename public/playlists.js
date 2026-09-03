@@ -24,7 +24,7 @@
   function applyTheme(theme) {
     const active = theme === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : theme;
     document.documentElement.setAttribute('data-theme', active);
-    byId('logo').src = active === 'light' ? 'lightmode_logo.png' : 'nightmode_logo.png';
+    byId('logo').src = active === 'light' ? 'quaver-q-light.png' : 'quaver-q-dark.png';
   }
   matchMedia('(prefers-color-scheme: light)').addEventListener('change', function () {
     if (!localStorage.getItem('theme')) applyTheme('system');

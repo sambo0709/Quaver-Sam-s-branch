@@ -9,7 +9,7 @@
 <body class="profile-page settings-page">
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <nav class="top-nav">
-    <div class="nav-left"><img class="logo brand-mark" id="logo" src="nightmode_logo.png" alt="Quaver"/></div>
+    <div class="nav-left"><img class="logo brand-mark" id="logo" src="quaver-q-dark.png" alt="Quaver"/></div>
     <div class="nav-center"><a class="nav-link home-nav-link" href="Index.html" aria-label="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 10 8-6 8 6v9H5v-9Z"/><path d="M9 19v-6h6v6"/></svg><span>Home</span></a><form class="global-search" action="search.html" method="get" role="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg><input name="q" type="search" placeholder="What do you want to play?" aria-label="Search songs, artists, or albums"/></form><a class="nav-link" href="playlists.html">Playlists</a></div>
     <div class="nav-right"><div id="user-menu" class="user-menu"><button id="user-menu-button" class="user-menu-button" onclick="toggleUserMenu(event)" aria-label="Open account menu" aria-expanded="false"><span id="user-avatar">U</span></button><div id="user-menu-dropdown" class="user-menu-dropdown" hidden><div class="user-menu-header"><strong id="nav-username"></strong><small>Quaver account</small></div><a href="profile.html">Profile</a><a class="active" href="settings.html">Settings</a><button onclick="logout()">Log out</button></div></div></div>
   </nav>
@@ -50,7 +50,7 @@
     let toastTimer;
     function showToast(message,type) { const toast=document.getElementById('toast'); clearTimeout(toastTimer); toast.textContent=message; toast.className='toast '+(type||'success')+' show'; toastTimer=setTimeout(()=>toast.classList.remove('show'),3200); }
     function authHeaders(json) { return json ? {'Content-Type':'application/json'} : {}; }
-    function applyTheme(theme) { const active=theme==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):theme; document.documentElement.setAttribute('data-theme',active); document.getElementById('logo').src=active==='light'?'lightmode_logo.png':'nightmode_logo.png'; }
+    function applyTheme(theme) { const active=theme==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):theme; document.documentElement.setAttribute('data-theme',active); document.getElementById('logo').src=active==='light'?'quaver-q-light.png':'quaver-q-dark.png'; }
     matchMedia('(prefers-color-scheme: light)').addEventListener('change',function(){if(!localStorage.getItem('theme'))applyTheme('system');});
     async function logout() { try{await fetch(API+'/api/auth/logout',{method:'POST',credentials:'include'});}catch(_){} ['quaver_user','quaver_playlists','quaver_spotify_name'].forEach(key=>localStorage.removeItem(key)); location.href='login.html'; }
     function toggleUserMenu(event){event.stopPropagation();const menu=document.getElementById('user-menu-dropdown');const open=menu.hidden;menu.hidden=!open;document.getElementById('user-menu-button').setAttribute('aria-expanded',String(open));}
