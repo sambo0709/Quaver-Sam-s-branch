@@ -3068,6 +3068,7 @@ body.player-active { padding-bottom: 118px; }
 .playlist-suggestion-song span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .playlist-suggestion-song strong { color: var(--text); font-size: 11px; }
 .playlist-suggestion-song div span { margin-top: 4px; color: var(--text-muted); font-size: 9px; }
+.playlist-suggestion-song div small { display: block; margin-top: 4px; overflow: hidden; color: var(--accent); font-size: 8px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; opacity: .85; }
 .playlist-suggestion-play,
 .playlist-suggestion-add { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--glass-border); border-radius: 50%; background: transparent; color: var(--text); cursor: pointer; }
 .playlist-suggestion-add { border-color: color-mix(in srgb, var(--accent) 50%, transparent); color: var(--accent); font-size: 20px; font-weight: 400; }

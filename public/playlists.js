@@ -11,6 +11,7 @@
   let createDraft = [];
   let createSearchResults = [];
   const playlistSuggestions = {};
+  const playlistArtistImages = {};
   try { createDraft = JSON.parse(localStorage.getItem('quaver_playlist_draft') || '[]'); } catch (_) { createDraft = []; }
 
   function byId(id) { return document.getElementById(id); }
@@ -65,6 +66,19 @@
   function playlistMood(playlist) { return String(playlist.mood || 'mixed').replace(/(^|\s)\S/g, function (letter) { return letter.toUpperCase(); }); }
   function recommendationMood(playlist) {
     if (playlist && playlist.mood && playlist.mood !== 'mixed') return playlist.mood;
+    const text = [playlist && playlist.name].concat(playlistSongs(playlist).map(function(song) { return song.title + ' ' + song.artist; })).join(' ').toLowerCase();
+    const signals = {
+      calm: ['calm', 'quiet', 'soft', 'chill', 'peace', 'ambient'], focused: ['focus', 'study', 'work', 'lofi'],
+      energetic: ['energy', 'workout', 'run', 'hype', 'rock'], party: ['party', 'dance', 'club'],
+      romantic: ['love', 'romance', 'heart'], sad: ['sad', 'blue', 'cry', 'heartbreak'], nostalgic: ['throwback', 'old', 'classic', 'nostalgia'],
+    };
+    let bestMood = '';
+    let bestScore = 0;
+    Object.keys(signals).forEach(function(mood) {
+      const score = signals[mood].filter(function(word) { return text.includes(word); }).length;
+      if (score > bestScore) { bestMood = mood; bestScore = score; }
+    });
+    if (bestMood) return bestMood;
     const moods = ['happy', 'calm', 'energetic', 'focused', 'nostalgic'];
     const seed = String(playlist && playlist.id || '').split('').reduce(function (total, character) { return total + character.charCodeAt(0); }, 0);
     return moods[seed % moods.length];
@@ -263,8 +277,10 @@
     const artists = artistEntries(playlist);
     if (!artists.length) return '';
     return '<section class="playlist-featured" aria-labelledby="playlist-featured-title"><div class="playlist-section-heading"><div><span>IN THIS PLAYLIST</span><h3 id="playlist-featured-title">Featured artists</h3></div><small>' + artists.length + (artists.length === 1 ? ' artist' : ' artists') + '</small></div><div class="playlist-featured-row">' + artists.map(function (artist) {
-      const art = artist.image ? '<img src="' + escapeHTML(artist.image) + '" alt="" loading="lazy"/>' : '<span>' + escapeHTML(artist.name.charAt(0).toUpperCase()) + '</span>';
-      return '<a class="playlist-featured-artist" href="search.html?q=' + encodeURIComponent(artist.name) + '" aria-label="Find music by ' + escapeHTML(artist.name) + '"><span class="playlist-artist-art">' + art + '</span><strong>' + escapeHTML(artist.name) + '</strong><small>' + artist.count + (artist.count === 1 ? ' song' : ' songs') + '</small></a>';
+      const profile = playlistArtistImages[artist.name.toLowerCase()] || {};
+      const image = profile.image || artist.image;
+      const art = image ? '<img src="' + escapeHTML(image) + '" alt="" loading="lazy"/>' : '<span>' + escapeHTML(artist.name.charAt(0).toUpperCase()) + '</span>';
+      return '<a class="playlist-featured-artist" href="' + (profile.spotify_url ? escapeHTML(profile.spotify_url) : 'search.html?q=' + encodeURIComponent(artist.name)) + '"' + (profile.spotify_url ? ' target="_blank" rel="noopener"' : '') + ' aria-label="Find music by ' + escapeHTML(artist.name) + '"><span class="playlist-artist-art">' + art + '</span><strong>' + escapeHTML(profile.name || artist.name) + '</strong><small>' + artist.count + (artist.count === 1 ? ' song' : ' songs') + '</small></a>';
     }).join('') + '</div></section>';
   }
   function renderSuggestions(playlist) {
@@ -278,7 +294,8 @@
       body = '<p class="playlist-suggestion-message">No new matches found. Refresh to try another mix.</p>';
     } else {
       body = '<div class="playlist-suggestion-list">' + state.songs.map(function (song, index) {
-        return '<div class="playlist-suggestion-song">' + (song.album_art ? '<img src="' + escapeHTML(song.album_art) + '" alt="" loading="lazy"/>' : '<div class="playlist-track-art"></div>') + '<div><strong>' + escapeHTML(song.title || 'Untitled song') + '</strong><span>' + escapeHTML(song.artist || 'Unknown artist') + '</span></div>' + (trackId(song) ? '<button type="button" class="playlist-suggestion-play" data-action="play-suggestion" data-suggestion-index="' + index + '" aria-label="Preview ' + escapeHTML(song.title) + '">▶</button>' : '') + '<button type="button" class="playlist-suggestion-add" data-action="add-suggestion" data-suggestion-index="' + index + '" aria-label="Add ' + escapeHTML(song.title) + ' to playlist">+</button></div>';
+        const reasons = Array.isArray(song.recommendation_reasons) && song.recommendation_reasons.length ? song.recommendation_reasons.join(' · ') : 'Fits the ' + playlistMood(playlist).toLowerCase() + ' feel';
+        return '<div class="playlist-suggestion-song">' + (song.album_art ? '<img src="' + escapeHTML(song.album_art) + '" alt="" loading="lazy"/>' : '<div class="playlist-track-art"></div>') + '<div><strong>' + escapeHTML(song.title || 'Untitled song') + '</strong><span>' + escapeHTML(song.artist || 'Unknown artist') + '</span><small>' + escapeHTML(reasons) + '</small></div>' + (trackId(song) ? '<button type="button" class="playlist-suggestion-play" data-action="play-suggestion" data-suggestion-index="' + index + '" aria-label="Preview ' + escapeHTML(song.title) + '">▶</button>' : '') + '<button type="button" class="playlist-suggestion-add" data-action="add-suggestion" data-suggestion-index="' + index + '" aria-label="Add ' + escapeHTML(song.title) + ' to playlist">+</button></div>';
       }).join('') + '</div>';
     }
     return '<section class="playlist-suggestions" aria-labelledby="playlist-suggestions-title"><div class="playlist-section-heading"><div><span>MATCHED TO ' + escapeHTML(playlistMood(playlist).toUpperCase()) + '</span><h3 id="playlist-suggestions-title">Suggested songs</h3><p>Preview a track or add it to this playlist.</p></div><button type="button" class="playlist-suggestion-refresh" data-action="refresh-suggestions" aria-label="Refresh suggested songs"' + (state.status === 'loading' ? ' disabled' : '') + '>↻ <span>Refresh</span></button></div>' + body + '</section>';
@@ -293,7 +310,9 @@
     if (selectedPlaylistId === key) renderDetail();
     try {
       const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
-      const url = API + '/api/music/recommend?mood=' + encodeURIComponent(recommendationMood(playlist)) + '&limit=10&variety=adventurous&explicit=' + (preferences.explicitContent !== false);
+      const leadArtist = artistEntries(playlist)[0];
+      const artistQuery = playlist.mood === 'mixed' && leadArtist ? '&artist=' + encodeURIComponent(leadArtist.name) : '';
+      const url = API + '/api/music/recommend?mood=' + encodeURIComponent(recommendationMood(playlist)) + '&limit=10&variety=adventurous&explicit=' + (preferences.explicitContent !== false) + artistQuery;
       const response = await fetch(url, { credentials: 'include' });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Could not load suggestions.');
@@ -304,6 +323,20 @@
       playlistSuggestions[key] = { status: 'error', error: error.message || 'Could not load suggestions.', songs: [] };
     }
     if (selectedPlaylistId === key) renderDetail();
+  }
+
+  async function loadArtistImages(id) {
+    const playlist = playlistById(id);
+    if (!playlist) return;
+    const missing = artistEntries(playlist).map(function(artist) { return artist.name; }).filter(function(name) { return !playlistArtistImages[name.toLowerCase()]; });
+    if (!missing.length) return;
+    try {
+      const response = await fetch(API + '/api/music/artists?names=' + encodeURIComponent(missing.join('|')));
+      const data = await response.json();
+      if (!response.ok) return;
+      (data.artists || []).forEach(function(artist) { playlistArtistImages[String(artist.requestedName || artist.name).toLowerCase()] = artist; });
+      if (selectedPlaylistId === String(id)) renderDetail();
+    } catch (_) {}
   }
 
   async function addSuggestedSong(id, index, button) {
@@ -346,7 +379,7 @@
       playlists = Array.isArray(data.playlists) ? data.playlists : [];
       if (requested && playlistById(requested)) selectedPlaylistId = requested;
       renderAll();
-      if (selectedPlaylistId) loadSuggestions(selectedPlaylistId, false);
+      if (selectedPlaylistId) { loadSuggestions(selectedPlaylistId, false); loadArtistImages(selectedPlaylistId); }
     } catch (error) {
       if (!playlists.length) showToast(error.message || 'Could not load playlists.', 'error');
       else showToast('Showing playlists saved on this device.', 'error');
@@ -359,6 +392,7 @@
     history.replaceState({}, '', 'playlists.html?id=' + encodeURIComponent(selectedPlaylistId));
     byId('playlist-detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
     loadSuggestions(selectedPlaylistId, false);
+    loadArtistImages(selectedPlaylistId);
   }
   function closeDetail() {
     selectedPlaylistId = null;
@@ -575,7 +609,7 @@
     byId('library-modal-input').addEventListener('keydown', function (event) { if (event.key === 'Enter' && modalAction) modalAction(); });
     loadPlaylists();
     const requestedPlaylist = new URLSearchParams(location.search).get('id');
-    if (requestedPlaylist) setTimeout(function () { loadSuggestions(requestedPlaylist, false); }, 0);
+    if (requestedPlaylist) setTimeout(function () { loadSuggestions(requestedPlaylist, false); loadArtistImages(requestedPlaylist); }, 0);
     if (new URLSearchParams(location.search).get('create') === '1') startCreate();
   });
 })();

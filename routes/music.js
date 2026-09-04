@@ -32,6 +32,7 @@ const SEARCH_TTL = 6 * 60 * 60 * 1000;
 const SEARCH_STALE_TTL = 7 * 24 * 60 * 60 * 1000;
 const searchCache = new Map();
 const searchRequests = new Map();
+const artistImageCache = new Map();
 let lastSpotifySearchAt = 0;
 let spotifySearchGate = Promise.resolve();
 const SPOTIFY_SEARCH_INTERVAL = 250;
@@ -285,6 +286,35 @@ router.get('/recommend', async function(req, res) {
   } catch (err) {
     console.error('Spotify error:', err.message);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/music/artists?names=Artist%20One,Artist%20Two
+// Resolves true Spotify artist portraits for playlist credits. Album artwork is
+// still used by the client as a graceful fallback when Spotify has no portrait.
+router.get('/artists', async function(req, res) {
+  const names = String(req.query.names || '').split('|').map(function(name) { return name.trim().slice(0, 100); }).filter(Boolean).slice(0, 10);
+  if (!names.length) return res.json({ artists: [] });
+  try {
+    const token = await getSpotifyToken();
+    const artists = [];
+    for (const name of names) {
+      const key = name.toLowerCase();
+      let artist = artistImageCache.get(key);
+      if (!artist) {
+        await waitForSpotifySearchSlot();
+        const response = await fetch('https://api.spotify.com/v1/search?q=' + encodeURIComponent('artist:' + name) + '&type=artist&limit=1', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (!response.ok) continue;
+        const data = await response.json();
+        const match = data.artists?.items?.[0];
+        artist = match ? { name: match.name, requestedName: name, image: match.images?.[1]?.url || match.images?.[0]?.url || '', spotify_url: match.external_urls?.spotify || '' } : { name, requestedName: name, image: '', spotify_url: '' };
+        artistImageCache.set(key, artist);
+      }
+      artists.push(artist);
+    }
+    res.json({ artists });
+  } catch (error) {
+    res.status(502).json({ error: 'Artist images are unavailable right now.' });
   }
 });
 
