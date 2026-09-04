@@ -150,6 +150,7 @@
     const q = query.trim();
     if (!q) return;
     input.value = q;
+    document.getElementById('search-starters').hidden = true;
     status.innerHTML = '<span class="loading-bar" aria-hidden="true"></span><span>Searching…</span>';
     results.innerHTML = '';
     try {
@@ -164,6 +165,7 @@
   }
 
   document.getElementById('search-page-form').addEventListener('submit', function (event) { event.preventDefault(); search(input.value); });
+  document.getElementById('search-starters').addEventListener('click', function(event) { const button=event.target.closest('[data-search-starter]'); if(button)search(button.dataset.searchStarter); });
   results.addEventListener('click', function (event) {
     const playButton = event.target.closest('[data-play-index]');
     if (playButton) { playSearchSong(Number(playButton.dataset.playIndex)); return; }
