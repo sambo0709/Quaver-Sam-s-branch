@@ -104,3 +104,30 @@ test.describe('Quaver Homepage Interactions', () => {
   });
 
 });
+
+test.describe('Playlist discovery', () => {
+  test('suggests mood-matched songs, adds one, and lists featured artists', async ({ page }) => {
+    const playlist = {
+      id: 'playlist-1',
+      name: 'Quiet Hours',
+      mood: 'calm',
+      createdAt: '2026-08-20T12:00:00.000Z',
+      songs: [{ title: 'Bloom', artist: 'The Paper Kites', album_art: 'https://i.scdn.co/image/existing', spotify_url: 'https://open.spotify.com/track/existing123' }],
+    };
+    await page.addInitScript(value => {
+      localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
+      localStorage.setItem('quaver_playlists', JSON.stringify([value]));
+    }, playlist);
+    await page.route('**/api/playlist', route => route.fulfill({ json: { playlists: [playlist] } }));
+    await page.route('**/api/music/recommend?**', route => route.fulfill({ json: { songs: [{ title: 'Soft Focus', artist: 'Novo Amor', album_art: 'https://i.scdn.co/image/suggested', spotify_url: 'https://open.spotify.com/track/suggested123' }] } }));
+    await page.route('**/api/playlist/playlist-1/songs', route => route.fulfill({ status: 201, json: { song: { title: 'Soft Focus', artist: 'Novo Amor', album_art: 'https://i.scdn.co/image/suggested', spotify_url: 'https://open.spotify.com/track/suggested123' } } }));
+
+    await page.goto('/playlists.html?id=playlist-1');
+    await expect(page.getByRole('heading', { name: 'Suggested songs' })).toBeVisible();
+    await expect(page.getByText('Soft Focus')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Featured artists' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Find music by The Paper Kites' })).toBeVisible();
+    await page.getByRole('button', { name: 'Add Soft Focus to playlist' }).click();
+    await expect(page.locator('.playlist-detail-track').filter({ hasText: 'Soft Focus' })).toBeVisible();
+  });
+});

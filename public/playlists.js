@@ -10,6 +10,7 @@
   let toastTimer = null;
   let createDraft = [];
   let createSearchResults = [];
+  const playlistSuggestions = {};
   try { createDraft = JSON.parse(localStorage.getItem('quaver_playlist_draft') || '[]'); } catch (_) { createDraft = []; }
 
   function byId(id) { return document.getElementById(id); }
@@ -62,6 +63,12 @@
   function playlistById(id) { return playlists.find(function (playlist) { return String(playlist.id) === String(id); }); }
   function playlistSongs(playlist) { return Array.isArray(playlist && playlist.songs) ? playlist.songs : []; }
   function playlistMood(playlist) { return String(playlist.mood || 'mixed').replace(/(^|\s)\S/g, function (letter) { return letter.toUpperCase(); }); }
+  function recommendationMood(playlist) {
+    if (playlist && playlist.mood && playlist.mood !== 'mixed') return playlist.mood;
+    const moods = ['happy', 'calm', 'energetic', 'focused', 'nostalgic'];
+    const seed = String(playlist && playlist.id || '').split('').reduce(function (total, character) { return total + character.charCodeAt(0); }, 0);
+    return moods[seed % moods.length];
+  }
   function formatDate(value) {
     if (!value) return 'Recently created';
     const date = new Date(value);
@@ -234,8 +241,89 @@
       '<div class="playlist-detail-tracks">' + (songs.length ? songs.map(function (song, index) {
         const canPlay = !!trackId(song);
         return '<div class="playlist-detail-track"><span class="playlist-track-number">' + String(index + 1).padStart(2, '0') + '</span>' + (song.album_art ? '<img src="' + escapeHTML(song.album_art) + '" alt="" loading="lazy"/>' : '<div class="playlist-track-art"></div>') + '<div><strong>' + escapeHTML(song.title || 'Untitled song') + '</strong><span>' + escapeHTML(song.artist || 'Unknown artist') + '</span></div>' + (canPlay ? '<button class="playlist-track-play" type="button" data-action="play-song" data-song-index="' + index + '" aria-label="Play ' + escapeHTML(song.title) + '">▶</button>' : '') + (song.spotify_url ? '<a href="' + escapeHTML(song.spotify_url) + '" target="_blank" rel="noopener">Spotify</a>' : '') + (canPlay ? '<button class="playlist-track-remove" type="button" data-action="remove-song" data-song-index="' + index + '" aria-label="Remove ' + escapeHTML(song.title) + '">Remove</button>' : '') + '</div>';
-      }).join('') : '<p class="playlist-detail-empty">There are no songs in this playlist yet.</p>') + '</div>';
+      }).join('') : '<p class="playlist-detail-empty">There are no songs in this playlist yet.</p>') + '</div>' +
+      renderSuggestions(playlist) + renderFeaturedArtists(playlist);
     section.hidden = false;
+  }
+
+  function artistEntries(playlist) {
+    const artists = [];
+    playlistSongs(playlist).forEach(function (song) {
+      String(song.artist || '').split(/,|\s+&\s+|\s+feat\.?\s+/i).forEach(function (name) {
+        name = name.trim();
+        if (!name) return;
+        const existing = artists.find(function (artist) { return artist.name.toLowerCase() === name.toLowerCase(); });
+        if (existing) { existing.count++; return; }
+        artists.push({ name: name, image: song.album_art || '', count: 1 });
+      });
+    });
+    return artists.sort(function (a, b) { return b.count - a.count; }).slice(0, 10);
+  }
+  function renderFeaturedArtists(playlist) {
+    const artists = artistEntries(playlist);
+    if (!artists.length) return '';
+    return '<section class="playlist-featured" aria-labelledby="playlist-featured-title"><div class="playlist-section-heading"><div><span>IN THIS PLAYLIST</span><h3 id="playlist-featured-title">Featured artists</h3></div><small>' + artists.length + (artists.length === 1 ? ' artist' : ' artists') + '</small></div><div class="playlist-featured-row">' + artists.map(function (artist) {
+      const art = artist.image ? '<img src="' + escapeHTML(artist.image) + '" alt="" loading="lazy"/>' : '<span>' + escapeHTML(artist.name.charAt(0).toUpperCase()) + '</span>';
+      return '<a class="playlist-featured-artist" href="search.html?q=' + encodeURIComponent(artist.name) + '" aria-label="Find music by ' + escapeHTML(artist.name) + '"><span class="playlist-artist-art">' + art + '</span><strong>' + escapeHTML(artist.name) + '</strong><small>' + artist.count + (artist.count === 1 ? ' song' : ' songs') + '</small></a>';
+    }).join('') + '</div></section>';
+  }
+  function renderSuggestions(playlist) {
+    const state = playlistSuggestions[String(playlist.id)] || { status: 'loading', songs: [] };
+    let body = '';
+    if (state.status === 'loading') {
+      body = '<div class="playlist-suggestion-loading"><span></span><span></span><span></span></div>';
+    } else if (state.status === 'error') {
+      body = '<p class="playlist-suggestion-message">' + escapeHTML(state.error || 'Suggestions are unavailable right now.') + '</p>';
+    } else if (!state.songs.length) {
+      body = '<p class="playlist-suggestion-message">No new matches found. Refresh to try another mix.</p>';
+    } else {
+      body = '<div class="playlist-suggestion-list">' + state.songs.map(function (song, index) {
+        return '<div class="playlist-suggestion-song">' + (song.album_art ? '<img src="' + escapeHTML(song.album_art) + '" alt="" loading="lazy"/>' : '<div class="playlist-track-art"></div>') + '<div><strong>' + escapeHTML(song.title || 'Untitled song') + '</strong><span>' + escapeHTML(song.artist || 'Unknown artist') + '</span></div>' + (trackId(song) ? '<button type="button" class="playlist-suggestion-play" data-action="play-suggestion" data-suggestion-index="' + index + '" aria-label="Preview ' + escapeHTML(song.title) + '">▶</button>' : '') + '<button type="button" class="playlist-suggestion-add" data-action="add-suggestion" data-suggestion-index="' + index + '" aria-label="Add ' + escapeHTML(song.title) + ' to playlist">+</button></div>';
+      }).join('') + '</div>';
+    }
+    return '<section class="playlist-suggestions" aria-labelledby="playlist-suggestions-title"><div class="playlist-section-heading"><div><span>MATCHED TO ' + escapeHTML(playlistMood(playlist).toUpperCase()) + '</span><h3 id="playlist-suggestions-title">Suggested songs</h3><p>Preview a track or add it to this playlist.</p></div><button type="button" class="playlist-suggestion-refresh" data-action="refresh-suggestions" aria-label="Refresh suggested songs"' + (state.status === 'loading' ? ' disabled' : '') + '>↻ <span>Refresh</span></button></div>' + body + '</section>';
+  }
+
+  async function loadSuggestions(id, force) {
+    const playlist = playlistById(id);
+    if (!playlist) return;
+    const key = String(playlist.id);
+    if (!force && playlistSuggestions[key]) return;
+    playlistSuggestions[key] = { status: 'loading', songs: [] };
+    if (selectedPlaylistId === key) renderDetail();
+    try {
+      const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
+      const url = API + '/api/music/recommend?mood=' + encodeURIComponent(recommendationMood(playlist)) + '&limit=10&variety=adventurous&explicit=' + (preferences.explicitContent !== false);
+      const response = await fetch(url, { credentials: 'include' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not load suggestions.');
+      const existing = new Set(playlistSongs(playlist).map(trackId).filter(Boolean));
+      const songs = (Array.isArray(data.songs) ? data.songs : []).filter(function (song) { return !existing.has(trackId(song)); }).slice(0, 5);
+      playlistSuggestions[key] = { status: 'ready', songs: songs };
+    } catch (error) {
+      playlistSuggestions[key] = { status: 'error', error: error.message || 'Could not load suggestions.', songs: [] };
+    }
+    if (selectedPlaylistId === key) renderDetail();
+  }
+
+  async function addSuggestedSong(id, index, button) {
+    const playlist = playlistById(id);
+    const state = playlistSuggestions[String(id)];
+    const song = state && state.songs[index];
+    if (!playlist || !song) return;
+    if (button) { button.disabled = true; button.textContent = '…'; }
+    try {
+      const response = await fetch(API + '/api/playlist/' + encodeURIComponent(playlist.id) + '/songs', { method: 'POST', headers: authHeaders(true), body: JSON.stringify({ song: song }) });
+      const data = await response.json().catch(function () { return {}; });
+      if (!response.ok) throw new Error(data.error || 'Could not add song.');
+      playlist.songs.push(data.song || song);
+      state.songs.splice(index, 1);
+      renderAll();
+      showToast('Added “' + (song.title || 'Song') + '” to ' + playlist.name + '.', 'success');
+    } catch (error) {
+      if (button && button.isConnected) { button.disabled = false; button.textContent = '+'; }
+      showToast(error.message || 'Could not add song.', 'error');
+    }
   }
 
   function renderAll() {
@@ -258,6 +346,7 @@
       playlists = Array.isArray(data.playlists) ? data.playlists : [];
       if (requested && playlistById(requested)) selectedPlaylistId = requested;
       renderAll();
+      if (selectedPlaylistId) loadSuggestions(selectedPlaylistId, false);
     } catch (error) {
       if (!playlists.length) showToast(error.message || 'Could not load playlists.', 'error');
       else showToast('Showing playlists saved on this device.', 'error');
@@ -269,6 +358,7 @@
     renderDetail();
     history.replaceState({}, '', 'playlists.html?id=' + encodeURIComponent(selectedPlaylistId));
     byId('playlist-detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    loadSuggestions(selectedPlaylistId, false);
   }
   function closeDetail() {
     selectedPlaylistId = null;
@@ -448,6 +538,13 @@
     if (action === 'play') playPlaylist(id, 0);
     if (action === 'play-song') playPlaylist(id, Number(actionButton.dataset.songIndex));
     if (action === 'remove-song') removePlaylistSong(id, Number(actionButton.dataset.songIndex), actionButton);
+    if (action === 'refresh-suggestions') loadSuggestions(id, true);
+    if (action === 'add-suggestion') addSuggestedSong(id, Number(actionButton.dataset.suggestionIndex), actionButton);
+    if (action === 'play-suggestion') {
+      const state = playlistSuggestions[String(id)];
+      const song = state && state.songs[Number(actionButton.dataset.suggestionIndex)];
+      if (song) playSong(song);
+    }
     if (action === 'rename') beginRename(id);
     if (action === 'share') sharePlaylist(id);
     if (action === 'export') exportPlaylist(id, actionButton);
@@ -477,6 +574,8 @@
     byId('library-modal-confirm').addEventListener('click', function () { if (modalAction) modalAction(); });
     byId('library-modal-input').addEventListener('keydown', function (event) { if (event.key === 'Enter' && modalAction) modalAction(); });
     loadPlaylists();
+    const requestedPlaylist = new URLSearchParams(location.search).get('id');
+    if (requestedPlaylist) setTimeout(function () { loadSuggestions(requestedPlaylist, false); }, 0);
     if (new URLSearchParams(location.search).get('create') === '1') startCreate();
   });
 })();
