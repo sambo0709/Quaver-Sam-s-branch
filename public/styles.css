@@ -3747,19 +3747,19 @@ html.reduce-motion *::after {
   .mobile-bottom-nav .active { color:var(--accent); background:var(--glass); }
 
   body { padding-bottom: 76px; }
-  body.player-active { padding-bottom: 174px; }
+  body.player-active { padding-bottom: 150px; }
   .spotify-player {
     /* Sit directly on the full-width footer: 5px top padding + 46px item,
        safe bottom padding, and 2px border. */
     bottom: calc(53px + var(--mobile-nav-safe-bottom));
     grid-template-columns: minmax(0, 1fr) auto auto;
     gap: 8px;
-    min-height: 76px;
-    padding: 8px 12px;
+    min-height: 68px;
+    padding: 6px 10px;
   }
   .share-page .spotify-player { bottom: 8px; }
   .share-page.player-active { padding-bottom: 98px; }
-  .player-artwork { width:46px; height:46px; flex-basis:46px; border-radius:7px; }
+  .player-artwork { width:42px; height:42px; flex-basis:42px; border-radius:7px; }
   .player-track-copy strong { font-size:12px; }
   .player-track-copy small { font-size:10px; }
   .player-track-copy .now-playing-label { font-size:7px; }
@@ -3771,8 +3771,8 @@ html.reduce-motion *::after {
   .spotify-player .queue-counter { display:none !important; }
   .player-center { display:block; }
   .player-transport { gap:4px; }
-  .player-control-button { width:26px; height:34px; }
-  .player-toggle-button { width:36px; height:36px; }
+  .player-control-button { width:25px; height:32px; }
+  .player-toggle-button { width:34px; height:34px; }
   .player-actions { gap:0; }
   .player-close-btn { width:28px; height:28px; }
   .personalized-section { width:calc(100% - 24px); margin:25px auto 50px; gap:32px; }

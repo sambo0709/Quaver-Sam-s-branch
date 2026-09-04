@@ -162,8 +162,9 @@ test.describe('Playlist discovery', () => {
       const playerElement = document.getElementById('spotify-player')!;
       const player = playerElement.getBoundingClientRect();
       const nav = document.querySelector('.mobile-bottom-nav')!.getBoundingClientRect();
-      return { gap: Math.abs(nav.top - player.bottom), playerBottom: player.bottom, navTop: nav.top, cssBottom: getComputedStyle(playerElement).bottom };
+      return { gap: Math.abs(nav.top - player.bottom), height: player.height, playerBottom: player.bottom, navTop: nav.top, cssBottom: getComputedStyle(playerElement).bottom };
     });
     expect(playerNavLayout.gap, JSON.stringify(playerNavLayout)).toBeLessThanOrEqual(1);
+    expect(playerNavLayout.height).toBeLessThanOrEqual(68);
   });
 });
