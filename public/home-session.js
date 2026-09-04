@@ -32,7 +32,10 @@ function updateAuthUI() {
 
   if (user) {
     username.textContent = user.username;
+    const avatarButton = document.getElementById('user-menu-button');
     document.getElementById('user-avatar').textContent = (user.username || 'U').charAt(0).toUpperCase();
+    avatarButton.style.backgroundImage = user.profileImage ? 'url("' + user.profileImage + '")' : '';
+    avatarButton.classList.toggle('has-photo', !!user.profileImage);
     userMenu.style.display = 'block';
     loginLink.style.display = 'none';
   } else {

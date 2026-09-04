@@ -129,10 +129,10 @@ router.get('/settings', async function(req, res) {
     const db = await getDB();
     const found = await db.collection('users').findOne(
       { _id: new ObjectId(user.userId) },
-      { projection: { username: 1, defaultTheme: 1, preferences: 1 } }
+      { projection: { username: 1, profileImage: 1, defaultTheme: 1, preferences: 1 } }
     );
     if (!found) return res.status(404).json({ error: 'Account not found' });
-    res.json({ username: found.username, defaultTheme: found.defaultTheme || 'dark', preferences: found.preferences || {} });
+    res.json({ username: found.username, profileImage: found.profileImage || '', defaultTheme: found.defaultTheme || 'dark', preferences: found.preferences || {} });
   } catch (_) { res.status(500).json({ error: 'Server error' }); }
 });
 

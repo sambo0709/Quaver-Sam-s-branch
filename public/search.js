@@ -24,6 +24,37 @@
     if (localStorage.getItem('theme') === 'system') applyTheme('system');
   });
 
+  function renderSearchAccount(user) {
+    const menu=document.getElementById('user-menu');
+    const login=document.getElementById('nav-login-link');
+    if (!user) { menu.hidden=true; login.hidden=false; return; }
+    const name=user.username||'Account';
+    const button=document.getElementById('user-menu-button');
+    document.getElementById('nav-username').textContent=name;
+    document.getElementById('user-avatar').textContent=name.charAt(0).toUpperCase();
+    button.style.backgroundImage=user.profileImage?'url("'+user.profileImage+'")':'';
+    button.classList.toggle('has-photo',!!user.profileImage);
+    menu.hidden=false;login.hidden=true;
+  }
+
+  async function syncSearchAccount() {
+    let user=null;
+    try { user=JSON.parse(localStorage.getItem('quaver_user')||'null'); } catch (_) {}
+    renderSearchAccount(user);
+    if (!user) return;
+    try {
+      const response=await fetch(API+'/api/auth/me',{credentials:'include'});
+      if (!response.ok) return;
+      user=await response.json();
+      localStorage.setItem('quaver_user',JSON.stringify({username:user.username,email:user.email,profileImage:user.profileImage||''}));
+      renderSearchAccount(user);
+    } catch (_) {}
+  }
+
+  document.getElementById('user-menu-button').addEventListener('click',function(event){event.stopPropagation();const dropdown=document.getElementById('user-menu-dropdown');dropdown.hidden=!dropdown.hidden;this.setAttribute('aria-expanded',String(!dropdown.hidden));});
+  document.addEventListener('click',function(){document.getElementById('user-menu-dropdown').hidden=true;document.getElementById('user-menu-button').setAttribute('aria-expanded','false');});
+  document.getElementById('search-logout').addEventListener('click',async function(){try{await fetch(API+'/api/auth/logout',{method:'POST',credentials:'include'});}catch(_){}localStorage.removeItem('quaver_user');location.href='login.html';});
+
   function showToast(message, type) {
     const toast = document.getElementById('toast');
     toast.textContent = message;
@@ -153,6 +184,7 @@
 
   const savedTheme = localStorage.getItem('theme') || 'dark';
   applyTheme(savedTheme);
+  syncSearchAccount();
   const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
   document.documentElement.classList.toggle('reduce-motion', !!preferences.reducedMotion);
   const query = new URLSearchParams(window.location.search).get('q') || '';

@@ -788,6 +788,17 @@
     const name = user.username || user.displayName || 'Account';
     byId('nav-username').textContent = name;
     byId('user-avatar').textContent = name.charAt(0).toUpperCase();
+    const avatarButton = byId('user-menu-button');
+    avatarButton.style.backgroundImage = user.profileImage ? 'url("' + user.profileImage + '")' : '';
+    avatarButton.classList.toggle('has-photo', !!user.profileImage);
+    fetch(API + '/api/auth/me', { credentials: 'include' }).then(function(response) { return response.ok ? response.json() : null; }).then(function(account) {
+      if (!account) return;
+      localStorage.setItem('quaver_user', JSON.stringify({ username: account.username, email: account.email, profileImage: account.profileImage || '' }));
+      byId('nav-username').textContent = account.username;
+      byId('user-avatar').textContent = (account.username || 'U').charAt(0).toUpperCase();
+      avatarButton.style.backgroundImage = account.profileImage ? 'url("' + account.profileImage + '")' : '';
+      avatarButton.classList.toggle('has-photo', !!account.profileImage);
+    }).catch(function() {});
     byId('playlist-search').addEventListener('input', renderGrid);
     byId('playlist-mood-filter').addEventListener('change', renderGrid);
     byId('playlist-sort').addEventListener('change', renderGrid);

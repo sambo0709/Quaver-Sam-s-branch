@@ -26,6 +26,11 @@ async function syncAccountPreferences() {
     if (!res.ok) return;
     const data = await res.json();
     localStorage.setItem('quaver_preferences', JSON.stringify(data.preferences || {}));
+    const account = JSON.parse(localStorage.getItem('quaver_user') || '{}');
+    account.username = data.username || account.username;
+    account.profileImage = data.profileImage || '';
+    localStorage.setItem('quaver_user', JSON.stringify(account));
+    if (typeof updateAuthUI === 'function') updateAuthUI();
 
     if (!deviceTheme) {
       const accountTheme = data.defaultTheme || 'dark';

@@ -53,23 +53,36 @@ test('authenticated profile loads mood, listening, and playlist data', async ({ 
 
 test('profile identity can be edited from the profile hero', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' })));
-  await page.route('**/api/auth/me', route => route.fulfill({ json: { username: 'Listener', email: 'listener@example.com', profileImage: '' } }));
+  const account = { username: 'Listener', email: 'listener@example.com', profileImage: '' };
+  await page.route('**/api/auth/me', route => route.fulfill({ json: account }));
   await page.route('**/api/playlist', route => route.fulfill({ json: { playlists: [] } }));
   await page.route('**/api/mood/history', route => route.fulfill({ json: { moods: [] } }));
   await page.route('**/api/listening/history', route => route.fulfill({ json: { plays: [] } }));
   await page.route('**/api/auth/profile', async route => {
     const body = route.request().postDataJSON();
-    await route.fulfill({ json: { username: body.displayName, email: 'listener@example.com', profileImage: body.profileImage } });
+    account.username = body.displayName;
+    account.profileImage = body.profileImage;
+    await route.fulfill({ json: account });
   });
 
   await page.goto('/profile.html');
   await page.getByRole('button', { name: 'Edit profile' }).click();
   await page.getByLabel('Display name').fill('New Listener');
+  await page.locator('#profile-photo-input').setInputFiles({
+    name: 'avatar.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFElEQVR4nGP4z8DAwMDAxMDAwMAAAA0AAf8CBnUAAAAASUVORK5CYII=', 'base64'),
+  });
+  await expect(page.locator('#profile-photo-preview-image')).toBeVisible();
   await page.getByRole('button', { name: 'Save profile' }).click();
 
   await expect(page.getByRole('heading', { name: 'New Listener' })).toBeVisible();
   await expect(page.getByRole('dialog')).toBeHidden();
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('quaver_user') || '{}').username)).toBe('New Listener');
+  await expect(page.locator('#user-menu-button')).toHaveClass(/has-photo/);
+  await page.goto('/playlists.html');
+  await expect(page.locator('#user-menu-button')).toHaveClass(/has-photo/);
+  await expect(page.locator('#user-menu-button')).toHaveCSS('background-size', 'cover');
 });
 
 test('profile rejects stale local authentication when the server session is missing', async ({ page }) => {

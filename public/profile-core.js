@@ -39,14 +39,15 @@ function updateAuthUI(user) {
     usernameEl.textContent = user.username;
     const initial=(user.username||'U').charAt(0).toUpperCase();
     const navAvatar=document.getElementById('user-avatar');
+    const navButton=document.getElementById('user-menu-button');
     navAvatar.textContent=initial;
     document.getElementById('profile-display-name').textContent=user.username||'Your profile';
     document.getElementById('profile-hero-initial').textContent=initial;
     document.getElementById('profile-photo-preview-initial').textContent=initial;
     currentProfileImage=user.profileImage||'';
     renderProfilePhoto(currentProfileImage);
-    navAvatar.style.backgroundImage=currentProfileImage?'url("'+currentProfileImage+'")':'';
-    navAvatar.classList.toggle('has-photo',!!currentProfileImage);
+    navButton.style.backgroundImage=currentProfileImage?'url("'+currentProfileImage+'")':'';
+    navButton.classList.toggle('has-photo',!!currentProfileImage);
     document.getElementById('user-menu').style.display='block';
   }
 }
