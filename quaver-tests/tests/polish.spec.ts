@@ -96,6 +96,33 @@ test('mobile search hides Login for an authenticated user', async ({ page }) => 
   await expect(page.getByRole('button', { name: 'Open account menu' })).toBeVisible();
 });
 
+test('mobile player restores across pages and expands its saved queue', async ({ page }) => {
+  await page.setViewportSize({ width: 393, height: 852 });
+  await page.addInitScript(() => {
+    localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
+    localStorage.setItem('quaver_spotify_name', 'Listener');
+    localStorage.setItem('quaver_playback_session', JSON.stringify({
+      track: { trackId: 'persist123', title: 'Still Playing', artist: 'Quaver Artist', albumArt: '' },
+      queue: [
+        { trackId: 'persist123', title: 'Still Playing', artist: 'Quaver Artist', albumArt: '' },
+        { trackId: 'next123', title: 'Up Next Song', artist: 'Second Artist', albumArt: '' },
+      ],
+      index: 0, position: 42000, duration: 180000, paused: false, userStopped: false, updatedAt: Date.now(),
+    }));
+  });
+  await page.route('**/api/auth/me', route => route.fulfill({ json: { username: 'Listener', email: 'listener@example.com' } }));
+  await page.route('**/spotify/playback-token', route => route.fulfill({ status: 401, json: { error: 'Reconnect required' } }));
+
+  await page.goto('/search.html');
+
+  await expect(page.locator('#spotify-player')).toBeVisible();
+  await expect(page.locator('#player-song-name')).toHaveText('Still Playing');
+  await page.locator('.player-identity').click();
+  await expect(page.locator('#expanded-player')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Up next' })).toBeVisible();
+  await expect(page.getByText('Up Next Song')).toBeVisible();
+});
+
 test('profile rejects stale local authentication when the server session is missing', async ({ page }) => {
   await page.route('**/api/auth/me', route => route.fulfill({ status: 401, json: { error: 'Not logged in' } }));
   await page.goto('/');

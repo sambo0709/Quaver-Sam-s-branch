@@ -35,6 +35,7 @@ window.addEventListener('quaver:playback-outcome', function(event) {
 
 function addToQueue(song) {
   songQueue.push(song);
+  if (window.QuaverPlayer) QuaverPlayer.setQueue(songQueue, Math.max(queueIndex, 0));
   if (queueIndex === -1) {
     queueIndex = 0;
     const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
@@ -56,6 +57,7 @@ function playFromQueue(direction) {
   if (songQueue.length === 0) return;
   queueIndex = Math.max(0, Math.min(songQueue.length - 1, queueIndex + direction));
   const song = songQueue[queueIndex];
+  if (window.QuaverPlayer) QuaverPlayer.setQueue(songQueue, queueIndex);
   const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
   if (trackId) playInApp(trackId, song.title, song.artist, song.album_art);
 }
@@ -90,6 +92,7 @@ function playAll(songs) {
   if (!songs || songs.length === 0) return;
   songQueue = songs.filter(function(s) { return s.spotify_url; });
   queueIndex = 0;
+  if (window.QuaverPlayer) QuaverPlayer.setQueue(songQueue, queueIndex);
   const first = songQueue[0];
   const trackId = first.spotify_url.split('/track/')[1];
   playInApp(trackId, first.title, first.artist, first.album_art);
@@ -164,6 +167,7 @@ function shuffleQueue() {
     const tmp = rest[i]; rest[i] = rest[j]; rest[j] = tmp;
   }
   songQueue = played.concat(rest);
+  if (window.QuaverPlayer) QuaverPlayer.setQueue(songQueue, queueIndex);
   updateQueueCounter();
   renderQueuePanel();
   showToast('Queue shuffled!', 'success');
@@ -172,6 +176,7 @@ function shuffleQueue() {
 function clearQueue() {
   songQueue = [];
   queueIndex = -1;
+  if (window.QuaverPlayer) QuaverPlayer.setQueue([], 0);
   updateQueueCounter();
   closePlayer();
   document.getElementById('queue-panel').classList.remove('open');

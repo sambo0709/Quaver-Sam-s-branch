@@ -167,6 +167,7 @@ function shuffleMix() {
   window._lastResults=songs;
   songQueue=songs.filter(function(song){return spotifyTrackId(song.spotify_url);});
   queueIndex=-1;
+  if (window.QuaverPlayer) QuaverPlayer.setQueue(songQueue,0);
   updateQueueCounter();
   renderRecommendationSongs(songs,window._lastResultsLearning);
   showToast('Mix shuffled.','success');
