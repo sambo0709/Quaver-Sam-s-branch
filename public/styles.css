@@ -4000,8 +4000,10 @@ html.reduce-motion *::after {
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--text);
-  margin-bottom: 16px;
+  margin-bottom: 4px;
 }
+
+.trending-subtitle { margin:0 0 18px; color:var(--text-muted); font-size:.75rem; }
 
 .trending-pills {
   display: flex;
@@ -4032,10 +4034,16 @@ html.reduce-motion *::after {
   transform: translateY(-1px);
 }
 
-.trending-pill-top {
+.trending-pill.is-active {
   border-color: var(--accent);
   background: rgba(0, 212, 255, 0.1);
+  box-shadow:0 0 0 2px var(--accent-glow);
 }
+
+.trending-rank { display:grid; place-items:center; width:19px; height:19px; border-radius:50%; background:var(--glass-border); color:var(--text-muted); font-size:.66rem; font-weight:800; }
+.trending-pill.is-active .trending-rank { background:var(--accent); color:#fff; }
+.trending-mood-name { text-transform:capitalize; }
+.trending-empty { color:var(--text-muted); font-size:.78rem; }
 
 .trending-pill-skeleton {
   width: 90px;

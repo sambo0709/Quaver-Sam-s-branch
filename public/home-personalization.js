@@ -88,24 +88,30 @@ function animateCount(element, target) {
 }
 
 function trendingButton(mood, index, count) {
-  return '<button class="trending-pill' + (index === 0 && count != null ? ' trending-pill-top' : '') + '" data-trending-mood="' + escapeHTML(mood) + '">' + (personalizationMoodEmoji[mood] || '') + ' ' + escapeHTML(mood) + (count == null ? '' : '<span class="trending-count" id="trending-count-' + escapeHTML(mood) + '">0</span>') + '</button>';
+  const rank = index + 1;
+  const label = rank + '. ' + mood + (count == null ? '' : ', ' + count + ' check-ins');
+  return '<button class="trending-pill" data-trending-mood="' + escapeHTML(mood) + '" aria-label="' + escapeHTML(label) + '" aria-pressed="false"><span class="trending-rank">' + rank + '</span><span aria-hidden="true">' + (personalizationMoodEmoji[mood] || '') + '</span><span class="trending-mood-name">' + escapeHTML(mood) + '</span>' + (count == null ? '' : '<span class="trending-count" id="trending-count-' + escapeHTML(mood) + '">0</span>') + '</button>';
 }
 
 function renderTrendingPills() {
-  const picks = moods.slice().sort(function() { return Math.random() - 0.5; }).slice(0, 5);
-  document.getElementById('trending-pills').innerHTML = picks.map(function(mood, index) { return trendingButton(mood, index, null); }).join('');
+  document.getElementById('trending-pills').innerHTML = '<span class="trending-pill-skeleton"></span>'.repeat(5);
 }
 
 async function loadTrendingMoods() {
   try {
     const data = await fetch(API + '/api/mood/trending').then(function(res) { return res.json(); });
-    if (!data.trending || !data.trending.length) return;
+    if (!data.trending || !data.trending.length) {
+      document.getElementById('trending-pills').innerHTML = '<span class="trending-empty">No community check-ins yet today.</span>';
+      return;
+    }
     document.getElementById('trending-pills').innerHTML = data.trending.map(function(item, index) { return trendingButton(item.mood, index, item.count); }).join('');
     data.trending.forEach(function(item, index) {
       const count = document.getElementById('trending-count-' + item.mood);
       if (count) setTimeout(function() { animateCount(count, item.count); }, index * 120);
     });
-  } catch (_) {}
+  } catch (_) {
+    document.getElementById('trending-pills').innerHTML = '<span class="trending-empty">Community trends are unavailable right now.</span>';
+  }
 }
 
 async function loadSongsOfTheDay() {
@@ -128,8 +134,18 @@ async function loadSongsOfTheDay() {
 document.addEventListener('click', function(event) {
   const moodButton = event.target.closest('[data-trending-mood]');
   if (moodButton) {
-    document.getElementById('mood-select').value = moodButton.dataset.trendingMood;
-    onMoodSelect(moodButton.dataset.trendingMood);
+    const mood = moodButton.dataset.trendingMood;
+    document.querySelectorAll('[data-trending-mood]').forEach(function(button) {
+      button.classList.toggle('is-active', button === moodButton);
+      button.setAttribute('aria-pressed', String(button === moodButton));
+    });
+    document.getElementById('mood-select').value = mood;
+    document.getElementById('count-select').value = '10';
+    currentLimit = 10;
+    setMood(mood);
+    requestAnimationFrame(function() {
+      document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }
   const playButton = event.target.closest('[data-motd-index]');
   if (playButton) {

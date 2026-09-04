@@ -66,6 +66,10 @@ function randomMood() {
 
 function onMoodSelect(value) {
   if (!value) return;
+  document.querySelectorAll('[data-trending-mood]').forEach(function(button) {
+    button.classList.remove('is-active');
+    button.setAttribute('aria-pressed', 'false');
+  });
   currentMood = value;
   applyMoodColors(value);
 }
