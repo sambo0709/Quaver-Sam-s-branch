@@ -34,6 +34,12 @@
       <button class="playlist-build-button" type="button" data-action="start-create">Create playlist</button>
     </div>
 
+    <section class="mood-collections" aria-labelledby="mood-collections-title">
+      <div class="playlist-grid-heading"><div><span>DISCOVER</span><h2 id="mood-collections-title">Mood collections</h2><p>Curated starting points you can preview and save to your library.</p></div></div>
+      <div class="mood-collection-grid" id="mood-collection-grid"></div>
+      <section class="mood-collection-detail" id="mood-collection-detail" hidden aria-live="polite"></section>
+    </section>
+
     <section id="playlist-create" class="playlist-create" hidden aria-labelledby="playlist-create-title">
       <div class="playlist-create-heading"><div><span>NEW PLAYLIST</span><h2 id="playlist-create-title">Create a playlist</h2><p>Give it a name, choose its mood, then find the songs you want to keep.</p></div><button type="button" data-action="close-create" aria-label="Close playlist builder">✕</button></div>
       <div class="playlist-create-fields"><label>Playlist name<input id="playlist-create-name" maxlength="80" placeholder="For example, Late Night Calm"/></label><label>Mood<select id="playlist-create-mood"><option value="mixed">Mixed</option><option value="happy">Happy</option><option value="sad">Sad</option><option value="energetic">Energetic</option><option value="calm">Calm</option><option value="focused">Focused</option><option value="angry">Angry</option><option value="romantic">Romantic</option><option value="nostalgic">Nostalgic</option><option value="party">Party</option><option value="sleepy">Sleepy</option><option value="anxious">Anxious</option></select></label></div>

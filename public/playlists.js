@@ -10,8 +10,18 @@
   let toastTimer = null;
   let createDraft = [];
   let createSearchResults = [];
+  let activeCollection = null;
+  let collectionSongs = [];
   const playlistSuggestions = {};
   const playlistArtistImages = {};
+  const moodCollections = [
+    { id: 'calm-focus', name: 'Calm Focus', mood: 'focused', description: 'Low-key tracks for uninterrupted concentration.', activity: 'studying', direction: 'focus' },
+    { id: 'energy-boost', name: 'Energy Boost', mood: 'energetic', description: 'High-energy picks for movement and momentum.', activity: 'working out', direction: 'energize' },
+    { id: 'late-night', name: 'Late Night', mood: 'calm', description: 'Unhurried songs for winding down after dark.', activity: 'relaxing', direction: 'stay' },
+    { id: 'feel-good', name: 'Feel Good', mood: 'happy', description: 'Bright, easy listening for a lighter mood.', activity: 'socializing', direction: 'stay' },
+    { id: 'deep-rest', name: 'Deep Rest', mood: 'sleepy', description: 'Soft selections for a quiet end to the day.', activity: 'sleeping', direction: 'calm down' },
+    { id: 'throwback', name: 'Throwback', mood: 'nostalgic', description: 'Familiar sounds with a nostalgic pull.', activity: 'none', direction: 'stay' }
+  ];
   try { createDraft = JSON.parse(localStorage.getItem('quaver_playlist_draft') || '[]'); } catch (_) { createDraft = []; }
 
   function byId(id) { return document.getElementById(id); }
@@ -94,6 +104,63 @@
     if (!artwork.length) return '<div class="' + className + ' playlist-cover-empty"><span>' + escapeHTML((playlist.name || 'Q').charAt(0).toUpperCase()) + '</span></div>';
     const modifier = artwork.length === 1 ? ' single' : '';
     return '<div class="' + className + modifier + '">' + artwork.map(function (url) { return '<img src="' + escapeHTML(url) + '" alt="" loading="lazy"/>'; }).join('') + '</div>';
+  }
+
+  function collectionById(id) { return moodCollections.find(function (collection) { return collection.id === id; }); }
+  function renderMoodCollections() {
+    byId('mood-collection-grid').innerHTML = moodCollections.map(function (collection, index) {
+      return '<button class="mood-collection-card mood-collection-' + (index + 1) + '" type="button" data-action="open-collection" data-collection-id="' + escapeHTML(collection.id) + '"><span>' + escapeHTML(collection.mood) + '</span><strong>' + escapeHTML(collection.name) + '</strong><small>' + escapeHTML(collection.description) + '</small><b>Explore collection</b></button>';
+    }).join('');
+  }
+  function renderCollectionDetail(status, message) {
+    const section = byId('mood-collection-detail');
+    if (!activeCollection) { section.hidden = true; section.innerHTML = ''; return; }
+    let body = '';
+    if (status === 'loading') {
+      body = '<div class="mood-collection-loading"><span></span><span></span><span></span></div>';
+    } else if (status === 'error') {
+      body = '<p class="playlist-suggestion-message">' + escapeHTML(message || 'This collection is unavailable right now.') + '</p>';
+    } else {
+      body = '<div class="mood-collection-tracks">' + collectionSongs.map(function (song, index) {
+        return '<div class="mood-collection-track"><span>' + String(index + 1).padStart(2, '0') + '</span>' + (song.album_art ? '<img src="' + escapeHTML(song.album_art) + '" alt="" loading="lazy"/>' : '<div class="playlist-track-art"></div>') + '<div><strong>' + escapeHTML(song.title || 'Untitled song') + '</strong><small>' + escapeHTML(song.artist || 'Unknown artist') + '</small></div>' + (trackId(song) ? '<button type="button" data-action="play-collection-song" data-song-index="' + index + '" aria-label="Play ' + escapeHTML(song.title) + '">▶</button>' : '') + '</div>';
+      }).join('') + '</div>';
+    }
+    section.innerHTML = '<div class="mood-collection-detail-heading"><div><span>CURATED ' + escapeHTML(activeCollection.mood.toUpperCase()) + '</span><h3>' + escapeHTML(activeCollection.name) + '</h3><p>' + escapeHTML(activeCollection.description) + '</p></div><div><button type="button" data-action="close-collection">Close</button>' + (status === 'ready' && collectionSongs.length ? '<button class="mood-collection-save" type="button" data-action="save-collection">Save to library</button>' : '') + '</div></div>' + body;
+    section.hidden = false;
+  }
+  async function openMoodCollection(id) {
+    activeCollection = collectionById(id);
+    collectionSongs = [];
+    if (!activeCollection) return;
+    renderCollectionDetail('loading');
+    byId('mood-collection-detail').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    try {
+      const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
+      const params = new URLSearchParams({ mood: activeCollection.mood, limit: '8', activity: activeCollection.activity, direction: activeCollection.direction, variety: 'balanced', explicit: String(preferences.explicitContent !== false) });
+      const response = await fetch(API + '/api/music/recommend?' + params.toString(), { credentials: 'include' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not load this collection.');
+      collectionSongs = Array.isArray(data.songs) ? data.songs : [];
+      if (!collectionSongs.length) throw new Error('No tracks are available for this collection right now.');
+      renderCollectionDetail('ready');
+    } catch (error) { renderCollectionDetail('error', error.message); }
+  }
+  async function saveMoodCollection(button) {
+    if (!activeCollection || !collectionSongs.length) return;
+    const name = activeCollection.name;
+    if (button) { button.disabled = true; button.textContent = 'Saving...'; }
+    try {
+      const response = await fetch(API + '/api/playlist', { method: 'POST', headers: authHeaders(true), body: JSON.stringify({ name: name, mood: activeCollection.mood, songs: collectionSongs }) });
+      const data = await response.json();
+      if (!response.ok || !data.playlist) throw new Error(data.error || 'Could not save this collection.');
+      playlists.push(data.playlist);
+      renderAll();
+      showToast(name + ' was added to your library.', 'success');
+      if (button && button.isConnected) button.textContent = 'Saved';
+    } catch (error) {
+      if (button && button.isConnected) { button.disabled = false; button.textContent = 'Save to library'; }
+      showToast(error.message || 'Could not save this collection.', 'error');
+    }
   }
 
   function saveCreateDraft() {
@@ -562,6 +629,13 @@
     const action = actionButton.dataset.action;
     const card = actionButton.closest('[data-playlist-id]');
     const id = card ? card.dataset.playlistId : selectedPlaylistId;
+    if (action === 'open-collection') openMoodCollection(actionButton.dataset.collectionId);
+    if (action === 'close-collection') { activeCollection = null; collectionSongs = []; renderCollectionDetail(); }
+    if (action === 'save-collection') saveMoodCollection(actionButton);
+    if (action === 'play-collection-song') {
+      const song = collectionSongs[Number(actionButton.dataset.songIndex)];
+      if (song) { playQueue = collectionSongs.filter(trackId); playQueueIndex = Math.max(0, playQueue.indexOf(song)); playSong(song); }
+    }
     if (action === 'start-create') startCreate();
     if (action === 'close-create') closeCreate();
     if (action === 'save-create') saveCreatedPlaylist();
@@ -603,10 +677,13 @@
     byId('playlist-library-grid').addEventListener('click', handleAction);
     byId('playlist-detail').addEventListener('click', handleAction);
     byId('playlist-create').addEventListener('click', handleAction);
+    byId('mood-collection-grid').addEventListener('click', handleAction);
+    byId('mood-collection-detail').addEventListener('click', handleAction);
     document.querySelector('.playlist-build-button').addEventListener('click', handleAction);
     byId('playlist-create-search-form').addEventListener('submit', searchCreateSongs);
     byId('library-modal-confirm').addEventListener('click', function () { if (modalAction) modalAction(); });
     byId('library-modal-input').addEventListener('keydown', function (event) { if (event.key === 'Enter' && modalAction) modalAction(); });
+    renderMoodCollections();
     loadPlaylists();
     const requestedPlaylist = new URLSearchParams(location.search).get('id');
     if (requestedPlaylist) setTimeout(function () { loadSuggestions(requestedPlaylist, false); loadArtistImages(requestedPlaylist); }, 0);
