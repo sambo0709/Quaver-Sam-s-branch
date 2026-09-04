@@ -28,8 +28,8 @@ async function syncAccountPreferences() {
     localStorage.setItem('quaver_preferences', JSON.stringify(data.preferences || {}));
 
     if (!deviceTheme) {
-      const accountTheme = data.defaultTheme || 'system';
-      if (accountTheme !== 'system') localStorage.setItem('theme', accountTheme);
+      const accountTheme = data.defaultTheme || 'dark';
+      localStorage.setItem('theme', accountTheme);
       const activeTheme = accountTheme === 'system'
         ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
         : accountTheme;

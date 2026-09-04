@@ -34,6 +34,7 @@ router.post('/register', async (req, res) => {
       playlists: [],
       recentMoods: [],
       listeningHistory: [],
+      defaultTheme: 'dark',
       createdAt: new Date(),
     });
 
@@ -98,7 +99,7 @@ router.get('/settings', async function(req, res) {
       { projection: { username: 1, defaultTheme: 1, preferences: 1 } }
     );
     if (!found) return res.status(404).json({ error: 'Account not found' });
-    res.json({ username: found.username, defaultTheme: found.defaultTheme || 'system', preferences: found.preferences || {} });
+    res.json({ username: found.username, defaultTheme: found.defaultTheme || 'dark', preferences: found.preferences || {} });
   } catch (_) { res.status(500).json({ error: 'Server error' }); }
 });
 
@@ -106,7 +107,7 @@ router.patch('/settings', async function(req, res) {
   const user = getUser(req);
   if (!user) return res.status(401).json({ error: 'Not logged in' });
   const displayName = String(req.body.displayName || '').trim().slice(0, 40);
-  const defaultTheme = ['light', 'dark', 'system'].includes(req.body.defaultTheme) ? req.body.defaultTheme : 'system';
+  const defaultTheme = ['light', 'dark', 'system'].includes(req.body.defaultTheme) ? req.body.defaultTheme : 'dark';
   const allowedMoods = ['happy', 'sad', 'angry', 'calm', 'energetic', 'romantic', 'focused', 'nostalgic', 'party', 'sleepy', 'anxious'];
   const defaultMood = allowedMoods.includes(req.body.defaultMood) ? req.body.defaultMood : '';
   const songCount = [5, 8, 10].includes(Number(req.body.songCount)) ? Number(req.body.songCount) : 5;

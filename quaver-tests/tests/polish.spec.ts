@@ -350,7 +350,10 @@ test('a searched song can start a new playlist', async ({ page }) => {
 test('header uses a non-linking compact Quaver mark', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('quaver_onboarded', '1');
-    localStorage.removeItem('theme');
+    if (!sessionStorage.getItem('theme-default-tested')) {
+      localStorage.removeItem('theme');
+      sessionStorage.setItem('theme-default-tested', '1');
+    }
   });
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('/');
@@ -358,6 +361,9 @@ test('header uses a non-linking compact Quaver mark', async ({ page }) => {
   await expect(mark).toHaveAttribute('src', 'quaver-q-dark.png');
   await expect(mark.locator('xpath=ancestor::a')).toHaveCount(0);
   await page.emulateMedia({ colorScheme: 'light' });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await page.evaluate(() => localStorage.setItem('theme', 'system'));
+  await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(mark).toHaveAttribute('src', 'quaver-q-light.png');
 });
@@ -514,4 +520,31 @@ test('saved playlists can be exported to Spotify from the library', async ({ pag
     trackUris: ['spotify:track:export123'],
   });
   await expect.poll(() => page.evaluate(() => (window as any).__openedSpotifyUrl)).toBe('https://open.spotify.com/playlist/new123');
+});
+
+test('mood collections stay contained on mobile and add tracks to a saved playlist', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
+    localStorage.setItem('theme', 'dark');
+  });
+  const library = [{ id: 'mobile-list', name: 'My Mix', mood: 'calm', songs: [] }];
+  await page.route('**/api/playlist', async route => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { playlists: library } });
+    return route.fulfill({ status: 201, json: { playlist: { id: 'saved-collection', name: 'Calm Focus', mood: 'focused', songs: [] } } });
+  });
+  await page.route('**/api/music/recommend?**', route => route.fulfill({ json: { songs: [{ title: 'Curated Song', artist: 'Quaver Artist', album_art: '', spotify_url: 'https://open.spotify.com/track/curated123' }] } }));
+  await page.route('**/api/playlist/mobile-list/songs', route => route.fulfill({ status: 201, json: { song: route.request().postDataJSON().song } }));
+  await page.goto('/playlists.html');
+
+  await expect(page.getByPlaceholder('Search your playlists')).toBeHidden();
+  const createdY = await page.getByRole('heading', { name: 'Created playlists' }).evaluate(element => element.getBoundingClientRect().top);
+  const collectionsY = await page.getByRole('heading', { name: 'Mood collections' }).evaluate(element => element.getBoundingClientRect().top);
+  expect(collectionsY).toBeGreaterThan(createdY);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+  await page.getByRole('button', { name: /Calm Focus/ }).click();
+  await page.getByRole('button', { name: 'Add Curated Song to a playlist' }).click();
+  await page.getByRole('dialog', { name: 'Add to playlist' }).getByRole('button', { name: /My Mix/ }).click();
+  await expect(page.getByText('Added “Curated Song” to My Mix.')).toBeVisible();
 });

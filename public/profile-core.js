@@ -21,7 +21,7 @@ function applyTheme(theme) {
 }
 
 matchMedia('(prefers-color-scheme: light)').addEventListener('change', function() {
-  if (!localStorage.getItem('theme')) applyTheme('system');
+  if (localStorage.getItem('theme') === 'system') applyTheme('system');
 });
 
 async function logout() {
@@ -46,7 +46,7 @@ function closeUserMenu(){const menu=document.getElementById('user-menu-dropdown'
 document.addEventListener('click',closeUserMenu);
 document.addEventListener('keydown',function(event){if(event.key==='Escape')closeUserMenu();});
 window.addEventListener('DOMContentLoaded', async function() {
-  const theme = localStorage.getItem('theme') || 'system';
+  const theme = localStorage.getItem('theme') || 'dark';
   const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
   applyTheme(theme);
   document.documentElement.classList.toggle('reduce-motion', !!preferences.reducedMotion);

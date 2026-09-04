@@ -66,11 +66,11 @@
     }
 
     matchMedia('(prefers-color-scheme: light)').addEventListener('change', function() {
-      if (!localStorage.getItem('theme')) applyTheme('system');
+      if (localStorage.getItem('theme') === 'system') applyTheme('system');
     });
 
     window.addEventListener('DOMContentLoaded', async function() {
-      applyTheme(localStorage.getItem('theme') || 'system');
+      applyTheme(localStorage.getItem('theme') || 'dark');
       localStorage.removeItem('quaver_token');
       try {
         const res = await fetch(API + '/api/auth/me', { credentials: 'include' });

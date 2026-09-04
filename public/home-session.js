@@ -77,7 +77,7 @@ function applyTheme(theme) {
 }
 
 window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function() {
-  if (!localStorage.getItem('theme')) applyTheme('system');
+  if (localStorage.getItem('theme') === 'system') applyTheme('system');
 });
 
 function checkSpotifyCallback() {
@@ -158,7 +158,7 @@ function dismissOnboarding() {
 }
 
 function initializeHome() {
-  applyTheme(localStorage.getItem('theme') || 'system');
+  applyTheme(localStorage.getItem('theme') || 'dark');
   const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
   document.documentElement.classList.toggle('reduce-motion', !!preferences.reducedMotion);
 

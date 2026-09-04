@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -31,14 +31,9 @@
     <div class="playlist-library-toolbar">
       <label class="playlist-library-search"><span class="sr-only">Search playlists</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><input id="playlist-search" type="search" placeholder="Search your playlists" autocomplete="off"/></label>
       <label class="playlist-library-filter"><span class="sr-only">Filter by mood</span><select id="playlist-mood-filter"><option value="">All moods</option></select></label>
+      <label class="playlist-library-sort"><span class="sr-only">Sort playlists</span><select id="playlist-sort"><option value="recent">Recently created</option><option value="updated">Recently updated</option><option value="name">Name</option><option value="mood">Mood</option></select></label>
       <button class="playlist-build-button" type="button" data-action="start-create">Create playlist</button>
     </div>
-
-    <section class="mood-collections" aria-labelledby="mood-collections-title">
-      <div class="playlist-grid-heading"><div><span>DISCOVER</span><h2 id="mood-collections-title">Mood collections</h2><p>Curated starting points you can preview and save to your library.</p></div></div>
-      <div class="mood-collection-grid" id="mood-collection-grid"></div>
-      <section class="mood-collection-detail" id="mood-collection-detail" hidden aria-live="polite"></section>
-    </section>
 
     <section id="playlist-create" class="playlist-create" hidden aria-labelledby="playlist-create-title">
       <div class="playlist-create-heading"><div><span>NEW PLAYLIST</span><h2 id="playlist-create-title">Create a playlist</h2><p>Give it a name, choose its mood, then find the songs you want to keep.</p></div><button type="button" data-action="close-create" aria-label="Close playlist builder">✕</button></div>
@@ -58,6 +53,12 @@
         <div class="playlist-library-skeleton"></div><div class="playlist-library-skeleton"></div><div class="playlist-library-skeleton"></div>
       </div>
     </section>
+
+    <section class="mood-collections" aria-labelledby="mood-collections-title">
+      <div class="playlist-grid-heading"><div><span>DISCOVER</span><h2 id="mood-collections-title">Mood collections</h2><p>Curated starting points you can preview and save to your library.</p></div></div>
+      <div class="mood-collection-grid" id="mood-collection-grid"></div>
+      <section class="mood-collection-detail" id="mood-collection-detail" hidden aria-live="polite"></section>
+    </section>
   </main>
 
   <div class="rename-modal-overlay" id="library-modal-overlay" onclick="closeLibraryModal()"></div>
@@ -67,6 +68,14 @@
     <input type="text" id="library-modal-input" class="playlist-input" maxlength="80"/>
     <div class="rename-modal-actions"><button class="rename-modal-cancel" onclick="closeLibraryModal()">Cancel</button><button class="save-btn" id="library-modal-confirm">Save</button></div>
   </div>
+
+  <div class="playlist-picker-overlay" id="collection-picker-overlay"></div>
+  <div class="playlist-picker" id="collection-picker" role="dialog" aria-modal="true" aria-labelledby="collection-picker-title" hidden>
+    <div class="playlist-picker-heading"><strong id="collection-picker-title">Add to playlist</strong><button type="button" data-action="close-collection-picker" aria-label="Close">✕</button></div>
+    <p id="collection-picker-song"></p>
+    <div id="collection-picker-list" class="playlist-picker-list"></div>
+  </div>
+  <input id="playlist-cover-input" type="file" accept="image/png,image/jpeg,image/webp" hidden/>
 
   <div id="spotify-player" class="spotify-player" style="display:none" role="region" aria-label="Now playing">
     <div class="player-identity" aria-live="polite">

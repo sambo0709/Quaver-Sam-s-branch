@@ -38,6 +38,11 @@ function cleanSongs(value) {
   const songs = value.map(cleanSong);
   return songs.every(Boolean) ? songs : null;
 }
+function cleanCoverImage(value) {
+  if (value === '') return '';
+  if (typeof value !== 'string' || value.length > 650000) return null;
+  return /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(value) ? value : null;
+}
 
 // GET /api/playlist
 router.get('/', async (req, res) => {
@@ -70,6 +75,7 @@ router.post('/', async (req, res) => {
     mood,
     songs,
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
 
   try {
@@ -106,7 +112,7 @@ router.post('/:id/songs', async (req, res) => {
     if ((playlist.songs || []).length >= 100) return res.status(400).json({ error: 'Playlist is full' });
     await users.updateOne(
       { _id: new ObjectId(user.userId), 'playlists.id': req.params.id },
-      { $push: { 'playlists.$.songs': song } }
+      { $push: { 'playlists.$.songs': song }, $set: { 'playlists.$.updatedAt': new Date().toISOString() } }
     );
     res.status(201).json({ message: 'Song added', song });
   } catch (_) { res.status(500).json({ error: 'Server error' }); }
@@ -122,10 +128,44 @@ router.delete('/:id/songs/:trackId', async (req, res) => {
     const db = await getDB();
     const result = await db.collection('users').updateOne(
       { _id: new ObjectId(user.userId), 'playlists.id': req.params.id, 'playlists.songs.spotify_url': spotifyUrl },
-      { $pull: { 'playlists.$.songs': { spotify_url: spotifyUrl } } }
+      { $pull: { 'playlists.$.songs': { spotify_url: spotifyUrl } }, $set: { 'playlists.$.updatedAt': new Date().toISOString() } }
     );
     if (!result.modifiedCount) return res.status(404).json({ error: 'Song or playlist not found' });
     res.json({ message: 'Song removed' });
+  } catch (_) { res.status(500).json({ error: 'Server error' }); }
+});
+
+router.patch('/:id/songs/reorder', async (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
+  const trackIds = req.body.trackIds;
+  if (!Array.isArray(trackIds) || trackIds.length > 100 || !trackIds.every(function(id) { return typeof id === 'string' && /^[A-Za-z0-9]+$/.test(id); }) || new Set(trackIds).size !== trackIds.length) {
+    return res.status(400).json({ error: 'Invalid song order' });
+  }
+  try {
+    const db = await getDB();
+    const found = await db.collection('users').findOne({ _id: new ObjectId(user.userId), 'playlists.id': req.params.id }, { projection: { 'playlists.$': 1 } });
+    const playlist = found?.playlists?.[0];
+    if (!playlist) return res.status(404).json({ error: 'Playlist not found' });
+    const songsById = new Map((playlist.songs || []).map(function(song) { return [cleanSpotifyUrl(song.spotify_url).split('/').pop(), song]; }));
+    if (trackIds.length !== songsById.size || trackIds.some(function(id) { return !songsById.has(id); })) return res.status(400).json({ error: 'Song order does not match playlist' });
+    const songs = trackIds.map(function(id) { return songsById.get(id); });
+    const updatedAt = new Date().toISOString();
+    await db.collection('users').updateOne({ _id: new ObjectId(user.userId), 'playlists.id': req.params.id }, { $set: { 'playlists.$.songs': songs, 'playlists.$.updatedAt': updatedAt } });
+    res.json({ message: 'Song order updated', updatedAt });
+  } catch (_) { res.status(500).json({ error: 'Server error' }); }
+});
+
+router.patch('/:id/cover', async (req, res) => {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
+  const coverImage = cleanCoverImage(req.body.coverImage);
+  if (coverImage === null) return res.status(400).json({ error: 'Invalid cover image' });
+  try {
+    const updatedAt = new Date().toISOString();
+    const result = await (await getDB()).collection('users').updateOne({ _id: new ObjectId(user.userId), 'playlists.id': req.params.id }, { $set: { 'playlists.$.coverImage': coverImage, 'playlists.$.updatedAt': updatedAt } });
+    if (!result.matchedCount) return res.status(404).json({ error: 'Playlist not found' });
+    res.json({ message: 'Cover updated', updatedAt });
   } catch (_) { res.status(500).json({ error: 'Server error' }); }
 });
 

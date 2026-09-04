@@ -21,7 +21,7 @@
   }
 
   matchMedia('(prefers-color-scheme: light)').addEventListener('change', function () {
-    if (!localStorage.getItem('theme')) applyTheme('system');
+    if (localStorage.getItem('theme') === 'system') applyTheme('system');
   });
 
   function showToast(message, type) {
@@ -151,7 +151,7 @@
   window.playerNext = function () { QuaverPlayer.next(); };
   window.closePlayer = function () { QuaverPlayer.hide(); };
 
-  const savedTheme = localStorage.getItem('theme') || 'system';
+  const savedTheme = localStorage.getItem('theme') || 'dark';
   applyTheme(savedTheme);
   const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
   document.documentElement.classList.toggle('reduce-motion', !!preferences.reducedMotion);

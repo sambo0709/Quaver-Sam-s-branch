@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -63,7 +63,7 @@
   }
 
   matchMedia('(prefers-color-scheme: light)').addEventListener('change', function() {
-    if (!localStorage.getItem('theme')) applyTheme('system');
+    if (localStorage.getItem('theme') === 'system') applyTheme('system');
   });
 
   function playInApp(trackId, title, artist, albumArt) {
@@ -153,7 +153,7 @@
   }
 
   window.addEventListener('DOMContentLoaded', function() {
-    applyTheme(localStorage.getItem('theme') || 'system');
+    applyTheme(localStorage.getItem('theme') || 'dark');
     loadSharedPlaylist();
   });
 </script>
