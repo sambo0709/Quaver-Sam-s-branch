@@ -145,6 +145,10 @@ async function loadProfileData() {
   }
   window._profilePlays = plays;
 
+  document.getElementById('profile-playlist-count').textContent = playlists.length;
+  document.getElementById('profile-mood-count').textContent = moods.length;
+  document.getElementById('profile-play-count').textContent = plays.length;
+
   renderMoodAnalytics(moods);
   renderRecentlyPlayed();
   renderPlaylists(playlists);

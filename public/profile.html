@@ -89,19 +89,22 @@
   </div>
 
   <main class="profile-main">
-    <header class="profile-header">
-      <span>Your account</span>
-      <h1 class="profile-title">Profile</h1>
-      <p>Your moods, listening activity, and personalized music in one place.</p>
+    <header class="profile-hero">
+      <div class="profile-hero-avatar" id="profile-hero-avatar" aria-hidden="true">Q</div>
+      <div class="profile-hero-copy">
+        <span>Quaver profile</span>
+        <h1 class="profile-title" id="profile-display-name">Your profile</h1>
+        <p><strong id="profile-playlist-count">0</strong> playlists <i>·</i> <strong id="profile-mood-count">0</strong> mood check-ins <i>·</i> <strong id="profile-play-count">0</strong> recent plays</p>
+        <div class="profile-hero-actions">
+          <button type="button" class="profile-story-button" onclick="openWrapped()">View your Sound Story</button>
+          <a href="settings.html">Edit settings</a>
+        </div>
+      </div>
     </header>
-    <section class="story-feature" onclick="openWrapped()" tabindex="0" role="button" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openWrapped();}">
-      <div><span>Weekly recap</span><h2>Your Sound Story</h2><p>See and share the moods and music that shaped your week.</p></div>
-      <button class="wrapped-open-btn" tabindex="-1">Open story</button>
-    </section>
     <div class="content-boxes">
 
       <div class="box box-wide">
-        <h2>Mood Stats</h2>
+        <div class="profile-box-heading"><div><span>YOUR PATTERNS</span><h2>Mood Stats</h2></div><small>Based on your check-ins</small></div>
         <div id="mood-analytics">
           <p class="box-empty">No moods yet. Pick one on the home page!</p>
         </div>
@@ -115,7 +118,7 @@
       </div>
 
       <div class="box">
-        <h2>Recently Played</h2>
+        <div class="profile-box-heading"><div><span>THIS MONTH</span><h2>Top tracks</h2></div></div>
         <div id="recently-played-list">
           <p class="box-empty">No songs played yet.</p>
         </div>

@@ -37,6 +37,8 @@ function updateAuthUI(user) {
   if (user) {
     usernameEl.textContent = user.username;
     document.getElementById('user-avatar').textContent=(user.username||'U').charAt(0).toUpperCase();
+    document.getElementById('profile-display-name').textContent=user.username||'Your profile';
+    document.getElementById('profile-hero-avatar').textContent=(user.username||'Q').charAt(0).toUpperCase();
     document.getElementById('user-menu').style.display='block';
   }
 }

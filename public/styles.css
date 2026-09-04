@@ -2520,6 +2520,68 @@ body.player-active { padding-bottom: 118px; }
   line-height: 1.5;
 }
 
+.profile-hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 30px;
+  min-height: 310px;
+  margin-bottom: 26px;
+  padding: 42px;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 14% 20%, rgba(14, 210, 235, .3), transparent 34%),
+    linear-gradient(125deg, #123842 0%, #18243f 48%, #24183f 100%);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, .2);
+  text-align: left;
+}
+
+.profile-hero::after {
+  content: '';
+  position: absolute;
+  inset: auto -8% -65% 38%;
+  height: 280px;
+  border-radius: 50%;
+  background: rgba(110, 92, 255, .18);
+  filter: blur(45px);
+  pointer-events: none;
+}
+
+.profile-hero-avatar {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 176px;
+  height: 176px;
+  flex: 0 0 176px;
+  border: 3px solid rgba(255, 255, 255, .34);
+  border-radius: 50%;
+  background: linear-gradient(145deg, #09cee7, #7458ff 58%, #dd3d9d);
+  box-shadow: 0 20px 44px rgba(0, 0, 0, .32);
+  color: #fff;
+  font-size: 4.7rem;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.profile-hero-copy { position: relative; z-index: 1; min-width: 0; }
+.profile-hero-copy > span { color: #6eeafb; font-size: 11px; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; }
+.profile-hero .profile-title { max-width: 780px; margin: 8px 0 12px; color: #fff; -webkit-text-fill-color: #fff; font-size: clamp(3.2rem, 8vw, 6.6rem); line-height: .9; overflow-wrap: anywhere; }
+.profile-hero-copy > p { color: rgba(255, 255, 255, .72); font-size: 13px; }
+.profile-hero-copy > p strong { color: #fff; font-weight: 700; }
+.profile-hero-copy > p i { padding: 0 5px; font-style: normal; opacity: .45; }
+.profile-hero-actions { display: flex; align-items: center; gap: 10px; margin-top: 22px; }
+.profile-hero-actions button,
+.profile-hero-actions a { padding: 10px 16px; border: 1px solid rgba(255, 255, 255, .22); border-radius: 999px; font: inherit; font-size: 11px; font-weight: 750; text-decoration: none; cursor: pointer; transition: background .2s ease, border-color .2s ease, transform .2s ease; }
+.profile-hero-actions button { border-color: transparent; background: #fff; color: #101522; }
+.profile-hero-actions a { background: rgba(255, 255, 255, .07); color: #fff; }
+.profile-hero-actions button:hover,
+.profile-hero-actions a:hover { transform: translateY(-1px); }
+.profile-hero-actions a:hover { border-color: rgba(255, 255, 255, .42); background: rgba(255, 255, 255, .12); }
+
 .content-boxes {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3318,6 +3380,8 @@ html.reduce-motion *::after {
 }
 
 .profile-box-heading h2 { margin-bottom: 0; }
+.profile-box-heading > div > span { display: block; margin-bottom: 4px; color: var(--accent); font-size: 9px; font-weight: 750; letter-spacing: .12em; }
+.profile-box-heading > small { color: var(--text-muted); font-size: 10px; font-weight: 600; }
 .profile-box-heading a { color: var(--accent); font-size: 11px; font-weight: 700; text-decoration: none; }
 .profile-box-heading a:hover { text-decoration: underline; }
 
@@ -3483,6 +3547,14 @@ html.reduce-motion *::after {
   padding: 10px 0;
   border-bottom: 1px solid rgba(255,255,255,0.04);
 }
+
+.profile-ranked-track {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+}
+.profile-ranked-track .profile-suggestion-item { min-width: 0; }
+.profile-track-rank { color: var(--text-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
 
 .profile-suggestion-art {
   width: 42px;
@@ -3931,6 +4003,9 @@ html.reduce-motion *::after {
   /* Profile page */
   .profile-main { padding: 42px 12px 80px; }
   .profile-title { font-size: 2.6rem; }
+  .profile-hero { align-items: center; min-height: 0; padding: 26px 20px; border-radius: 18px; }
+  .profile-hero-avatar { width: 116px; height: 116px; flex-basis: 116px; font-size: 3.2rem; }
+  .profile-hero .profile-title { font-size: clamp(2.6rem, 11vw, 4.5rem); }
   .wrapped-open-btn { padding: 8px 18px; font-size: 0.85rem; margin-bottom: 1rem; }
   .story-feature { padding: 20px; align-items: flex-start; }
   .story-feature .wrapped-open-btn { margin: 0; }
@@ -3953,6 +4028,13 @@ html.reduce-motion *::after {
 @media (max-width: 480px) {
   nav, .top-nav { top: 4px; padding: 0.5rem 0.75rem; }
   .logo { height: 30px; }
+
+  .profile-hero { display: block; padding: 24px 18px; }
+  .profile-hero-avatar { width: 88px; height: 88px; margin-bottom: 22px; font-size: 2.5rem; }
+  .profile-hero .profile-title { margin-top: 7px; font-size: 2.55rem; }
+  .profile-hero-copy > p { line-height: 1.7; }
+  .profile-hero-actions { align-items: stretch; flex-direction: column; }
+  .profile-hero-actions button, .profile-hero-actions a { width: 100%; text-align: center; }
 
   .nav-link { padding: 7px 10px; font-size: 0.75rem; }
 
