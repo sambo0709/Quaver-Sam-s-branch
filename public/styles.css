@@ -1533,6 +1533,7 @@ h1 span {
 }
 
 @media (max-width: 768px) {
+  :root { --mobile-nav-safe-bottom: max(5px, env(safe-area-inset-bottom)); }
   .queue-panel {
     bottom: 0;
     left: 0;
@@ -3748,7 +3749,9 @@ html.reduce-motion *::after {
   body { padding-bottom: 76px; }
   body.player-active { padding-bottom: 174px; }
   .spotify-player {
-    bottom: 76px;
+    /* Sit directly on the floating nav: 8px viewport inset + 5px top
+       padding + 46px item + safe bottom padding + 2px border. */
+    bottom: calc(61px + var(--mobile-nav-safe-bottom));
     grid-template-columns: minmax(0, 1fr) auto auto;
     gap: 8px;
     min-height: 76px;
@@ -4656,7 +4659,7 @@ main { padding-bottom: 96px; }
 
   .mobile-bottom-nav {
     inset: auto 8px 8px;
-    padding: 5px 7px max(5px, env(safe-area-inset-bottom));
+    padding: 5px 7px var(--mobile-nav-safe-bottom);
   }
   .mobile-bottom-nav a,
   .mobile-bottom-nav button {

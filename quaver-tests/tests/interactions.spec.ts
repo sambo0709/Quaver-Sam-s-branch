@@ -152,5 +152,18 @@ test.describe('Playlist discovery', () => {
     const heights = await page.locator('.playlist-detail-track').evaluateAll(rows => rows.map(row => row.getBoundingClientRect().height));
     expect(heights.every(height => height < 80)).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await page.evaluate(() => {
+      const player = document.getElementById('spotify-player');
+      if (player) player.style.display = 'grid';
+      document.body.classList.add('player-active');
+    });
+    await page.waitForTimeout(400);
+    const playerNavLayout = await page.evaluate(() => {
+      const playerElement = document.getElementById('spotify-player')!;
+      const player = playerElement.getBoundingClientRect();
+      const nav = document.querySelector('.mobile-bottom-nav')!.getBoundingClientRect();
+      return { gap: Math.abs(nav.top - player.bottom), playerBottom: player.bottom, navTop: nav.top, cssBottom: getComputedStyle(playerElement).bottom };
+    });
+    expect(playerNavLayout.gap, JSON.stringify(playerNavLayout)).toBeLessThanOrEqual(1);
   });
 });
