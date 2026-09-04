@@ -180,7 +180,7 @@ function initializeHome() {
       splash.addEventListener('transitionend', function() {
         splash.style.display = 'none';
       }, { once: true });
-    }, 3000);
+    }, 450);
   }
 
   checkSpotifyCallback();

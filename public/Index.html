@@ -60,11 +60,14 @@
 </div>
 
 <main>
+  <div class="hero-eyebrow"><span></span>Music for right now</div>
   <h1>How are <span>you feeling?</span></h1>
-<p class="subtitle">Pick your mood and we’ll find songs that fit your moment.</p>
+  <p class="subtitle">Pick your mood. We’ll shape a mix around your moment.</p>
+  <div class="recommendation-panel">
   <form class="dropdown-row" id="recommendation-form" onsubmit="submitRecommendation(event)">
+    <label class="recommendation-field" for="mood-select"><span>Your mood</span>
     <select class="mood-select" id="mood-select" onchange="onMoodSelect(this.value)" required>
-      <option disabled selected value="">Select Mood</option>
+      <option disabled selected value="">Choose a mood</option>
       <option value="happy">Happy</option>
       <option value="sad">Sad</option>
       <option value="energetic">Energetic</option>
@@ -76,18 +79,20 @@
       <option value="party">Party</option>
       <option value="sleepy">Sleepy</option>
       <option value="anxious">Anxious</option>
-    </select>
+    </select></label>
+    <label class="recommendation-field recommendation-count" for="count-select"><span>Mix length</span>
     <select class="mood-select" id="count-select" onchange="onCountSelect(this.value)" required>
-      <option disabled selected value="">How many songs?</option>
+      <option disabled selected value="">Choose length</option>
       <option value="5">5 songs</option>
       <option value="8">8 songs</option>
       <option value="10">10 songs</option>
-    </select>
-    <button class="mood-select recommendation-go-btn" type="submit">Go</button>
+    </select></label>
+    <button class="mood-select recommendation-go-btn" type="submit"><span>Go</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
   </form>
-  <button class="mood-select random-btn" onclick="randomMood()">✨ Surprise Me</button>
+  <div class="recommendation-secondary"><span>Not sure what fits?</span><button class="random-btn" onclick="randomMood()"><span aria-hidden="true">✦</span> Surprise Me</button></div>
+  </div>
   <details class="mood-context" id="mood-context">
-    <summary>Shape this recommendation</summary>
+    <summary><span>Fine-tune your mix</span><small>Optional</small></summary>
     <div class="mood-context-grid">
       <label>Also feeling<select id="secondary-mood"><option value="">One clear mood</option><option value="happy">Happy</option><option value="sad">Sad</option><option value="energetic">Energetic</option><option value="calm">Calm</option><option value="focused">Focused</option><option value="angry">Angry</option><option value="romantic">Romantic</option><option value="nostalgic">Nostalgic</option><option value="party">Party</option><option value="sleepy">Sleepy</option><option value="anxious">Anxious</option></select></label>
       <label>Intensity <output id="intensity-output">3</output><input id="mood-intensity" type="range" min="1" max="5" value="3" oninput="document.getElementById('intensity-output').value=this.value"/></label>
