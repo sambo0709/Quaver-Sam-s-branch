@@ -47,7 +47,7 @@
 
 <div id="onboarding-overlay" class="onboarding-overlay" style="display:none">
   <div class="onboarding-card">
-    <div class="onboarding-logo">♬</div>
+    <img class="onboarding-brand-mark" src="quaver-q-dark.png" alt=""/>
     <h2 class="onboarding-title">Welcome to Quaver</h2>
     <p class="onboarding-sub">Mood-based music discovery in 3 steps</p>
     <div class="onboarding-steps">
@@ -89,7 +89,7 @@
     </select></label>
     <button class="mood-select recommendation-go-btn" type="submit"><span>Go</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
   </form>
-  <div class="recommendation-secondary"><span>Not sure what fits?</span><button class="random-btn" onclick="randomMood()"><span aria-hidden="true">✦</span> Surprise Me</button></div>
+  <div class="recommendation-secondary"><span>Not sure what fits?</span><button class="random-btn" onclick="randomMood()">Surprise Me</button></div>
   </div>
   <details class="mood-context" id="mood-context">
     <summary><span>Fine-tune your mix</span></summary>
@@ -129,7 +129,6 @@
 <section class="trending-section" id="trending-section">
   <div class="trending-label">COMMUNITY</div>
   <h2 class="trending-title">Trending Moods</h2>
-  <p class="trending-subtitle">Most-picked moods from the last 24 hours</p>
   <div class="trending-pills" id="trending-pills"></div>
 </section>
 

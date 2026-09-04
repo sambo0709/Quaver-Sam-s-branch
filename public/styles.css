@@ -1619,6 +1619,8 @@ h1 span {
   line-height: 1;
 }
 
+.onboarding-brand-mark { display:block; width:58px; height:58px; object-fit:contain; margin:0 auto 16px; }
+
 .onboarding-title {
   font-family: var(--font-family);
   font-size: 1.8rem;
@@ -4062,14 +4064,6 @@ html.reduce-motion *::after {
   background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.07) 50%, transparent 100%);
   background-size: 200% 100%;
   animation: shimmer 1.4s ease infinite;
-}
-
-.trending-count {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  background: var(--glass-border);
-  padding: 1px 6px;
-  border-radius: 999px;
 }
 
 /* ═══════════════════════════════════════

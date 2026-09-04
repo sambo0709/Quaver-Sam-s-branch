@@ -72,6 +72,8 @@ function applyTheme(theme) {
   if (splashLogo) {
     splashLogo.src = activeTheme === 'dark' ? 'quaver-q-dark.png' : 'quaver-q-light.png';
   }
+  const onboardingLogo = document.querySelector('.onboarding-brand-mark');
+  if (onboardingLogo) onboardingLogo.src = activeTheme === 'dark' ? 'quaver-q-dark.png' : 'quaver-q-light.png';
 }
 
 window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function() {

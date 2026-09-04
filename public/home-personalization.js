@@ -1,5 +1,3 @@
-const personalizationMoodEmoji = { happy: '😊', sad: '😢', energetic: '⚡', calm: '😌', focused: '🎯', angry: '😤', romantic: '❤️', nostalgic: '🌅', party: '🎉', sleepy: '😴', anxious: '🌀' };
-
 function playPersonalized(index) {
   const song = (window._jumpBackSongs || [])[index];
   if (song) playInApp(song.trackId, song.title, song.artist, song.albumArt);
@@ -63,8 +61,7 @@ async function loadPersonalizedHome() {
 function renderMotd(data, grid) {
   const mood = data.mood;
   const songs = data.songs;
-  const emoji = personalizationMoodEmoji[mood] || '🎵';
-  document.getElementById('sotd-mood-subtitle').textContent = emoji + ' ' + mood.charAt(0).toUpperCase() + mood.slice(1) + ' — ' + songs.length + ' picks for today';
+  document.getElementById('sotd-mood-subtitle').textContent = mood.charAt(0).toUpperCase() + mood.slice(1) + ' — ' + songs.length + ' picks for today';
   let html = '';
   songs.forEach(function(song, index) {
     const trackId = spotifyTrackId(song.spotify_url);
@@ -78,19 +75,10 @@ function renderMotd(data, grid) {
   grid.innerHTML = html;
 }
 
-function animateCount(element, target) {
-  const start = Date.now();
-  (function tick() {
-    const progress = Math.min((Date.now() - start) / 900, 1);
-    element.textContent = Math.round((1 - Math.pow(1 - progress, 3)) * target);
-    if (progress < 1) requestAnimationFrame(tick);
-  })();
-}
-
-function trendingButton(mood, index, count) {
+function trendingButton(mood, index) {
   const rank = index + 1;
-  const label = rank + '. ' + mood + (count == null ? '' : ', ' + count + ' check-ins');
-  return '<button class="trending-pill" data-trending-mood="' + escapeHTML(mood) + '" aria-label="' + escapeHTML(label) + '" aria-pressed="false"><span class="trending-rank">' + rank + '</span><span aria-hidden="true">' + (personalizationMoodEmoji[mood] || '') + '</span><span class="trending-mood-name">' + escapeHTML(mood) + '</span>' + (count == null ? '' : '<span class="trending-count" id="trending-count-' + escapeHTML(mood) + '">0</span>') + '</button>';
+  const label = rank + '. ' + mood;
+  return '<button class="trending-pill" data-trending-mood="' + escapeHTML(mood) + '" aria-label="' + escapeHTML(label) + '" aria-pressed="false"><span class="trending-rank">' + rank + '</span><span class="trending-mood-name">' + escapeHTML(mood) + '</span></button>';
 }
 
 function renderTrendingPills() {
@@ -104,11 +92,7 @@ async function loadTrendingMoods() {
       document.getElementById('trending-pills').innerHTML = '<span class="trending-empty">No community check-ins yet today.</span>';
       return;
     }
-    document.getElementById('trending-pills').innerHTML = data.trending.map(function(item, index) { return trendingButton(item.mood, index, item.count); }).join('');
-    data.trending.forEach(function(item, index) {
-      const count = document.getElementById('trending-count-' + item.mood);
-      if (count) setTimeout(function() { animateCount(count, item.count); }, index * 120);
-    });
+    document.getElementById('trending-pills').innerHTML = data.trending.map(function(item, index) { return trendingButton(item.mood, index); }).join('');
   } catch (_) {
     document.getElementById('trending-pills').innerHTML = '<span class="trending-empty">Community trends are unavailable right now.</span>';
   }

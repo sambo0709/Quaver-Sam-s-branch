@@ -22,7 +22,6 @@ function openWrapped() {
   });
 
   document.getElementById('wrapped-year').textContent = 'This week';
-  document.getElementById('wrapped-top-emoji').textContent = topMood ? (moodEmoji[topMood] || '🎵') : '🎵';
   document.getElementById('wrapped-top-mood').textContent = topMood || 'No moods yet';
   document.getElementById('wrapped-total-moods').textContent = moods.length;
   document.getElementById('wrapped-total-songs').textContent = recent.length;

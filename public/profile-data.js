@@ -1,4 +1,3 @@
-const moodEmoji = { happy: '😊', sad: '😢', energetic: '⚡', calm: '😌', focused: '🎯', angry: '😤', romantic: '❤️', nostalgic: '🌅', party: '🎉', sleepy: '😴', anxious: '🌀' };
 const profileActionSongs = [];
 
 function profileTrackId(url, fallback) {

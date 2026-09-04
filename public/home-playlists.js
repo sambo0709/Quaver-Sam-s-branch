@@ -312,7 +312,7 @@ function renderSavedPlaylists() {
     html += '<div class="saved-playlist-info" onclick="openSavedPlaylist(' + i + ')">';
     html += coverArt
       ? '<img class="saved-playlist-art" src="' + coverArt.album_art + '" alt="cover"/>'
-      : '<div class="saved-playlist-art saved-playlist-art-empty">' + (personalizationMoodEmoji[pl.mood] || '🎵') + '</div>';
+      : '<div class="saved-playlist-art saved-playlist-art-empty">' + escapeHTML((pl.name || 'Q').charAt(0).toUpperCase()) + '</div>';
     html += '<div><div class="saved-playlist-name">' + pl.name + '</div>';
     html += '<div class="saved-playlist-meta">' + pl.songs.length + ' songs · ' + pl.mood + '</div></div>';
     html += '</div>';

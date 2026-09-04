@@ -95,8 +95,7 @@ function checkMoodStreak(mood) {
   }
   const banner = document.getElementById('streak-banner');
   if (streak >= 2) {
-    const label = streak >= 5 ? '🔥' : streak >= 3 ? '✨' : '💫';
-    banner.textContent = label + ' ' + streak + '-pick ' + mood + ' streak!';
+    banner.textContent = streak + '-pick ' + mood + ' streak';
     banner.style.display = 'block';
     void banner.offsetWidth;
     banner.classList.add('streak-banner-show');
