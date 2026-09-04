@@ -2470,16 +2470,23 @@ body.player-active { padding-bottom: 118px; }
 ═══════════════════════════════════════ */
 
 .profile-main {
-  padding: 50px 24px 100px;
-  text-align: center;
+  display: block;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 52px 24px 100px;
+  text-align: left;
   position: relative;
   z-index: 1;
 }
 
-.profile-title {
+.profile-title,
+.settings-header h1,
+.playlist-library-header h1 {
   font-family: inherit;
-  font-size: clamp(2.3rem, 5vw, 4rem);
+  font-size: clamp(3rem, 6vw, 4.5rem);
   font-weight: 700;
+  line-height: 1;
   letter-spacing: -0.02em;
   background: none;
   -webkit-text-fill-color: var(--text);
@@ -2487,13 +2494,17 @@ body.player-active { padding-bottom: 118px; }
   margin: 5px 0 8px;
 }
 
-.profile-header {
-  max-width: 1180px;
-  margin: 0 auto 32px;
+.profile-header,
+.settings-header,
+.playlist-library-header {
+  width: 100%;
+  margin: 0 0 20px;
   text-align: left;
 }
 
-.profile-header > span {
+.profile-header > span,
+.settings-header > span,
+.playlist-library-header > span {
   color: var(--accent);
   font-size: 11px;
   font-weight: 700;
@@ -2501,7 +2512,9 @@ body.player-active { padding-bottom: 118px; }
   text-transform: uppercase;
 }
 
-.profile-header p {
+.profile-header p,
+.settings-header p,
+.playlist-library-header p {
   color: var(--text-muted);
   font-size: 13px;
   line-height: 1.5;
@@ -2564,10 +2577,7 @@ body.player-active { padding-bottom: 118px; }
 .spotify-setting-actions { display: flex; gap: 8px; margin-top: 10px; }
 .spotify-setting-actions a, .spotify-setting-actions button { flex: 1; padding: 8px; border: 1px solid var(--glass-border); border-radius: 8px; background: transparent; color: var(--text); text-align: center; text-decoration: none; font: inherit; font-size: 11px; cursor: pointer; }
 
-.settings-main { width: 100%; max-width: 1050px; margin: 0 auto; padding: 140px 24px 100px; position: relative; z-index: 1; }
-.settings-header { margin-bottom: 32px; text-align: left; }
-.settings-header > span { color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
-.settings-header h1 { margin: 5px 0 8px; background: none; -webkit-text-fill-color: var(--text); color: var(--text); font-size: clamp(2.3rem,5vw,4rem); }
+.settings-main { display: block; width: 100%; max-width: 1180px; margin: 0 auto; padding: 52px 24px 100px; position: relative; z-index: 1; text-align: left; }
 .settings-header p, .settings-section > p { color: var(--text-muted); font-size: 13px; line-height: 1.5; }
 .settings-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .settings-section { padding: 24px; border: 1px solid var(--glass-border); border-radius: 14px; background: var(--glass); text-align: left; }
@@ -2580,7 +2590,7 @@ body.player-active { padding-bottom: 118px; }
 .danger-zone button { margin-top: 8px; padding: 10px 16px; border: 1px solid #e05555; border-radius: 8px; background: transparent; color: #e05555; cursor: pointer; }
 
 @media (max-width: 768px) {
-  .settings-main { padding: 130px 12px 70px; }
+  .settings-main { padding: 42px 12px 70px; }
   .settings-layout { grid-template-columns: 1fr; }
   .settings-section-wide { grid-column: auto; }
 }
@@ -3919,8 +3929,8 @@ html.reduce-motion *::after {
   .auth-box { padding: 2rem 1.5rem; }
 
   /* Profile page */
-  .profile-main { padding: 24px 12px 80px; }
-  .profile-title { font-size: 2.2rem; margin-bottom: 1rem; }
+  .profile-main { padding: 42px 12px 80px; }
+  .profile-title { font-size: 2.6rem; }
   .wrapped-open-btn { padding: 8px 18px; font-size: 0.85rem; margin-bottom: 1rem; }
   .story-feature { padding: 20px; align-items: flex-start; }
   .story-feature .wrapped-open-btn { margin: 0; }
