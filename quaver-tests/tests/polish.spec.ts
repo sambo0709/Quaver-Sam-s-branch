@@ -85,6 +85,17 @@ test('profile identity can be edited from the profile hero', async ({ page }) =>
   await expect(page.locator('#user-menu-button')).toHaveCSS('background-size', 'cover');
 });
 
+test('mobile search hides Login for an authenticated user', async ({ page }) => {
+  await page.setViewportSize({ width: 393, height: 852 });
+  await page.addInitScript(() => localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener', profileImage: '' })));
+  await page.route('**/api/auth/me', route => route.fulfill({ json: { username: 'Listener', email: 'listener@example.com', profileImage: '' } }));
+
+  await page.goto('/search.html');
+
+  await expect(page.getByRole('link', { name: 'Login' })).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Open account menu' })).toBeVisible();
+});
+
 test('profile rejects stale local authentication when the server session is missing', async ({ page }) => {
   await page.route('**/api/auth/me', route => route.fulfill({ status: 401, json: { error: 'Not logged in' } }));
   await page.goto('/');

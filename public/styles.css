@@ -502,6 +502,11 @@ nav,
   display: inline-block;
 }
 
+.login-nav-btn[hidden],
+.user-menu[hidden] {
+  display: none !important;
+}
+
 .login-nav-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
