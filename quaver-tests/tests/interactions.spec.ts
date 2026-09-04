@@ -130,4 +130,27 @@ test.describe('Playlist discovery', () => {
     await page.getByRole('button', { name: 'Add Soft Focus to playlist' }).click();
     await expect(page.locator('.playlist-detail-track').filter({ hasText: 'Soft Focus' })).toBeVisible();
   });
+
+  test('keeps playlist rows compact on mobile regardless of track controls', async ({ page }) => {
+    const playlist = {
+      id: 'mobile-playlist', name: 'Mixed controls', mood: 'mixed',
+      songs: [
+        { title: 'Playable', artist: 'Artist One', album_art: '', spotify_url: 'https://open.spotify.com/track/playable123' },
+        { title: 'Imported song', artist: 'Artist Two', album_art: '', spotify_url: '' },
+      ],
+    };
+    await page.setViewportSize({ width: 393, height: 852 });
+    await page.addInitScript(value => {
+      localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
+      localStorage.setItem('quaver_playlists', JSON.stringify([value]));
+    }, playlist);
+    await page.route('**/api/playlist', route => route.fulfill({ json: { playlists: [playlist] } }));
+    await page.route('**/api/music/recommend?**', route => route.fulfill({ json: { songs: [] } }));
+    await page.route('**/api/music/artists?**', route => route.fulfill({ json: { artists: [] } }));
+    await page.goto('/playlists.html?id=mobile-playlist');
+
+    const heights = await page.locator('.playlist-detail-track').evaluateAll(rows => rows.map(row => row.getBoundingClientRect().height));
+    expect(heights.every(height => height < 80)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  });
 });
