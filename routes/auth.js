@@ -81,7 +81,40 @@ router.post('/login', async (req, res) => {
 router.get('/me', async (req, res) => {
   const user = getUser(req);
   if (!user) return res.status(401).json({ error: 'Not logged in' });
-  res.json({ userId: user.userId, username: user.username, email: user.email });
+  try {
+    const db = await getDB();
+    const found = await db.collection('users').findOne(
+      { _id: new ObjectId(user.userId) },
+      { projection: { username: 1, email: 1, profileImage: 1 } }
+    );
+    if (!found) return res.status(404).json({ error: 'Account not found' });
+    res.json({ userId: user.userId, username: found.username, email: found.email, profileImage: found.profileImage || '' });
+  } catch (_) { res.status(500).json({ error: 'Server error' }); }
+});
+
+router.patch('/profile', async function(req, res) {
+  const user = getUser(req);
+  if (!user) return res.status(401).json({ error: 'Not logged in' });
+  const username = typeof req.body.displayName === 'string' ? req.body.displayName.trim() : '';
+  const profileImage = req.body.profileImage === '' ? '' : String(req.body.profileImage || '');
+  if (!username || username.length > 40 || !/^[\p{L}\p{N}_. -]+$/u.test(username)) return res.status(400).json({ error: 'Enter a valid display name' });
+  if (profileImage && (!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(profileImage) || profileImage.length > 90000)) {
+    return res.status(400).json({ error: 'Profile photo is too large or invalid' });
+  }
+  try {
+    const db = await getDB();
+    const found = await db.collection('users').findOne({ _id: new ObjectId(user.userId) }, { projection: { email: 1 } });
+    if (!found) return res.status(404).json({ error: 'Account not found' });
+    await db.collection('users').updateOne(
+      { _id: found._id },
+      { $set: { username, profileImage, updatedAt: new Date() } }
+    );
+    createSession(res, { userId: found._id, username, email: found.email });
+    res.json({ message: 'Profile updated', username, email: found.email, profileImage });
+  } catch (err) {
+    if (err && err.code === 11000) return res.status(409).json({ error: 'Display name already taken' });
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 router.post('/logout', function(req, res) {

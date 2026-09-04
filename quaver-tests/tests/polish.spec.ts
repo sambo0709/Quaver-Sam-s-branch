@@ -20,7 +20,7 @@ test('profile exposes the polished dashboard and dedicated settings navigation',
   await expect(page.getByRole('heading', { name: 'Suggestions' })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: '30-Day Mood Timeline' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Open account menu' }).click();
-  await expect(page.getByRole('link', { name: 'Settings', exact: true })).toBeVisible();
+  await expect(page.locator('#user-menu-dropdown').getByRole('link', { name: 'Settings', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Toggle color theme' })).toHaveCount(0);
 });
 
@@ -49,6 +49,27 @@ test('authenticated profile loads mood, listening, and playlist data', async ({ 
   await expect(page.getByText('calm', { exact: true }).first()).toBeVisible();
   expect(await page.evaluate(() => (window as any).__profileXss)).toBeUndefined();
   await expect(page.locator('[data-profile-song="0"]')).not.toHaveAttribute('onclick');
+});
+
+test('profile identity can be edited from the profile hero', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' })));
+  await page.route('**/api/auth/me', route => route.fulfill({ json: { username: 'Listener', email: 'listener@example.com', profileImage: '' } }));
+  await page.route('**/api/playlist', route => route.fulfill({ json: { playlists: [] } }));
+  await page.route('**/api/mood/history', route => route.fulfill({ json: { moods: [] } }));
+  await page.route('**/api/listening/history', route => route.fulfill({ json: { plays: [] } }));
+  await page.route('**/api/auth/profile', async route => {
+    const body = route.request().postDataJSON();
+    await route.fulfill({ json: { username: body.displayName, email: 'listener@example.com', profileImage: body.profileImage } });
+  });
+
+  await page.goto('/profile.html');
+  await page.getByRole('button', { name: 'Edit profile' }).click();
+  await page.getByLabel('Display name').fill('New Listener');
+  await page.getByRole('button', { name: 'Save profile' }).click();
+
+  await expect(page.getByRole('heading', { name: 'New Listener' })).toBeVisible();
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('quaver_user') || '{}').username)).toBe('New Listener');
 });
 
 test('profile rejects stale local authentication when the server session is missing', async ({ page }) => {

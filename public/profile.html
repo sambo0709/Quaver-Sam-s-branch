@@ -90,14 +90,15 @@
 
   <main class="profile-main">
     <header class="profile-hero">
-      <div class="profile-hero-avatar" id="profile-hero-avatar" aria-hidden="true">Q</div>
+      <button class="profile-hero-avatar" id="profile-hero-avatar" type="button" onclick="openProfileEditor()" aria-label="Change profile photo"><img id="profile-hero-image" alt="" hidden/><span id="profile-hero-initial">Q</span><i>Change</i></button>
       <div class="profile-hero-copy">
         <span>Quaver profile</span>
         <h1 class="profile-title" id="profile-display-name">Your profile</h1>
         <p><strong id="profile-playlist-count">0</strong> playlists <i>·</i> <strong id="profile-mood-count">0</strong> mood check-ins <i>·</i> <strong id="profile-play-count">0</strong> recent plays</p>
         <div class="profile-hero-actions">
           <button type="button" class="profile-story-button" onclick="openWrapped()">View your Sound Story</button>
-          <a href="settings.html">Edit settings</a>
+          <button type="button" class="profile-edit-button" onclick="openProfileEditor()">Edit profile</button>
+          <a href="settings.html">Settings</a>
         </div>
       </div>
     </header>
@@ -126,6 +127,22 @@
 
     </div>
   </main>
+
+  <div class="profile-editor-overlay" id="profile-editor-overlay" hidden onclick="closeProfileEditor(event)">
+    <section class="profile-editor" role="dialog" aria-modal="true" aria-labelledby="profile-editor-title">
+      <div class="profile-editor-heading"><h2 id="profile-editor-title">Edit profile</h2><button type="button" onclick="closeProfileEditor()" aria-label="Close profile editor">×</button></div>
+      <form id="profile-editor-form" onsubmit="saveProfile(event)">
+        <div class="profile-photo-editor">
+          <div class="profile-photo-preview" id="profile-photo-preview"><span id="profile-photo-preview-initial">Q</span><img id="profile-photo-preview-image" alt="Profile photo preview" hidden/></div>
+          <div><button type="button" onclick="document.getElementById('profile-photo-input').click()">Choose photo</button><button type="button" class="profile-photo-remove" onclick="removeProfilePhoto()">Remove</button><small>JPG, PNG, or WebP. Quaver will crop it to a square.</small></div>
+        </div>
+        <input id="profile-photo-input" type="file" accept="image/jpeg,image/png,image/webp" hidden onchange="prepareProfilePhoto(event)"/>
+        <label for="profile-name-input">Display name</label>
+        <input id="profile-name-input" maxlength="40" autocomplete="name" required/>
+        <div class="profile-editor-actions"><button type="button" onclick="closeProfileEditor()">Cancel</button><button id="profile-save-button" type="submit">Save profile</button></div>
+      </form>
+    </section>
+  </div>
 
   <script src="profile-core.js"></script>
   <script src="profile-player.js"></script>

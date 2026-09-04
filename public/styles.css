@@ -2565,7 +2565,12 @@ body.player-active { padding-bottom: 118px; }
   font-size: 4.7rem;
   font-weight: 750;
   line-height: 1;
+  cursor: pointer;
 }
+.profile-hero-avatar img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
+.profile-hero-avatar i { position: absolute; inset: auto 16px 12px; padding: 6px 8px; border-radius: 999px; background: rgba(8, 12, 22, .72); color: #fff; font-size: 9px; font-style: normal; font-weight: 750; letter-spacing: .04em; opacity: 0; transform: translateY(4px); transition: opacity .2s ease, transform .2s ease; }
+.profile-hero-avatar:hover i,
+.profile-hero-avatar:focus-visible i { opacity: 1; transform: translateY(0); }
 
 .profile-hero-copy { position: relative; z-index: 1; min-width: 0; }
 .profile-hero-copy > span { color: #6eeafb; font-size: 11px; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; }
@@ -2581,6 +2586,30 @@ body.player-active { padding-bottom: 118px; }
 .profile-hero-actions button:hover,
 .profile-hero-actions a:hover { transform: translateY(-1px); }
 .profile-hero-actions a:hover { border-color: rgba(255, 255, 255, .42); background: rgba(255, 255, 255, .12); }
+.profile-hero-actions .profile-edit-button { border-color: rgba(255, 255, 255, .22); background: rgba(255, 255, 255, .07); color: #fff; }
+
+.user-menu-button #user-avatar.has-photo { background-position: center; background-size: cover; color: transparent; }
+.profile-editor-overlay { position: fixed; z-index: 6000; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(3, 7, 16, .76); backdrop-filter: blur(10px); }
+.profile-editor-overlay[hidden] { display: none; }
+.profile-editor { width: min(100%, 510px); padding: 26px; border: 1px solid var(--glass-border); border-radius: 18px; background: var(--card-solid); box-shadow: 0 30px 80px rgba(0, 0, 0, .44); color: var(--text); text-align: left; }
+.profile-editor-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.profile-editor-heading h2 { font-size: 1.45rem; }
+.profile-editor-heading button { width: 34px; height: 34px; border: 0; border-radius: 50%; background: var(--bg2); color: var(--text-muted); font-size: 1.35rem; cursor: pointer; }
+.profile-editor form { display: grid; gap: 10px; }
+.profile-editor form > label { margin-top: 8px; color: var(--text-muted); font-size: 11px; font-weight: 700; }
+.profile-editor form > input { width: 100%; padding: 12px 14px; border: 1px solid var(--glass-border); border-radius: 10px; background: var(--bg2); color: var(--text); font: inherit; }
+.profile-photo-editor { display: flex; align-items: center; gap: 18px; padding: 16px; border-radius: 14px; background: var(--bg2); }
+.profile-photo-preview { display: grid; place-items: center; width: 92px; height: 92px; flex: 0 0 92px; overflow: hidden; border-radius: 50%; background: linear-gradient(145deg, #09cee7, #7458ff 58%, #dd3d9d); color: #fff; font-size: 2.5rem; font-weight: 750; }
+.profile-photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+.profile-photo-editor > div:last-child { display: flex; flex-wrap: wrap; gap: 8px; }
+.profile-photo-editor button { padding: 8px 11px; border: 1px solid var(--glass-border); border-radius: 999px; background: var(--card-solid); color: var(--text); font: inherit; font-size: 10px; font-weight: 700; cursor: pointer; }
+.profile-photo-editor .profile-photo-remove { color: var(--text-muted); }
+.profile-photo-editor small { flex-basis: 100%; color: var(--text-muted); font-size: 9px; line-height: 1.45; }
+.profile-editor-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.profile-editor-actions button { padding: 10px 15px; border: 1px solid var(--glass-border); border-radius: 999px; background: transparent; color: var(--text); font: inherit; font-size: 11px; font-weight: 750; cursor: pointer; }
+.profile-editor-actions button:last-child { border-color: transparent; background: var(--text); color: var(--bg); }
+.profile-editor-actions button:disabled { opacity: .55; cursor: wait; }
+body.modal-open { overflow: hidden; }
 
 .content-boxes {
   display: grid;
@@ -4035,6 +4064,7 @@ html.reduce-motion *::after {
   .profile-hero-copy > p { line-height: 1.7; }
   .profile-hero-actions { align-items: stretch; flex-direction: column; }
   .profile-hero-actions button, .profile-hero-actions a { width: 100%; text-align: center; }
+  .profile-photo-editor { align-items: flex-start; flex-direction: column; }
 
   .nav-link { padding: 7px 10px; font-size: 0.75rem; }
 
