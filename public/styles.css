@@ -2522,8 +2522,8 @@ body.player-active { padding-bottom: 118px; }
 
 .content-boxes {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
   max-width: 1180px;
   margin: 0 auto;
 }
@@ -2531,7 +2531,7 @@ body.player-active { padding-bottom: 118px; }
 .box-wide { grid-column: span 2; }
 
 .box {
-  min-height: 260px;
+  min-height: 230px;
   max-width: none;
   background: var(--glass);
   backdrop-filter: blur(24px);

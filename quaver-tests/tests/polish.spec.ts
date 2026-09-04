@@ -13,8 +13,10 @@ test('profile exposes the polished dashboard and dedicated settings navigation',
   await page.goto('/profile.html');
 
   await expect(page.getByRole('heading', { name: 'Your Sound Story' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Weekly Mood Mix' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Recent Moods' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Mood Stats' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Recently Played' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Weekly Mood Mix' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Suggestions' })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: '30-Day Mood Timeline' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Open account menu' }).click();
   await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible();

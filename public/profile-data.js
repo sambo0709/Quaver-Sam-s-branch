@@ -59,17 +59,6 @@ function renderMoodAnalytics(moods) {
   container.innerHTML = html;
 }
 
-function renderRecentMoods(moods) {
-  const container = document.getElementById('recent-moods-list');
-  if (!moods || moods.length === 0) {
-    container.innerHTML = '<div class="box-empty"><p>No recent moods yet.</p><a href="Index.html">Choose a mood</a></div>';
-    return;
-  }
-  container.innerHTML = moods.slice(0, 5).map(function(item) {
-    return '<div class="profile-mood-item"><span class="profile-mood-badge">' + escapeHTML(item.mood) + '</span><span class="profile-mood-time">' + escapeHTML(item.time) + '</span></div>';
-  }).join('');
-}
-
 function renderPlaylists(playlists) {
   const container = document.getElementById('playlists-list');
   if (!playlists || playlists.length === 0) {
@@ -93,56 +82,9 @@ function togglePlaylistSongs(index) {
   if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
-async function renderSuggestions(moods) {
-  const container = document.getElementById('suggestions-list');
-  if (!moods || moods.length === 0) {
-    container.innerHTML = '<div class="box-empty"><p>Suggestions need a mood.</p><a href="Index.html">Choose a mood</a></div>';
-    return;
-  }
-  const moodCounts = {};
-  moods.forEach(function(m) { moodCounts[m.mood] = (moodCounts[m.mood] || 0) + 1; });
-  const topMood = Object.keys(moodCounts).sort(function(a, b) { return moodCounts[b] - moodCounts[a]; })[0];
-  container.innerHTML = '<p class="box-empty">Loading for <strong>' + escapeHTML(topMood) + '</strong>...</p>';
-  try {
-    const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
-    const res = await fetch(API + '/api/music/recommend?mood=' + topMood + '&limit=5&explicit=' + (preferences.explicitContent !== false) + '&variety=' + encodeURIComponent(preferences.recommendationVariety || 'balanced'), { credentials: 'include' });
-    const data = await res.json();
-    if (data.songs && data.songs.length > 0) {
-      container.innerHTML =
-        '<div style="font-size:11px;color:var(--text);opacity:0.5;margin-bottom:12px;">Based on your love of <strong>' + escapeHTML(topMood) + '</strong></div>' +
-        data.songs.map(function(song) { return profileSongHTML(song, 'Because you often choose ' + topMood); }).join('');
-    }
-  } catch (err) {
-    container.innerHTML = '<p class="box-empty">Could not load suggestions.</p>';
-  }
-}
-
 function getWeeklyMoods(moods) {
   const since = Date.now() - 7 * 24 * 60 * 60 * 1000;
   return (moods || []).filter(function(item) { return item.ts && item.ts >= since; });
-}
-
-async function renderWeeklyMix(moods) {
-  const container = document.getElementById('weekly-mix-list');
-  const weekly = getWeeklyMoods(moods);
-  if (!weekly.length) {
-    container.innerHTML = '<div class="box-empty"><p>Choose a mood this week to create your mix.</p><a href="Index.html">Choose a mood</a></div>';
-    return;
-  }
-  const counts = {};
-  weekly.forEach(function(item) { counts[item.mood] = (counts[item.mood] || 0) + 1; });
-  const topMood = Object.keys(counts).sort(function(a, b) { return counts[b] - counts[a]; })[0];
-  container.innerHTML = '<p class="box-empty">Building your ' + escapeHTML(topMood) + ' mix...</p>';
-  try {
-    const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
-    const res = await fetch(API + '/api/music/recommend?mood=' + topMood + '&limit=5&explicit=' + (preferences.explicitContent !== false) + '&variety=' + encodeURIComponent(preferences.recommendationVariety || 'balanced'), { credentials: 'include' });
-    const data = await res.json();
-    if (!data.songs || !data.songs.length) throw new Error('No songs');
-    container.innerHTML = '<div class="mix-intro">Based on your most frequent mood this week: <strong>' + escapeHTML(topMood) + '</strong></div>' +
-      data.songs.map(function(song) { return profileSongHTML(song, 'Matches your weekly ' + topMood + ' pattern'); }).join('');
-  } catch (_) {
-    container.innerHTML = '<div class="box-empty"><p>Your weekly mix is temporarily unavailable.</p><a href="Index.html">Browse moods</a></div>';
-  }
 }
 
 document.addEventListener('click', function(event) {
@@ -204,9 +146,6 @@ async function loadProfileData() {
   window._profilePlays = plays;
 
   renderMoodAnalytics(moods);
-  renderRecentMoods(moods);
   renderRecentlyPlayed();
   renderPlaylists(playlists);
-  renderSuggestions(moods);
-  renderWeeklyMix(moods);
 }
