@@ -939,6 +939,7 @@ h1 span {
   width: 100%;
   max-width: 720px;
   margin: 0 auto;
+  scroll-margin-top: 92px;
 }
 
 .streak-banner {
@@ -996,6 +997,24 @@ h1 span {
   flex-shrink: 0;
 }
 
+.results-actions { display: flex; align-items: center; gap: 8px; }
+.shuffle-mix-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 5px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font: 700 .72rem/1 var(--font-family);
+  cursor: pointer;
+}
+.shuffle-mix-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.shuffle-mix-btn:hover { border-color: var(--accent); color: var(--accent); }
+
 .play-all-btn:hover {
   transform: scale(1.05);
   box-shadow: 0 0 16px var(--accent-glow);
@@ -1028,8 +1047,11 @@ h1 span {
     align-items: stretch;
   }
 
-  .play-all-btn {
+  .results-actions { width: 100%; }
+  .play-all-btn,
+  .shuffle-mix-btn {
     width: 100%;
+    min-height: 42px;
   }
 }
 

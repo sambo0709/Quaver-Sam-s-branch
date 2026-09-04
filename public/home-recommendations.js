@@ -139,7 +139,8 @@ function recommendationLearningHTML(learning) {
 
 function renderRecommendationSongs(songs, learning) {
   window._lastResults = songs;
-  let html = '<div class="results-header"><span>' + songs.length + ' tracks — ' + escapeHTML(currentMood) + '</span><button class="play-all-btn" onclick="playAll(window._lastResults)">▶ Play All</button></div>';
+  window._lastResultsLearning = learning;
+  let html = '<div class="results-header"><span>' + songs.length + ' tracks — ' + escapeHTML(currentMood) + '</span><div class="results-actions"><button class="shuffle-mix-btn" type="button" onclick="shuffleMix()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h2.5c5 0 6 10 11 10H20M17 4l3 3-3 3M4 17h2.5c1.8 0 3-1.3 4.1-3M14 7.8c1-1 2.1-1.8 3.4-1.8H20M17 14l3 3-3 3"/></svg>Shuffle</button><button class="play-all-btn" type="button" onclick="playAll(window._lastResults)">Play all</button></div></div>';
   html += recommendationLearningHTML(learning);
   songs.forEach(function(song, index) {
     const trackId = spotifyTrackId(song.spotify_url);
@@ -154,6 +155,27 @@ function renderRecommendationSongs(songs, learning) {
     html += songActionMenuHTML(song, true) + '</div></div>';
   });
   document.getElementById('results').innerHTML = html;
+}
+
+function shuffleMix() {
+  const songs=(window._lastResults||[]).slice();
+  if (songs.length < 2) return showToast('Add another song before shuffling.','error');
+  for (let i=songs.length-1;i>0;i--) {
+    const j=Math.floor(Math.random()*(i+1));
+    const item=songs[i];songs[i]=songs[j];songs[j]=item;
+  }
+  window._lastResults=songs;
+  songQueue=songs.filter(function(song){return spotifyTrackId(song.spotify_url);});
+  queueIndex=-1;
+  updateQueueCounter();
+  renderRecommendationSongs(songs,window._lastResultsLearning);
+  showToast('Mix shuffled.','success');
+}
+
+function focusMobileResults() {
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    window.setTimeout(function(){document.getElementById('results').scrollIntoView({behavior:document.documentElement.classList.contains('reduce-motion')?'auto':'smooth',block:'start'});},80);
+  }
 }
 
 async function fetchSongs() {
@@ -176,6 +198,7 @@ async function fetchSongs() {
     const data = await res.json();
     if (data.songs && data.songs.length > 0) {
       renderRecommendationSongs(data.songs, data.learning);
+      focusMobileResults();
       trackRecommendationEvent('impression', '', { count: data.songs.length, context: data.context });
     }
     else document.getElementById('results').innerHTML = '<div class="error-state"><p>No matches for that exact combination.</p><button class="retry-btn" onclick="document.getElementById(\'preferred-artist\').value=\'\';fetchSongs()">Try without the artist</button></div>';

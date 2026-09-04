@@ -77,6 +77,34 @@ test.describe('Quaver Homepage Interactions', () => {
     expect(await page.evaluate(() => (window as any).__playedTrack)).toBe('abc123');
   });
 
+  test('mobile recommendations focus the song list and can be shuffled', async ({ page }) => {
+    await page.setViewportSize({ width: 393, height: 852 });
+    await page.addInitScript(() => {
+      localStorage.setItem('quaver_onboarded', 'true');
+      sessionStorage.setItem('quaver_launched', '1');
+    });
+    await page.route('**/api/music/recommend?**', route => route.fulfill({ json: { songs: [
+      { title: 'First Song', artist: 'One', duration: '3:00', album_art: '', spotify_url: 'https://open.spotify.com/track/first123' },
+      { title: 'Second Song', artist: 'Two', duration: '3:10', album_art: '', spotify_url: 'https://open.spotify.com/track/second123' },
+      { title: 'Third Song', artist: 'Three', duration: '3:20', album_art: '', spotify_url: 'https://open.spotify.com/track/third123' },
+    ] } }));
+
+    await page.goto('/');
+    await page.locator('#mood-select').selectOption('calm');
+    await page.locator('#count-select').selectOption('5');
+    await page.getByRole('button', { name: 'Go', exact: true }).click();
+
+    const shuffle = page.getByRole('button', { name: 'Shuffle', exact: true });
+    await expect(shuffle).toBeVisible();
+    await expect.poll(() => page.locator('#results').evaluate(element => Math.round(element.getBoundingClientRect().top))).toBeLessThanOrEqual(110);
+    const before = await page.locator('#results .song-title').allTextContents();
+    await page.evaluate(() => { Math.random = () => 0; });
+    await shuffle.click();
+    const after = await page.locator('#results .song-title').allTextContents();
+    expect(after).not.toEqual(before);
+    await expect(page.getByText('Mix shuffled.')).toBeVisible();
+  });
+
   test('expressive context is sent and recommendation explanations are shown', async ({ page }) => {
     await page.addInitScript(() => { localStorage.setItem('quaver_onboarded', 'true'); sessionStorage.setItem('quaver_launched', '1'); });
     let requestUrl = '';
