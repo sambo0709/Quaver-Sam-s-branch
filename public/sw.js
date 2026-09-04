@@ -1,4 +1,4 @@
-const CACHE = 'quaver-v3';
+const CACHE = 'quaver-v4';
 // Only cache images — HTML and CSS are always served fresh from the network
 const ASSETS = [
   '/quaver-q-dark.png',
@@ -32,6 +32,11 @@ self.addEventListener('fetch', function(e) {
 
   // Never intercept API or auth calls
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/spotify/')) return;
+
+  // Spotify artwork and other third-party media should be handled directly by
+  // the browser. Cross-origin failures cannot be repaired by Quaver's cache and
+  // responding with a rejected fetch makes the service worker surface an error.
+  if (url.origin !== self.location.origin) return;
 
   // HTML and CSS: always network-first so updates are instant
   if (url.pathname.endsWith('.html') || url.pathname.endsWith('.css') || url.pathname === '/') {

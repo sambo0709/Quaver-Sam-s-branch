@@ -119,6 +119,14 @@
     if (title) title.textContent = currentTrack.title || 'Choose a song';
     if (artist) artist.textContent = currentTrack.artist || 'Quaver';
     if (art) {
+      art.onerror = function () {
+        art.hidden = true;
+        if (artPlaceholder) artPlaceholder.hidden = false;
+      };
+      art.onload = function () {
+        art.hidden = false;
+        if (artPlaceholder) artPlaceholder.hidden = true;
+      };
       art.src = currentTrack.albumArt || '';
       art.hidden = !currentTrack.albumArt;
     }
