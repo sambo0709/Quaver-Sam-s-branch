@@ -23,6 +23,9 @@
   let playbackObservation = null;
   let persistedPlayback = readPersistedPlayback();
   let lastPersistedAt = 0;
+  let similarTracks = [];
+  let similarTracksKey = '';
+  let similarTracksRequest = null;
 
   function readPersistedPlayback() {
     try { return JSON.parse(localStorage.getItem(PLAYBACK_STORAGE_KEY) || '{}'); }
@@ -564,12 +567,57 @@
     return play(track);
   }
 
+  function addSuggestedTrack(index, playNow) {
+    const track = similarTracks[index];
+    if (!track) return;
+    const queue = Array.isArray(persistedPlayback.queue) ? persistedPlayback.queue.slice() : [];
+    let queueIndex = queue.findIndex(function(item) { return item.trackId === track.trackId; });
+    if (queueIndex < 0) {
+      queue.push(track);
+      queueIndex = queue.length - 1;
+      persistedPlayback.queue = queue;
+      localStorage.setItem(PLAYBACK_STORAGE_KEY, JSON.stringify(persistedPlayback));
+    }
+    renderExpandedPlayer();
+    if (playNow) playQueueIndex(queueIndex);
+    else notify('Added “' + track.title + '” to Up next.', 'success');
+  }
+
+  function loadSimilarTracks(track) {
+    const key = [track.trackId || '', track.artist || '', track.title || ''].join('|');
+    if (!track.trackId || !track.artist || similarTracksKey === key || similarTracksRequest === key) return;
+    similarTracksRequest = key;
+    const container = element('expanded-suggestions-list');
+    if (container) container.innerHTML = '<p>Finding songs that fit…</p>';
+    fetch(API + '/api/music/search?q=' + encodeURIComponent(track.artist), { credentials: 'include' })
+      .then(function(response) { if (!response.ok) throw new Error('Suggestions unavailable'); return response.json(); })
+      .then(function(data) {
+        if (similarTracksRequest !== key) return;
+        const seen = new Set([track.trackId]);
+        similarTracks = (data.songs || []).map(normalizeQueueTrack).filter(function(item) {
+          if (!item.trackId || seen.has(item.trackId)) return false;
+          seen.add(item.trackId);
+          return true;
+        }).slice(0, 6);
+        similarTracksKey = key;
+        similarTracksRequest = null;
+        renderExpandedPlayer();
+      })
+      .catch(function() {
+        if (similarTracksRequest !== key) return;
+        similarTracks = [];
+        similarTracksKey = key;
+        similarTracksRequest = null;
+        renderExpandedPlayer();
+      });
+  }
+
   function ensureExpandedPlayer() {
     if (element('expanded-player')) return;
     const shell=document.createElement('div');
     shell.id='expanded-player';shell.className='expanded-player';shell.hidden=true;
-    shell.innerHTML='<div class="expanded-player-header"><span>NOW PLAYING</span><button type="button" data-expanded-action="close" aria-label="Collapse player">⌄</button></div><div class="expanded-player-now"><div class="expanded-player-art"><img id="expanded-player-art" alt=""/></div><div><strong id="expanded-player-title">Choose a song</strong><span id="expanded-player-artist">Quaver</span></div></div><div class="expanded-player-progress"><span id="expanded-player-current">0:00</span><div><i id="expanded-player-progress-fill"></i></div><span id="expanded-player-duration">0:00</span></div><div class="expanded-player-controls"><button type="button" data-expanded-action="previous" aria-label="Previous song">◀</button><button type="button" data-expanded-action="toggle" aria-label="Play or pause">▶</button><button type="button" data-expanded-action="next" aria-label="Next song">▶</button></div><section><div class="expanded-queue-heading"><h2>Up next</h2><span id="expanded-queue-count"></span></div><div id="expanded-queue-list" class="expanded-queue-list"></div></section>';
-    shell.addEventListener('click',function(event){const button=event.target.closest('[data-expanded-action]');if(!button)return;const action=button.dataset.expandedAction;if(action==='close')closeExpandedPlayer();if(action==='toggle')toggle();if(action==='previous')previous();if(action==='next')next();const index=button.dataset.queueIndex;if(index!=null)playQueueIndex(Number(index));});
+    shell.innerHTML='<div class="expanded-player-header"><span>NOW PLAYING</span><button type="button" data-expanded-action="close" aria-label="Collapse player">⌄</button></div><div class="expanded-player-now"><div class="expanded-player-art"><img id="expanded-player-art" alt=""/></div><div><strong id="expanded-player-title">Choose a song</strong><span id="expanded-player-artist">Quaver</span></div></div><div class="expanded-player-progress"><span id="expanded-player-current">0:00</span><div><i id="expanded-player-progress-fill"></i></div><span id="expanded-player-duration">0:00</span></div><div class="expanded-player-controls"><button type="button" data-expanded-action="previous" aria-label="Previous song">◀</button><button type="button" data-expanded-action="toggle" aria-label="Play or pause">▶</button><button type="button" data-expanded-action="next" aria-label="Next song">▶</button></div><section><div class="expanded-queue-heading"><h2>Up next</h2><span id="expanded-queue-count"></span></div><div id="expanded-queue-list" class="expanded-queue-list"></div></section><section id="expanded-suggestions" class="expanded-suggestions" hidden><div class="expanded-queue-heading"><div><h2>You might also like</h2><small>Based on what is playing</small></div></div><div id="expanded-suggestions-list" class="expanded-suggestions-list"></div></section>';
+    shell.addEventListener('click',function(event){const button=event.target.closest('[data-expanded-action]');if(!button)return;const action=button.dataset.expandedAction;if(action==='close')closeExpandedPlayer();if(action==='toggle')toggle();if(action==='previous')previous();if(action==='next')next();const index=button.dataset.queueIndex;if(index!=null)playQueueIndex(Number(index));const suggestionIndex=button.dataset.suggestionIndex;if(suggestionIndex!=null)addSuggestedTrack(Number(suggestionIndex),action==='play-suggestion');});
     document.body.appendChild(shell);
   }
 
@@ -587,6 +635,14 @@
     const active=Number(persistedPlayback.index)||0;
     element('expanded-queue-count').textContent=queue.length+(queue.length===1?' song':' songs');
     element('expanded-queue-list').innerHTML=queue.map(function(item,index){return '<button type="button" data-expanded-action="queue" data-queue-index="'+index+'" class="expanded-queue-item'+(index===active?' active':'')+'"><span>'+(index+1)+'</span>'+(item.albumArt?'<img src="'+escapeText(item.albumArt)+'" alt=""/>':'<i></i>')+'<span><strong>'+escapeText(item.title)+'</strong><small>'+escapeText(item.artist)+'</small></span>'+(index===active?'<b>Playing</b>':'')+'</button>';}).join('')||'<p>Your queue will appear here when you play a mix.</p>';
+    const suggestionsSection=element('expanded-suggestions');
+    suggestionsSection.hidden=queue.length!==1;
+    if(queue.length===1){
+      const suggestionsList=element('expanded-suggestions-list');
+      const key=[track.trackId||'',track.artist||'',track.title||''].join('|');
+      if(similarTracksKey===key) suggestionsList.innerHTML=similarTracks.map(function(item,index){return '<article class="expanded-suggestion-item">'+(item.albumArt?'<img src="'+escapeText(item.albumArt)+'" alt=""/>':'<i></i>')+'<span><strong>'+escapeText(item.title)+'</strong><small>'+escapeText(item.artist)+'</small></span><button type="button" data-expanded-action="play-suggestion" data-suggestion-index="'+index+'" aria-label="Play '+escapeText(item.title)+'">▶</button><button type="button" data-expanded-action="add-suggestion" data-suggestion-index="'+index+'" aria-label="Add '+escapeText(item.title)+' to queue">＋</button></article>';}).join('')||'<p>No similar songs found right now.</p>';
+      else loadSimilarTracks(track);
+    }
   }
 
   function openExpandedPlayer() { ensureExpandedPlayer();renderExpandedPlayer();element('expanded-player').hidden=false;document.body.classList.add('expanded-player-open'); }

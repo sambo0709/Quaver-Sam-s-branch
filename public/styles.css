@@ -2670,6 +2670,17 @@ body.modal-open { overflow: hidden; }
 .expanded-queue-item strong,.expanded-queue-item small { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .expanded-queue-item strong { font-size:12px; }.expanded-queue-item small { margin-top:3px;color:rgba(255,255,255,.52);font-size:10px; }
 .expanded-queue-item b { color:#71eafa;font-size:9px;font-weight:750; }
+.expanded-suggestions { margin-top:28px; }
+.expanded-suggestions[hidden] { display:none; }
+.expanded-suggestions .expanded-queue-heading small { display:block;margin-top:4px;color:rgba(255,255,255,.52);font-size:10px; }
+.expanded-suggestions-list { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px; }
+.expanded-suggestions-list > p { grid-column:1/-1;padding:24px 12px;color:rgba(255,255,255,.5);font-size:12px;text-align:center; }
+.expanded-suggestion-item { display:grid;grid-template-columns:44px minmax(0,1fr) 34px 34px;align-items:center;gap:9px;padding:8px;border-radius:10px;background:rgba(255,255,255,.045); }
+.expanded-suggestion-item img,.expanded-suggestion-item > i { width:44px;height:44px;border-radius:7px;background:rgba(255,255,255,.08);object-fit:cover; }
+.expanded-suggestion-item strong,.expanded-suggestion-item small { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.expanded-suggestion-item strong { color:#fff;font-size:11px; }.expanded-suggestion-item small { margin-top:3px;color:rgba(255,255,255,.52);font-size:9px; }
+.expanded-suggestion-item button { display:grid;place-items:center;width:32px;height:32px;padding:0;border:1px solid rgba(255,255,255,.14);border-radius:50%;background:transparent;color:#fff;cursor:pointer; }
+.expanded-suggestion-item button:hover { border-color:#71eafa;background:rgba(113,234,250,.1);color:#71eafa; }
 body.expanded-player-open { overflow:hidden; }
 .app-view { display: contents; }
 
@@ -4154,6 +4165,7 @@ html.reduce-motion *::after {
   .expanded-queue-item { grid-template-columns:18px 44px minmax(0,1fr); }
   .expanded-queue-item img,.expanded-queue-item > i { width:44px;height:44px; }
   .expanded-queue-item b { display:none; }
+  .expanded-suggestions-list { grid-template-columns:1fr; }
   .profile-photo-editor { align-items: flex-start; flex-direction: column; }
 
   .nav-link { padding: 7px 10px; font-size: 0.75rem; }

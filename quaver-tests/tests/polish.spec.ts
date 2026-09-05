@@ -313,6 +313,8 @@ test('mobile player restores across pages and expands its saved queue', async ({
   await page.addInitScript(() => {
     localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
     localStorage.setItem('quaver_spotify_name', 'Listener');
+    localStorage.setItem('quaver_onboarded', 'true');
+    sessionStorage.setItem('quaver_launched', '1');
     localStorage.setItem('quaver_playback_session', JSON.stringify({
       track: { trackId: 'persist123', title: 'Still Playing', artist: 'Quaver Artist', albumArt: '' },
       queue: [
@@ -333,6 +335,34 @@ test('mobile player restores across pages and expands its saved queue', async ({
   await expect(page.locator('#expanded-player')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Up next' })).toBeVisible();
   await expect(page.getByText('Up Next Song')).toBeVisible();
+});
+
+test('expanded player suggests songs for a single-song queue', async ({ page, browserName }) => {
+  test.skip(browserName === 'webkit', 'The registered service worker bypasses WebKit request mocks for this API test.');
+  await page.addInitScript(() => {
+    localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
+    localStorage.setItem('quaver_spotify_name', 'Listener');
+    localStorage.setItem('quaver_onboarded', 'true');
+    sessionStorage.setItem('quaver_launched', '1');
+    localStorage.setItem('quaver_playback_session', JSON.stringify({
+      track: { trackId: 'current123', title: 'Current Song', artist: 'Quaver Artist', albumArt: '' },
+      queue: [{ trackId: 'current123', title: 'Current Song', artist: 'Quaver Artist', albumArt: '' }],
+      index: 0, position: 1000, duration: 180000, paused: true, userStopped: false, updatedAt: Date.now(),
+    }));
+  });
+  await page.route('**/spotify/playback-token', route => route.fulfill({ status: 401, json: { error: 'Reconnect required' } }));
+  await page.route('**/api/music/search**', route => route.fulfill({ json: { songs: [
+    { title: 'Current Song', artist: 'Quaver Artist', spotify_url: 'https://open.spotify.com/track/current123', album_art: '' },
+    { title: 'Similar Song', artist: 'Quaver Artist', spotify_url: 'https://open.spotify.com/track/similar123', album_art: '' },
+  ] } }));
+
+  await page.goto('/search.html');
+  await page.locator('.player-identity').click();
+  await expect(page.getByRole('heading', { name: 'You might also like' })).toBeVisible();
+  await expect(page.getByText('Similar Song', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Add Similar Song to queue' }).click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('quaver_playback_session') || '{}').queue.length)).toBe(2);
+  await expect(page.locator('#expanded-suggestions')).toBeHidden();
 });
 
 test('profile rejects stale local authentication when the server session is missing', async ({ page }) => {
