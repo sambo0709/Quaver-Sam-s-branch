@@ -6,6 +6,7 @@ test('home mounts the persistent application shell boundaries', async ({ page })
 
   await expect(page.locator('[data-shell="top-nav"]')).toBeVisible();
   await expect(page.locator('[data-shell="view"]')).toHaveAttribute('data-view', 'home');
+  await expect(page.locator('[data-shell="footer"]')).toBeVisible();
   await expect(page.locator('[data-shell="player"]')).toHaveCount(1);
   await expect(page.locator('[data-shell="mobile-nav"] [data-route="home"]')).toHaveAttribute('aria-current', 'page');
   expect(await page.evaluate(() => Boolean((window as any).QuaverShell?.state.mounted))).toBe(true);
