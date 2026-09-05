@@ -4206,6 +4206,7 @@ html.reduce-motion *::after {
 .media-card-copy strong { font-size:12px; }
 .media-card-copy span { margin-top:4px; color:var(--text-muted); font-size:10px; }
 .media-card > .song-menu-wrap { position:absolute; right:8px; bottom:7px; }
+.media-card > .song-menu-wrap .song-action-menu { top:auto; bottom:calc(100% + 6px); }
 .rail-empty { grid-column:1/-1; min-width:320px; padding:24px; border:1px dashed var(--glass-border); border-radius:12px; color:var(--text-muted); }
 .rail-empty strong, .rail-empty span { display:block; }
 .rail-empty strong { color:var(--text); font-size:13px; margin-bottom:5px; }
