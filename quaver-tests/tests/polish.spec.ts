@@ -738,7 +738,7 @@ test('a homepage song can be added directly to an existing playlist', async ({ p
   });
   await page.route('**/api/playlist', route => route.fulfill({ json: { playlists: [{ id: 'existing', name: 'Night Drive', mood: 'calm', songs: [] }] } }));
   await page.goto('/');
-  await expect(page.locator('#playlist-count')).toHaveText('1');
+  await expect(page.locator('#playlist-count')).toHaveCount(0);
   await page.evaluate(() => (window as any).addToPlaylist({ title: 'New Song', artist: 'Quaver Artist', album_art: '', spotify_url: 'https://open.spotify.com/track/add123' }, null));
   await expect(page.getByRole('dialog', { name: 'Add to playlist' })).toBeVisible();
   await page.getByRole('button', { name: /Night Drive/ }).click();

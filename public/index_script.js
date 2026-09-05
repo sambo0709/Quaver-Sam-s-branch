@@ -201,7 +201,8 @@ function removeFromPlaylist(index) {
 }
 
 function updatePlaylistBadge() {
-  document.getElementById('playlist-count').textContent = playlistSongs.length;
+  const badge = document.getElementById('playlist-count');
+  if (badge) badge.textContent = playlistSongs.length;
 }
 
 function renderPanelSongs() {

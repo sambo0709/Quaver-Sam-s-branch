@@ -74,10 +74,17 @@ const moodColors = {
 function applyMoodColors(mood) {
   const colors = moodColors[mood];
   if (!colors) return;
+  const moodSelect = document.getElementById('mood-select');
+  if (moodSelect) moodSelect.dataset.mood = mood;
   const root = document.documentElement;
-  root.style.setProperty('--accent', colors.accent);
-  root.style.setProperty('--accent2', colors.accent2);
-  root.style.setProperty('--gradient', 'linear-gradient(135deg, ' + colors.accent + ', ' + colors.accent2 + ')');
-  root.style.setProperty('--accent-glow', colors.accent + '40');
-  root.style.setProperty('--accent2-glow', colors.accent2 + '40');
+  ['--accent', '--accent2', '--gradient', '--accent-glow', '--accent2-glow'].forEach(function(property) {
+    root.style.removeProperty(property);
+  });
+  document.querySelectorAll('.hero-eyebrow, main > h1, .recommendation-panel, .mood-context').forEach(function(element) {
+    element.style.setProperty('--accent', colors.accent);
+    element.style.setProperty('--accent2', colors.accent2);
+    element.style.setProperty('--gradient', 'linear-gradient(135deg, ' + colors.accent + ', ' + colors.accent2 + ')');
+    element.style.setProperty('--accent-glow', colors.accent + '40');
+    element.style.setProperty('--accent2-glow', colors.accent2 + '40');
+  });
 }
