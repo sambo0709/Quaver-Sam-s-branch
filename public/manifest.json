@@ -5,13 +5,13 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#080c14",
-  "theme_color": "#00d4ff",
+  "theme_color": "#22d3ee",
   "icons": [
     {
-      "src": "quaver_nightmode1.png",
+      "src": "quaver-logo-cyan.svg",
       "sizes": "any",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ]
 }

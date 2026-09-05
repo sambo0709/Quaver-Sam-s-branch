@@ -694,14 +694,14 @@ test('header uses a non-linking compact Quaver mark', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('/');
   const mark = page.locator('.nav-left .brand-mark');
-  await expect(mark).toHaveAttribute('src', 'quaver-q-dark.png');
+  await expect(mark).toHaveAttribute('src', 'quaver-logo-cyan.svg');
   await expect(mark.locator('xpath=ancestor::a')).toHaveCount(0);
   await page.emulateMedia({ colorScheme: 'light' });
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.evaluate(() => localStorage.setItem('theme', 'system'));
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  await expect(mark).toHaveAttribute('src', 'quaver-q-light.png');
+  await expect(mark).toHaveAttribute('src', 'quaver-logo-orange.svg');
 });
 
 test('header remains visible while scrolling and resizing', async ({ page }) => {

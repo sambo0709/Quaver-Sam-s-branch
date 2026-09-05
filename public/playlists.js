@@ -40,7 +40,7 @@
   function applyTheme(theme) {
     const active = theme === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : theme;
     document.documentElement.setAttribute('data-theme', active);
-    byId('logo').src = active === 'light' ? 'quaver-q-light.png' : 'quaver-q-dark.png';
+    byId('logo').src = active === 'light' ? 'quaver-logo-orange.svg' : 'quaver-logo-cyan.svg';
   }
   matchMedia('(prefers-color-scheme: light)').addEventListener('change', function () {
     if (localStorage.getItem('theme') === 'system') applyTheme('system');

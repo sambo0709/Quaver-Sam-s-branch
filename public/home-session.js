@@ -71,13 +71,13 @@ function applyTheme(theme) {
     ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
     : theme;
   document.documentElement.setAttribute('data-theme', activeTheme);
-  document.getElementById('logo').src = activeTheme === 'dark' ? 'quaver-q-dark.png' : 'quaver-q-light.png';
+  document.getElementById('logo').src = activeTheme === 'dark' ? 'quaver-logo-cyan.svg' : 'quaver-logo-orange.svg';
   const splashLogo = document.getElementById('splash-logo');
   if (splashLogo) {
-    splashLogo.src = activeTheme === 'dark' ? 'quaver-q-dark.png' : 'quaver-q-light.png';
+    splashLogo.src = activeTheme === 'dark' ? 'quaver-logo-cyan.svg' : 'quaver-logo-orange.svg';
   }
   const onboardingLogo = document.querySelector('.onboarding-brand-mark');
-  if (onboardingLogo) onboardingLogo.src = activeTheme === 'dark' ? 'quaver-q-dark.png' : 'quaver-q-light.png';
+  if (onboardingLogo) onboardingLogo.src = activeTheme === 'dark' ? 'quaver-logo-cyan.svg' : 'quaver-logo-orange.svg';
   if (window.QuaverShell) QuaverShell.setTheme(theme);
 }
 

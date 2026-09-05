@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Shared Playlist - Quaver</title>
+  <link rel="icon" type="image/svg+xml" href="quaver-logo-cyan.svg"/>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="share-page">
@@ -13,7 +14,7 @@
 <nav class="top-nav">
   <div class="nav-left">
     <a href="Index.html">
-      <img class="logo" id="logo" src="quaver-q-dark.png" alt="Quaver Logo">
+      <img class="logo" id="logo" src="quaver-logo-cyan.svg" alt="Quaver Logo">
     </a>
   </div>
   <div class="nav-center">
@@ -24,7 +25,7 @@
 
 <div id="spotify-player" class="spotify-player" style="display:none" role="region" aria-label="Now playing">
   <div class="player-identity" aria-live="polite">
-    <div class="player-artwork"><img id="player-art" alt="" hidden/><span id="player-art-placeholder" aria-hidden="true">Q</span></div>
+    <div class="player-artwork"><img id="player-art" alt="" hidden/><span id="player-art-placeholder" aria-hidden="true"><img class="theme-logo-dark" src="quaver-logo-cyan.svg" alt=""><img class="theme-logo-light" src="quaver-logo-orange.svg" alt=""></span></div>
     <div class="player-track-copy"><span class="now-playing-label">NOW PLAYING</span><strong id="player-song-name">Choose a song</strong><small id="player-song-artist">Quaver</small></div>
     <a id="player-spotify-link" class="player-spotify-link" href="https://open.spotify.com" target="_blank" rel="noopener" aria-label="Open current track in Spotify"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7 9.1c3.7-1 7.7-.7 10.9.9M7.8 12.4c3-.8 6.5-.5 9.2.7M8.5 15.4c2.4-.6 5.1-.4 7.3.6"/></svg><span>Spotify</span></a>
   </div>
@@ -59,7 +60,7 @@
   function applyTheme(theme) {
     const active = theme === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : theme;
     document.documentElement.setAttribute('data-theme', active);
-    document.getElementById('logo').src = active === 'light' ? 'quaver-q-light.png' : 'quaver-q-dark.png';
+    document.getElementById('logo').src = active === 'light' ? 'quaver-logo-orange.svg' : 'quaver-logo-cyan.svg';
   }
 
   matchMedia('(prefers-color-scheme: light)').addEventListener('change', function() {

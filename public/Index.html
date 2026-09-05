@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta name="theme-color" content="#00d4ff"/>
+<meta name="theme-color" content="#22d3ee"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-title" content="Quaver"/>
 <link rel="manifest" href="/manifest.json"/>
 <link rel="apple-touch-icon" href="quaver-q-dark.png"/>
-<link rel="icon" href="quaver-q-dark.png">
+<link rel="icon" type="image/svg+xml" href="quaver-logo-cyan.svg">
 <title>Quaver</title>
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -17,12 +17,12 @@
 
 <!-- Splash screen -->
 <div id="splash-screen" class="splash-screen">
-  <img id="splash-logo" class="splash-logo" src="quaver-q-dark.png" alt="Quaver">
+  <img id="splash-logo" class="splash-logo" src="quaver-logo-cyan.svg" alt="Quaver">
 </div>
 
 <nav data-shell="top-nav">
   <div class="nav-left">
-    <img class="logo brand-mark" id="logo" src="quaver-q-dark.png" alt="Quaver">
+    <img class="logo brand-mark" id="logo" src="quaver-logo-cyan.svg" alt="Quaver">
   </div>
   <div class="nav-center">
     <a class="nav-link home-nav-link active" data-route="home" href="Index.html" aria-label="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 10 8-6 8 6v9H5v-9Z"/><path d="M9 19v-6h6v6"/></svg><span>Home</span></a>
@@ -47,7 +47,7 @@
 
 <div id="onboarding-overlay" class="onboarding-overlay" style="display:none">
   <div class="onboarding-card">
-    <img class="onboarding-brand-mark" src="quaver-q-dark.png" alt=""/>
+    <img class="onboarding-brand-mark" src="quaver-logo-cyan.svg" alt=""/>
     <h2 class="onboarding-title">Welcome to Quaver</h2>
     <p class="onboarding-sub">Mood-based music discovery in 3 steps</p>
     <div class="onboarding-steps">
@@ -151,7 +151,7 @@
 <footer class="site-footer" data-shell="footer">
   <div class="site-footer-main">
     <div class="site-footer-brand">
-      <a href="Index.html" data-route="home" aria-label="Quaver home"><span aria-hidden="true">Q</span>Quaver</a>
+      <a href="Index.html" data-route="home" aria-label="Quaver home"><span class="site-footer-mark" aria-hidden="true"><img class="theme-logo-dark" src="quaver-logo-cyan.svg" alt=""><img class="theme-logo-light" src="quaver-logo-orange.svg" alt=""></span>Quaver</a>
       <p>Music shaped around how you feel.</p>
     </div>
     <div class="site-footer-links">
@@ -165,7 +165,7 @@
 
 <div id="spotify-player" class="spotify-player" data-shell="player" style="display:none" role="region" aria-label="Now playing">
   <div class="player-identity" aria-live="polite">
-    <div class="player-artwork"><img id="player-art" alt="" hidden/><span id="player-art-placeholder" aria-hidden="true">Q</span></div>
+    <div class="player-artwork"><img id="player-art" alt="" hidden/><span id="player-art-placeholder" aria-hidden="true"><img class="theme-logo-dark" src="quaver-logo-cyan.svg" alt=""><img class="theme-logo-light" src="quaver-logo-orange.svg" alt=""></span></div>
     <div class="player-track-copy"><span class="now-playing-label">NOW PLAYING</span><strong id="player-song-name">Choose a song</strong><small id="player-song-artist">Quaver</small></div>
     <a id="player-spotify-link" class="player-spotify-link" href="https://open.spotify.com" target="_blank" rel="noopener" aria-label="Open current track in Spotify"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7 9.1c3.7-1 7.7-.7 10.9.9M7.8 12.4c3-.8 6.5-.5 9.2.7M8.5 15.4c2.4-.6 5.1-.4 7.3.6"/></svg><span>Spotify</span></a>
   </div>

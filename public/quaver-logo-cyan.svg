@@ -1,0 +1,15 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+  <title id="title">Quaver</title>
+  <defs>
+    <linearGradient id="main" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a5f3fc"/><stop offset=".55" stop-color="#22d3ee"/><stop offset="1" stop-color="#0891b2"/></linearGradient>
+    <linearGradient id="flag" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a5f3fc"/><stop offset="1" stop-color="#22d3ee"/></linearGradient>
+    <radialGradient id="gloss" cx="35%" cy="30%" r="70%"><stop stop-color="#fff" stop-opacity=".55"/><stop offset=".45" stop-color="#fff" stop-opacity=".08"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+  </defs>
+  <g fill="#083344" opacity=".55" filter="url(#shadow)"><path d="M378 284.02A138 138 0 1 1 378 284h-54a84 84 0 1 0 0 .01Z"/><path d="m278 182 44-80h40l-44 80Z"/><path d="M322 102h130l-38 40h-92Z"/><circle cx="341" cy="364" r="58"/></g>
+  <path d="M368 270.02A138 138 0 1 1 368 270h-54a84 84 0 1 0 0 .01Z" fill="url(#main)"/>
+  <path d="m268 168 44-80h40l-44 80Z" fill="url(#main)"/>
+  <path d="M312 88h130l-38 40h-92ZM308 128h116l-32 36h-84Z" fill="url(#flag)"/>
+  <circle cx="332" cy="352" r="58" fill="url(#main)"/>
+  <path d="M368 270.02A138 138 0 1 1 368 270h-54a84 84 0 1 0 0 .01Z" fill="url(#gloss)"/><circle cx="332" cy="352" r="58" fill="url(#gloss)"/>
+</svg>

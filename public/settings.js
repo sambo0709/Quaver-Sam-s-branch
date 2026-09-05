@@ -21,7 +21,7 @@
     const active = theme === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : theme;
     document.documentElement.setAttribute('data-theme', active);
     const logo = document.getElementById('logo');
-    if (logo) logo.src = active === 'light' ? 'quaver-q-light.png' : 'quaver-q-dark.png';
+    if (logo) logo.src = active === 'light' ? 'quaver-logo-orange.svg' : 'quaver-logo-cyan.svg';
     if (window.QuaverShell) window.QuaverShell.setTheme(theme);
   }
   async function logout() {
