@@ -422,6 +422,12 @@ test('homepage renders personalized rails and contextual song actions', async ({
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Jump back in' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Your mood shortcuts' })).toBeVisible();
+  await expect(page.locator('[data-mood-shortcut]')).toHaveCount(5);
+  const allMoods = page.getByRole('button', { name: /All moods/ });
+  await expect(allMoods).toHaveAttribute('aria-expanded', 'false');
+  await allMoods.click();
+  await expect(page.locator('[data-mood-shortcut]')).toHaveCount(11);
+  await expect(page.getByRole('button', { name: /Show less/ })).toHaveAttribute('aria-expanded', 'true');
   await page.getByRole('button', { name: 'More options for A familiar song' }).click();
   await expect(page.getByRole('button', { name: 'Add to queue' })).toBeVisible();
 });
@@ -466,6 +472,41 @@ test('player close button stays inside every intermediate viewport', async ({ pa
   expect(box).not.toBeNull();
   expect(box!.x).toBeGreaterThanOrEqual(0);
   expect(box!.x + box!.width).toBeLessThanOrEqual(800);
+});
+
+test('wide page containers grow fluidly without horizontal overflow', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('quaver_onboarded', 'true'));
+  await page.goto('/');
+
+  const widths: number[] = [];
+  for (const viewportWidth of [900, 1200, 1600]) {
+    await page.setViewportSize({ width: viewportWidth, height: 900 });
+    widths.push(await page.locator('.personalized-section').evaluate(element => element.getBoundingClientRect().width));
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  }
+
+  expect(widths[1]).toBeGreaterThan(widths[0]);
+  expect(widths[2]).toBeGreaterThan(widths[1]);
+  expect(widths[2]).toBeLessThanOrEqual(1441);
+});
+
+test('desktop footer remains reachable above the fixed player', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.addInitScript(() => localStorage.setItem('quaver_onboarded', 'true'));
+  await page.goto('/');
+  await page.evaluate(() => {
+    document.body.classList.add('player-active');
+    (document.querySelector('[data-shell="player"]') as HTMLElement).style.display = 'grid';
+    window.scrollTo(0, document.documentElement.scrollHeight);
+  });
+
+  const geometry = await page.evaluate(() => {
+    const footer = document.querySelector('[data-shell="footer"]')!.getBoundingClientRect();
+    const player = document.querySelector('[data-shell="player"]')!.getBoundingClientRect();
+    return { footerBottom: footer.bottom, playerTop: player.top, pageFits: document.documentElement.scrollWidth <= document.documentElement.clientWidth };
+  });
+  expect(geometry.pageFits).toBe(true);
+  expect(geometry.footerBottom).toBeLessThanOrEqual(geometry.playerTop + 1);
 });
 
 test('Quaver player starts a Spotify SDK track without rendering an embed', async ({ page }) => {

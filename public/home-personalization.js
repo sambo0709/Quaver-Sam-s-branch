@@ -28,18 +28,33 @@ function renderJumpBack(plays) {
   }).join('');
 }
 
-function renderMoodShortcuts(entries) {
+let moodShortcutsExpanded = false;
+let moodShortcutHistory = [];
+
+function moodShortcutCard(mood, counts, preferred, index) {
+  const count = counts[mood] || 0;
+  const subtitle = count ? count + ' mood check-in' + (count === 1 ? '' : 's') : (index === 0 && preferred === mood ? 'Your default mood' : 'A fresh mix');
+  return '<button class="mood-shortcut-card mood-' + mood + '" data-mood-shortcut="' + mood + '" onclick="chooseMoodShortcut(\'' + mood + '\')"><span class="mood-shortcut-label">' + escapeHTML(mood) + '</span><strong>' + escapeHTML(mood.charAt(0).toUpperCase() + mood.slice(1)) + ' Mix</strong><small>' + subtitle + '</small><span class="mood-shortcut-play">▶</span></button>';
+}
+
+function toggleMoodShortcuts() {
+  moodShortcutsExpanded = !moodShortcutsExpanded;
+  renderMoodShortcuts(moodShortcutHistory, true);
+}
+
+function renderMoodShortcuts(entries, preserveHistory) {
+  if (!preserveHistory) moodShortcutHistory = entries || [];
   const counts = {};
-  (entries || []).forEach(function(entry) { if (entry.mood) counts[entry.mood] = (counts[entry.mood] || 0) + 1; });
+  moodShortcutHistory.forEach(function(entry) { if (entry.mood) counts[entry.mood] = (counts[entry.mood] || 0) + 1; });
   const preferred = JSON.parse(localStorage.getItem('quaver_preferences') || '{}').defaultMood;
   const defaults = [preferred, 'calm', 'energetic', 'focused', 'happy', 'nostalgic'].filter(Boolean);
-  const ranked = Object.keys(counts).sort(function(a, b) { return counts[b] - counts[a]; }).concat(defaults);
-  const shortcuts = ranked.filter(function(mood, index, list) { return moodColors[mood] && list.indexOf(mood) === index; }).slice(0, 5);
-  document.getElementById('mood-shortcut-rail').innerHTML = shortcuts.map(function(mood, index) {
-    const count = counts[mood] || 0;
-    const subtitle = count ? count + ' mood check-in' + (count === 1 ? '' : 's') : (index === 0 && preferred === mood ? 'Your default mood' : 'A fresh mix');
-    return '<button class="mood-shortcut-card mood-' + mood + '" onclick="chooseMoodShortcut(\'' + mood + '\')"><span class="mood-shortcut-label">' + escapeHTML(mood) + '</span><strong>' + escapeHTML(mood.charAt(0).toUpperCase() + mood.slice(1)) + ' Mix</strong><small>' + subtitle + '</small><span class="mood-shortcut-play">▶</span></button>';
-  }).join('');
+  const ranked = Object.keys(counts).sort(function(a, b) { return counts[b] - counts[a]; }).concat(defaults, moods);
+  const allShortcuts = ranked.filter(function(mood, index, list) { return moodColors[mood] && list.indexOf(mood) === index; });
+  const visible = moodShortcutsExpanded ? allShortcuts : allShortcuts.slice(0, 5);
+  const toggleLabel = moodShortcutsExpanded ? 'Show less' : 'All moods';
+  const cards = visible.map(function(mood, index) { return moodShortcutCard(mood, counts, preferred, index); });
+  cards.push('<button class="mood-shortcut-card mood-shortcut-all" data-mood-shortcuts-toggle type="button" aria-expanded="' + moodShortcutsExpanded + '" onclick="toggleMoodShortcuts()"><span class="mood-shortcut-label">EXPLORE</span><strong>' + toggleLabel + '</strong><small>' + (moodShortcutsExpanded ? 'Return to your top five' : 'See every mood') + '</small><span class="mood-shortcut-play" aria-hidden="true">' + (moodShortcutsExpanded ? '−' : '+') + '</span></button>');
+  document.getElementById('mood-shortcut-rail').innerHTML = cards.join('');
 }
 
 async function loadPersonalizedHome() {
