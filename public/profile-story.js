@@ -40,8 +40,15 @@ async function downloadWrapped() {
   btn.textContent = 'Generating...';
   btn.disabled = true;
   try {
+    if (typeof window.html2canvas !== 'function') {
+      await new Promise(function(resolve, reject) {
+        const existing=document.querySelector('script[data-profile-canvas]');
+        if(existing){existing.addEventListener('load',resolve,{once:true});existing.addEventListener('error',reject,{once:true});return;}
+        const script=document.createElement('script');script.src='https://html2canvas.hertzen.com/dist/html2canvas.min.js';script.dataset.profileCanvas='true';script.onload=resolve;script.onerror=reject;document.head.appendChild(script);
+      });
+    }
     const card = document.getElementById('wrapped-card');
-    const canvas = await html2canvas(card, { scale: 2, useCORS: true, backgroundColor: '#0d1225', logging: false });
+    const canvas = await window.html2canvas(card, { scale: 2, useCORS: true, backgroundColor: '#0d1225', logging: false });
     const blob = await new Promise(function(resolve) { canvas.toBlob(resolve, 'image/png'); });
     const file = new File([blob], 'quaver-sound-story.png', { type: 'image/png' });
     if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {

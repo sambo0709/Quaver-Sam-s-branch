@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const rateLimit = require('express-rate-limit');
@@ -66,6 +67,13 @@ app.use(['/api/auth', '/spotify'], (req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
   next();
 });
+
+const spaRoutes = ['/Index.html', '/index.html', '/search.html', '/playlists.html', '/profile.html', '/settings.html'];
+app.get(spaRoutes, (req, res, next) => {
+  // The client router reuses the existing page documents as view templates.
+  if (req.get('X-Quaver-View') === '1') return next();
+  return res.sendFile(path.join(__dirname, 'public', 'Index.html'));
+});
 app.use(express.static('public'));
 
 // Routes
@@ -86,5 +94,5 @@ app.listen(PORT, () => {
 });
 
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/public/Index.html');
+  res.sendFile(path.join(__dirname, 'public', 'Index.html'));
 });

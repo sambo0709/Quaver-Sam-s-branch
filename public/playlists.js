@@ -14,6 +14,8 @@
   let collectionSongs = [];
   let pendingCollectionSong = null;
   let draggedSongIndex = -1;
+  let mountedRoot = null;
+  let listeners = null;
   const playlistSuggestions = {};
   const playlistArtistImages = {};
   const moodCollections = [
@@ -776,10 +778,16 @@
     if (action === 'clear-filters') { byId('playlist-search').value = ''; byId('playlist-mood-filter').value = ''; renderGrid(); }
   }
 
-  document.addEventListener('click', function (event) { if (!event.target.closest('#user-menu')) closeUserMenu(); });
-  document.addEventListener('keydown', function (event) { if (event.key === 'Escape') { closeUserMenu(); closeLibraryModal(); closeCollectionSongPicker(); } });
-  document.addEventListener('DOMContentLoaded', function () {
+  function mount(root) {
+    const scope = root || document;
+    if (!scope.querySelector('#playlist-library-grid')) return false;
+    if (mountedRoot === scope && listeners) { updateRoute(); return true; }
+    unmount();
     if (!localStorage.getItem('quaver_user')) { location.href = 'login.html'; return; }
+    mountedRoot = scope;
+    listeners = new AbortController();
+    const signal = listeners.signal;
+    function on(element, event, handler) { if (element) element.addEventListener(event, handler, { signal: signal }); }
     const savedTheme = localStorage.getItem('theme') || 'dark';
     applyTheme(savedTheme);
     const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
@@ -799,41 +807,69 @@
       avatarButton.style.backgroundImage = account.profileImage ? 'url("' + account.profileImage + '")' : '';
       avatarButton.classList.toggle('has-photo', !!account.profileImage);
     }).catch(function() {});
-    byId('playlist-search').addEventListener('input', renderGrid);
-    byId('playlist-mood-filter').addEventListener('change', renderGrid);
-    byId('playlist-sort').addEventListener('change', renderGrid);
-    byId('playlist-library-grid').addEventListener('click', handleAction);
-    byId('playlist-detail').addEventListener('click', handleAction);
-    byId('playlist-create').addEventListener('click', handleAction);
-    byId('mood-collection-grid').addEventListener('click', handleAction);
-    byId('mood-collection-detail').addEventListener('click', handleAction);
-    byId('collection-picker').addEventListener('click', handleAction);
-    byId('collection-picker-overlay').addEventListener('click', closeCollectionSongPicker);
-    document.querySelector('.playlist-build-button').addEventListener('click', handleAction);
-    byId('playlist-create-search-form').addEventListener('submit', searchCreateSongs);
-    byId('library-modal-confirm').addEventListener('click', function () { if (modalAction) modalAction(); });
-    byId('library-modal-input').addEventListener('keydown', function (event) { if (event.key === 'Enter' && modalAction) modalAction(); });
-    byId('playlist-cover-input').addEventListener('change', function (event) { uploadPlaylistCover(event.target.files[0]); });
-    byId('playlist-detail').addEventListener('dragstart', function (event) {
+    on(byId('playlist-search'), 'input', renderGrid);
+    on(byId('playlist-mood-filter'), 'change', renderGrid);
+    on(byId('playlist-sort'), 'change', renderGrid);
+    on(byId('playlist-library-grid'), 'click', handleAction);
+    on(byId('playlist-detail'), 'click', handleAction);
+    on(byId('playlist-create'), 'click', handleAction);
+    on(byId('mood-collection-grid'), 'click', handleAction);
+    on(byId('mood-collection-detail'), 'click', handleAction);
+    on(byId('collection-picker'), 'click', handleAction);
+    on(byId('collection-picker-overlay'), 'click', closeCollectionSongPicker);
+    on(scope.querySelector('.playlist-build-button'), 'click', handleAction);
+    on(byId('playlist-create-search-form'), 'submit', searchCreateSongs);
+    on(byId('library-modal-confirm'), 'click', function () { if (modalAction) modalAction(); });
+    on(byId('library-modal-input'), 'keydown', function (event) { if (event.key === 'Enter' && modalAction) modalAction(); });
+    on(byId('playlist-cover-input'), 'change', function (event) { uploadPlaylistCover(event.target.files[0]); });
+    on(byId('playlist-detail'), 'dragstart', function (event) {
       const row = event.target.closest('[data-song-row]');
       if (!row) return;
       draggedSongIndex = Number(row.dataset.songRow);
       row.classList.add('is-dragging');
       event.dataTransfer.effectAllowed = 'move';
     });
-    byId('playlist-detail').addEventListener('dragover', function (event) { if (event.target.closest('[data-song-row]')) event.preventDefault(); });
-    byId('playlist-detail').addEventListener('drop', function (event) {
+    on(byId('playlist-detail'), 'dragover', function (event) { if (event.target.closest('[data-song-row]')) event.preventDefault(); });
+    on(byId('playlist-detail'), 'drop', function (event) {
       const row = event.target.closest('[data-song-row]');
       if (!row) return;
       event.preventDefault();
       movePlaylistSong(draggedSongIndex, Number(row.dataset.songRow));
       draggedSongIndex = -1;
     });
-    byId('playlist-detail').addEventListener('dragend', function () { draggedSongIndex = -1; document.querySelectorAll('.playlist-detail-track').forEach(function (row) { row.classList.remove('is-dragging'); }); });
+    on(byId('playlist-detail'), 'dragend', function () { draggedSongIndex = -1; document.querySelectorAll('.playlist-detail-track').forEach(function (row) { row.classList.remove('is-dragging'); }); });
+    on(document, 'click', function (event) { if (!event.target.closest('#user-menu')) closeUserMenu(); });
+    on(document, 'keydown', function (event) { if (event.key === 'Escape') { closeUserMenu(); closeLibraryModal(); closeCollectionSongPicker(); } });
     renderMoodCollections();
     loadPlaylists();
     const requestedPlaylist = new URLSearchParams(location.search).get('id');
     if (requestedPlaylist) setTimeout(function () { loadSuggestions(requestedPlaylist, false); loadArtistImages(requestedPlaylist); }, 0);
     if (new URLSearchParams(location.search).get('create') === '1') startCreate();
-  });
+    return true;
+  }
+
+  function updateRoute() {
+    if (!mountedRoot) return;
+    const params = new URLSearchParams(location.search);
+    if (params.get('create') === '1') { startCreate(); return; }
+    byId('playlist-create').hidden = true;
+    byId('playlist-collection').hidden = false;
+    const requested = params.get('id');
+    selectedPlaylistId = requested && playlistById(requested) ? requested : null;
+    renderDetail();
+    if (selectedPlaylistId) {
+      loadSuggestions(selectedPlaylistId, false);
+      loadArtistImages(selectedPlaylistId);
+    }
+  }
+
+  function unmount() {
+    if (listeners) listeners.abort();
+    listeners = null;
+    mountedRoot = null;
+  }
+
+  window.QuaverPlaylists = { mount: mount, unmount: unmount, update: updateRoute };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { mount(document); }, { once: true });
+  else mount(document);
 })();

@@ -1,13 +1,13 @@
-const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
-function escapeHTML(value) {
+const PROFILE_API = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+function profileEscapeHTML(value) {
   return String(value == null ? '' : value).replace(/[&<>"']/g, function(char) {
     return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char];
   });
 }
 let toastTimer;
-let meaningfulPlayTimer;
+let profileMeaningfulPlayTimer;
 let currentProfileImage = '';
-function showToast(message, type) {
+function profileShowToast(message, type) {
   const toast = document.getElementById('toast');
   clearTimeout(toastTimer);
   toast.textContent = message;
@@ -15,25 +15,25 @@ function showToast(message, type) {
   toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 3200);
 }
 
-function applyTheme(theme) {
+function applyProfileTheme(theme) {
   const active = theme === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : theme;
   document.documentElement.setAttribute('data-theme', active);
   document.getElementById('logo').src = active === 'light' ? 'quaver-q-light.png' : 'quaver-q-dark.png';
 }
 
 matchMedia('(prefers-color-scheme: light)').addEventListener('change', function() {
-  if (localStorage.getItem('theme') === 'system') applyTheme('system');
+  if (localStorage.getItem('theme') === 'system') applyProfileTheme('system');
 });
 
-async function logout() {
-  try { await fetch(API + '/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch (_) {}
+async function profileLogout() {
+  try { await fetch(PROFILE_API + '/api/auth/logout', { method: 'POST', credentials: 'include' }); } catch (_) {}
   localStorage.removeItem('quaver_user');
   localStorage.removeItem('quaver_playlists');
   localStorage.removeItem('quaver_spotify_name');
   window.location.href = 'login.html';
 }
 
-function updateAuthUI(user) {
+function updateProfileAuthUI(user) {
   const usernameEl = document.getElementById('nav-username');
   if (user) {
     usernameEl.textContent = user.username;
@@ -86,7 +86,7 @@ function prepareProfilePhoto(event) {
   const file=event.target.files && event.target.files[0];
   if (!file) return;
   if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > 8 * 1024 * 1024) {
-    showToast('Choose a JPG, PNG, or WebP image under 8 MB.','error');
+    profileShowToast('Choose a JPG, PNG, or WebP image under 8 MB.','error');
     event.target.value='';
     return;
   }
@@ -103,10 +103,10 @@ function prepareProfilePhoto(event) {
       let quality=.82;
       let result=canvas.toDataURL('image/jpeg',quality);
       while(result.length>85000 && quality>.42){quality-=.08;result=canvas.toDataURL('image/jpeg',quality);}
-      if(result.length>89000){showToast('That image could not be compressed enough. Try another photo.','error');return;}
+      if(result.length>89000){profileShowToast('That image could not be compressed enough. Try another photo.','error');return;}
       renderProfilePhoto(result);
     };
-    image.onerror=function(){showToast('That photo could not be opened.','error');};
+    image.onerror=function(){profileShowToast('That photo could not be opened.','error');};
     image.src=reader.result;
   };
   reader.readAsDataURL(file);
@@ -120,33 +120,47 @@ async function saveProfile(event) {
   const profileImage=preview.hidden?'':preview.src;
   button.disabled=true;button.textContent='Saving...';
   try {
-    const response=await fetch(API+'/api/auth/profile',{method:'PATCH',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({displayName,profileImage})});
+    const response=await fetch(PROFILE_API+'/api/auth/profile',{method:'PATCH',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({displayName,profileImage})});
     const data=await response.json();
     if(!response.ok)throw new Error(data.error||'Could not update profile');
     localStorage.setItem('quaver_user',JSON.stringify({username:data.username,email:data.email,profileImage:data.profileImage||''}));
-    updateAuthUI(data);
+    updateProfileAuthUI(data);
     closeProfileEditor();
-    showToast('Profile updated.','success');
-  } catch(error){showToast(error.message,'error');}
+    profileShowToast('Profile updated.','success');
+  } catch(error){profileShowToast(error.message,'error');}
   finally{button.disabled=false;button.textContent='Save profile';}
 }
 
-function toggleUserMenu(event){event.stopPropagation();const menu=document.getElementById('user-menu-dropdown');const open=menu.hidden;menu.hidden=!open;document.getElementById('user-menu-button').setAttribute('aria-expanded',String(open));}
-function closeUserMenu(){const menu=document.getElementById('user-menu-dropdown');if(!menu)return;menu.hidden=true;document.getElementById('user-menu-button').setAttribute('aria-expanded','false');}
-document.addEventListener('click',closeUserMenu);
-document.addEventListener('keydown',function(event){if(event.key==='Escape')closeUserMenu();});
-document.addEventListener('keydown',function(event){if(event.key==='Escape'&&!document.getElementById('profile-editor-overlay').hidden)closeProfileEditor();});
-window.addEventListener('DOMContentLoaded', async function() {
+let profileListeners = null;
+let profileMountedRoot = null;
+let previousProfileGlobals = null;
+function profileToggleUserMenu(event){event.stopPropagation();const menu=document.getElementById('user-menu-dropdown');const open=menu.hidden;menu.hidden=!open;document.getElementById('user-menu-button').setAttribute('aria-expanded',String(open));}
+function closeProfileUserMenu(){const menu=document.getElementById('user-menu-dropdown');if(!menu)return;menu.hidden=true;document.getElementById('user-menu-button').setAttribute('aria-expanded','false');}
+async function mountProfile(root) {
+  const scope = root || document;
+  if (!scope.querySelector('#profile-display-name')) return false;
+  if (profileMountedRoot === scope && profileListeners) return true;
+  unmountProfile();
+  profileMountedRoot = scope;
+  previousProfileGlobals={logout:window.logout,toggleUserMenu:window.toggleUserMenu,closePlayer:window.closePlayer};
+  window.logout=profileLogout;
+  window.toggleUserMenu=profileToggleUserMenu;
+  window.closePlayer=closeProfilePlayer;
+  profileListeners = new AbortController();
+  const signal = profileListeners.signal;
+  document.addEventListener('click',closeProfileUserMenu,{signal:signal});
+  document.addEventListener('keydown',function(event){if(event.key==='Escape')closeProfileUserMenu();},{signal:signal});
+  document.addEventListener('keydown',function(event){const editor=document.getElementById('profile-editor-overlay');if(event.key==='Escape'&&editor&&!editor.hidden)closeProfileEditor();},{signal:signal});
   const theme = localStorage.getItem('theme') || 'dark';
   const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
-  applyTheme(theme);
+  applyProfileTheme(theme);
   document.documentElement.classList.toggle('reduce-motion', !!preferences.reducedMotion);
   try {
-    const response = await fetch(API + '/api/auth/me', { credentials: 'include' });
+    const response = await fetch(PROFILE_API + '/api/auth/me', { credentials: 'include' });
     if (!response.ok) throw new Error('No active session');
     const user = await response.json();
     localStorage.setItem('quaver_user', JSON.stringify({ username: user.username, email: user.email, profileImage: user.profileImage || '' }));
-    updateAuthUI(user);
+    updateProfileAuthUI(user);
   } catch (_) {
     localStorage.removeItem('quaver_user');
     localStorage.removeItem('quaver_spotify_name');
@@ -154,4 +168,8 @@ window.addEventListener('DOMContentLoaded', async function() {
     return;
   }
   loadProfileData();
-});
+  return true;
+}
+function unmountProfile(){if(profileListeners)profileListeners.abort();if(previousProfileGlobals){window.logout=previousProfileGlobals.logout;window.toggleUserMenu=previousProfileGlobals.toggleUserMenu;window.closePlayer=previousProfileGlobals.closePlayer;}previousProfileGlobals=null;profileListeners=null;profileMountedRoot=null;}
+window.QuaverProfile={mount:mountProfile,unmount:unmountProfile};
+if(document.readyState==='loading')window.addEventListener('DOMContentLoaded',function(){mountProfile(document);},{once:true});else mountProfile(document);

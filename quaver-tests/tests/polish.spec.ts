@@ -1,5 +1,217 @@
 import { test, expect } from '@playwright/test';
 
+test('home mounts the persistent application shell boundaries', async ({ page }) => {
+  await page.addInitScript(() => { localStorage.setItem('quaver_onboarded', 'true'); sessionStorage.setItem('quaver_launched', '1'); });
+  await page.goto('/');
+
+  await expect(page.locator('[data-shell="top-nav"]')).toBeVisible();
+  await expect(page.locator('[data-shell="view"]')).toHaveAttribute('data-view', 'home');
+  await expect(page.locator('[data-shell="player"]')).toHaveCount(1);
+  await expect(page.locator('[data-shell="mobile-nav"] [data-route="home"]')).toHaveAttribute('aria-current', 'page');
+  expect(await page.evaluate(() => Boolean((window as any).QuaverShell?.state.mounted))).toBe(true);
+});
+
+test('SPA router owns registered routes and preserves the mounted shell', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('[data-shell="view"]')).toHaveAttribute('data-view', 'home');
+
+  const shellIdentity = await page.evaluate(() => {
+    const shell = document.querySelector('[data-shell="top-nav"]');
+    (shell as HTMLElement).dataset.testIdentity = 'persistent';
+    return (window as any).QuaverShell.canNavigate('home');
+  });
+  expect(shellIdentity).toBe(true);
+
+  await page.evaluate(() => (window as any).QuaverShell.navigate('/index.html?from=router', { scroll: false }));
+  await expect(page).toHaveURL(/\/index\.html\?from=router$/);
+  await expect(page.locator('[data-shell="top-nav"]')).toHaveAttribute('data-test-identity', 'persistent');
+  await expect(page.locator('[data-route="home"]').first()).toHaveAttribute('aria-current', 'page');
+
+  const legacyFallback = await page.evaluate(() => (window as any).QuaverShell.navigate('/login.html'));
+  expect(legacyFallback).toBe(false);
+});
+
+test('Search runs inside the SPA shell and returns Home without a reload', async ({ page }) => {
+  await page.addInitScript(() => { localStorage.setItem('quaver_onboarded', 'true'); sessionStorage.setItem('quaver_launched', '1'); });
+  await page.route('**/api/music/search?*', route => route.fulfill({ json: { songs: [{ title: 'Routed Result', artist: 'Quaver', album_art: '', spotify_url: 'https://open.spotify.com/track/routed123' }] } }));
+  await page.goto('/');
+  await page.evaluate(() => { (document.querySelector('[data-shell="player"]') as HTMLElement).dataset.testIdentity = 'persistent-player'; });
+
+  await page.getByPlaceholder('What do you want to play?').fill('routed music');
+  await page.getByPlaceholder('What do you want to play?').press('Enter');
+
+  await expect(page).toHaveURL(/\/search\.html\?q=routed\+music$/);
+  await expect(page.locator('[data-shell="view"]')).toHaveAttribute('data-view', 'search');
+  await expect(page.getByRole('heading', { name: 'Search' })).toBeVisible();
+  await expect(page.getByText('Routed Result')).toBeVisible();
+  await expect(page.locator('[data-shell="player"]')).toHaveAttribute('data-test-identity', 'persistent-player');
+
+  await page.locator('[data-shell="top-nav"] [data-route="home"]').click();
+  await expect(page).toHaveURL(/\/Index\.html$/);
+  await expect(page.getByRole('heading', { name: /How are/ })).toBeVisible();
+  await expect(page.locator('[data-shell="player"]')).toHaveAttribute('data-test-identity', 'persistent-player');
+});
+
+test('Playlists runs inside the SPA shell and keeps the player mounted', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('quaver_onboarded', 'true');
+    sessionStorage.setItem('quaver_launched', '1');
+    localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
+  });
+  await page.route('**/api/auth/me', route => route.fulfill({ json: { username: 'Listener', email: 'listener@example.com', profileImage: '' } }));
+  await page.route('**/api/playlist', route => route.fulfill({ json: { playlists: [{ id: 'routed-list', name: 'Routed Playlist', mood: 'calm', createdAt: '2026-09-04T12:00:00.000Z', songs: [{ title: 'Still Playing', artist: 'Quaver', spotify_url: 'https://open.spotify.com/track/persist123' }] }] } }));
+  await page.goto('/');
+  await page.evaluate(() => { (document.querySelector('[data-shell="player"]') as HTMLElement).dataset.testIdentity = 'persistent-player'; });
+
+  await page.locator('[data-shell="top-nav"] [data-route="playlists"]').click();
+
+  await expect(page).toHaveURL(/\/playlists\.html$/);
+  await expect(page.locator('[data-shell="view"]')).toHaveAttribute('data-view', 'playlists');
+  await expect(page.getByRole('heading', { name: 'Playlists', exact: true })).toBeVisible();
+  await expect(page.getByText('Routed Playlist')).toBeVisible();
+  await expect(page.locator('#playlist-total')).toHaveText('1');
+  await expect(page.locator('[data-shell="player"]')).toHaveAttribute('data-test-identity', 'persistent-player');
+
+  await page.getByText('Routed Playlist').click();
+  await expect(page.locator('#playlist-detail')).toContainText('Still Playing');
+  await page.locator('[data-shell="top-nav"] [data-route="home"]').click();
+  await expect(page.getByRole('heading', { name: /How are/ })).toBeVisible();
+  await expect(page.locator('[data-shell="player"]')).toHaveAttribute('data-test-identity', 'persistent-player');
+});
+
+test('Profile runs inside the SPA shell with identity and listening data', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('quaver_onboarded', 'true');
+    sessionStorage.setItem('quaver_launched', '1');
+    localStorage.setItem('quaver_user', JSON.stringify({ username: 'Routed Listener' }));
+  });
+  await page.route('**/api/auth/me', route => route.fulfill({ json: { username: 'Routed Listener', email: 'listener@example.com', profileImage: '' } }));
+  await page.route('**/api/playlist', route => route.fulfill({ json: { playlists: [{ id: 'profile-list', name: 'Profile Mix', mood: 'calm', songs: [] }] } }));
+  await page.route('**/api/mood/history', route => route.fulfill({ json: { moods: [{ mood: 'calm', ts: Date.now() }] } }));
+  await page.route('**/api/listening/history', route => route.fulfill({ json: { plays: [{ trackId: 'profile123', title: 'Profile Song', artist: 'Quaver', playedAt: Date.now() }] } }));
+  await page.goto('/');
+  await page.evaluate(() => { (document.querySelector('[data-shell="player"]') as HTMLElement).dataset.testIdentity = 'persistent-player'; });
+
+  await page.evaluate(() => (window as any).QuaverShell.navigate('/profile.html'));
+
+  await expect(page).toHaveURL(/\/profile\.html$/);
+  await expect(page.locator('[data-shell="view"]')).toHaveAttribute('data-view', 'profile');
+  await expect(page.getByRole('heading', { name: 'Routed Listener' })).toBeVisible();
+  await expect(page.getByText('Profile Mix')).toBeVisible();
+  await expect(page.getByText('Profile Song')).toBeVisible();
+  await expect(page.locator('#profile-mood-count')).toHaveText('1');
+  await expect(page.locator('[data-shell="player"]')).toHaveAttribute('data-test-identity', 'persistent-player');
+
+  await page.getByRole('button', { name: 'Edit profile' }).click();
+  await expect(page.getByRole('dialog', { name: 'Edit profile' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close profile editor' }).click();
+  await page.locator('[data-shell="top-nav"] [data-route="home"]').click();
+  await expect(page.getByRole('heading', { name: /How are/ })).toBeVisible();
+  await expect(page.locator('[data-shell="player"]')).toHaveAttribute('data-test-identity', 'persistent-player');
+});
+
+test('Settings runs inside the SPA shell and saves shared preferences', async ({ page }) => {
+  let savedSettings: any = null;
+  await page.addInitScript(() => {
+    localStorage.setItem('quaver_onboarded', 'true');
+    sessionStorage.setItem('quaver_launched', '1');
+    localStorage.setItem('quaver_user', JSON.stringify({ username: 'Settings Listener' }));
+  });
+  await page.route('**/api/auth/settings', async route => {
+    if (route.request().method() === 'PATCH') {
+      savedSettings = route.request().postDataJSON();
+      return route.fulfill({ json: { username: savedSettings.displayName, preferences: savedSettings } });
+    }
+    return route.fulfill({ json: { username: 'Settings Listener', profileImage: '', defaultTheme: 'dark', preferences: { songCount: 5, recommendationVariety: 'balanced', explicitContent: true } } });
+  });
+  await page.route('**/spotify/status', route => route.fulfill({ json: { connected: false } }));
+  await page.goto('/');
+  await page.evaluate(() => { (document.querySelector('[data-shell="player"]') as HTMLElement).dataset.testIdentity = 'persistent-player'; });
+
+  await page.evaluate(() => (window as any).QuaverShell.navigate('/settings.html'));
+
+  await expect(page).toHaveURL(/\/settings\.html$/);
+  await expect(page.locator('[data-shell="view"]')).toHaveAttribute('data-view', 'settings');
+  await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
+  await page.locator('#settings-name').fill('Updated Listener');
+  await page.locator('#settings-mood').selectOption('calm');
+  await page.locator('#settings-count').selectOption('8');
+  await page.getByRole('button', { name: 'Save preferences' }).click();
+  await expect.poll(() => savedSettings && savedSettings.displayName).toBe('Updated Listener');
+  expect(savedSettings).toMatchObject({ defaultMood: 'calm', songCount: 8 });
+  await expect(page.locator('[data-shell="player"]')).toHaveAttribute('data-test-identity', 'persistent-player');
+
+  await page.locator('[data-shell="top-nav"] [data-route="home"]').click();
+  await expect(page.getByRole('heading', { name: /How are/ })).toBeVisible();
+  await expect(page.locator('[data-shell="player"]')).toHaveAttribute('data-test-identity', 'persistent-player');
+});
+
+test('direct migrated URLs boot through one shared SPA shell', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('quaver_onboarded', 'true');
+    sessionStorage.setItem('quaver_launched', '1');
+    localStorage.setItem('quaver_user', JSON.stringify({ username: 'Direct Listener' }));
+  });
+  await page.route('**/api/auth/me', route => route.fulfill({ json: { username: 'Direct Listener', email: 'direct@example.com', profileImage: '' } }));
+  await page.route('**/api/auth/settings', route => route.fulfill({ json: { username: 'Direct Listener', profileImage: '', defaultTheme: 'dark', preferences: {} } }));
+  await page.route('**/api/playlist', route => route.fulfill({ json: { playlists: [] } }));
+  await page.route('**/api/mood/history', route => route.fulfill({ json: { moods: [] } }));
+  await page.route('**/api/listening/history', route => route.fulfill({ json: { plays: [] } }));
+  await page.route('**/spotify/status', route => route.fulfill({ json: { connected: false } }));
+
+  for (const destination of [
+    { path: '/search.html', view: 'search', heading: 'Search' },
+    { path: '/playlists.html', view: 'playlists', heading: 'Playlists' },
+    { path: '/profile.html', view: 'profile', heading: 'Direct Listener' },
+    { path: '/settings.html', view: 'settings', heading: 'Settings' },
+  ]) {
+    await page.goto(destination.path);
+    await expect(page.locator('[data-shell="top-nav"]')).toHaveCount(1);
+    await expect(page.locator('[data-shell="player"]')).toHaveCount(1);
+    await expect(page.locator('[data-shell="view"]')).toHaveAttribute('data-view', destination.view);
+    await expect(page.getByRole('heading', { name: destination.heading, exact: true })).toBeVisible();
+  }
+});
+
+test('SPA history restores query-driven views without remounting the player', async ({ page }) => {
+  await page.addInitScript(() => { localStorage.setItem('quaver_onboarded', 'true'); sessionStorage.setItem('quaver_launched', '1'); });
+  await page.route('**/api/music/search?*', route => {
+    const query = new URL(route.request().url()).searchParams.get('q');
+    route.fulfill({ json: { songs: [{ title: query === 'second' ? 'Second Result' : 'First Result', artist: 'Quaver', spotify_url: '' }] } });
+  });
+  await page.goto('/');
+  await page.evaluate(() => { (document.querySelector('[data-shell="player"]') as HTMLElement).dataset.testIdentity = 'history-player'; });
+  const globalSearch = page.getByPlaceholder('What do you want to play?');
+  await globalSearch.fill('first');
+  await globalSearch.press('Enter');
+  await expect(page.getByText('First Result')).toBeVisible();
+  await globalSearch.fill('second');
+  await globalSearch.press('Enter');
+  await expect(page).toHaveURL(/search\.html\?q=second$/);
+  await expect(page.getByText('Second Result')).toBeVisible();
+
+  await page.goBack();
+  await expect(page).toHaveURL(/search\.html\?q=first$/);
+  await expect(page.getByText('First Result')).toBeVisible();
+  await page.goBack();
+  await expect(page.locator('[data-shell="view"]')).toHaveAttribute('data-view', 'home');
+  await expect(page.locator('[data-shell="player"]')).toHaveAttribute('data-test-identity', 'history-player');
+});
+
+test('failed SPA navigation keeps the current view usable', async ({ page }) => {
+  await page.addInitScript(() => { localStorage.setItem('quaver_onboarded', 'true'); sessionStorage.setItem('quaver_launched', '1'); });
+  await page.goto('/');
+  await page.route('**/profile.html', route => {
+    if (route.request().headers()['x-quaver-view'] === '1') return route.fulfill({ status: 503, body: 'Unavailable' });
+    return route.continue();
+  });
+  const navigated = await page.evaluate(() => (window as any).QuaverShell.navigate('/profile.html'));
+  expect(navigated).toBe(false);
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('heading', { name: /How are/ })).toBeVisible();
+  await expect(page.locator('[data-shell="view"]')).not.toHaveAttribute('aria-busy', 'true');
+});
+
 test('profile exposes the polished dashboard and dedicated settings navigation', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
@@ -175,7 +387,7 @@ test('mobile navigation and persistent player fit the compact layout', async ({ 
   await expect(page.getByRole('region', { name: 'Now playing' })).toBeVisible();
   await expect(page.locator('body')).toHaveClass(/player-active/);
   await expect(page.locator('#spotify-iframe')).toHaveCount(0);
-  await expect(page.getByText('Now Playing', { exact: true })).toBeVisible();
+  await expect(page.locator('#player-song-name')).toHaveText('Now Playing');
   await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
 });
 
@@ -238,7 +450,7 @@ test('Quaver player starts a Spotify SDK track without rendering an embed', asyn
   const started = await page.evaluate(() => (window as any).playInApp('abc123', 'A Quaver Song', 'Quaver Artist', ''));
 
   expect(started).toBe(true);
-  expect(playbackBody).toEqual({ uris: ['spotify:track:abc123'] });
+  expect(playbackBody).toEqual({ uris: ['spotify:track:abc123'], position_ms: 0 });
   await expect(page.locator('#spotify-iframe')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
   await expect(page.getByText('Playing on Quaver', { exact: true })).toBeVisible();

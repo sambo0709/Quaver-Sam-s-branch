@@ -2682,6 +2682,25 @@ body.modal-open { overflow: hidden; }
 .expanded-queue-item strong { font-size:12px; }.expanded-queue-item small { margin-top:3px;color:rgba(255,255,255,.52);font-size:10px; }
 .expanded-queue-item b { color:#71eafa;font-size:9px;font-weight:750; }
 body.expanded-player-open { overflow:hidden; }
+.app-view { display: contents; }
+
+.app-view-transitioning::after {
+  content: "";
+  position: fixed;
+  z-index: 1200;
+  top: 0;
+  left: 0;
+  width: 32%;
+  height: 3px;
+  background: var(--accent, #00d4ff);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--accent, #00d4ff) 55%, transparent);
+  animation: app-route-progress .7s ease-in-out infinite alternate;
+}
+
+@keyframes app-route-progress {
+  from { transform: translateX(-35%); }
+  to { transform: translateX(245%); }
+}
 
 .content-boxes {
   display: grid;

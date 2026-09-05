@@ -1,8 +1,8 @@
 async function playInApp(trackId, title, artist, albumArt) {
   const started = await QuaverPlayer.play({ trackId: trackId, title: title, artist: artist || '', albumArt: albumArt || '' });
   if (!started) return false;
-  clearTimeout(meaningfulPlayTimer);
-  meaningfulPlayTimer = setTimeout(function() {
+  clearTimeout(profileMeaningfulPlayTimer);
+  profileMeaningfulPlayTimer = setTimeout(function() {
     try {
       const recent = JSON.parse(localStorage.getItem('quaver_recently_played') || '[]');
       recent.unshift({ trackId, title, artist: artist || '', albumArt: albumArt || '', playedAt: Date.now() });
@@ -12,7 +12,7 @@ async function playInApp(trackId, title, artist, albumArt) {
     } catch(e) {}
     if (localStorage.getItem('quaver_user')) {
       const mood = (window._profileMoods && window._profileMoods[0]) ? window._profileMoods[0].mood : '';
-      fetch(API + '/api/listening/history', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trackId, title, artist: artist || '', albumArt: albumArt || '', mood }) }).catch(function() {});
+      fetch(PROFILE_API + '/api/listening/history', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trackId, title, artist: artist || '', albumArt: albumArt || '', mood }) }).catch(function() {});
     }
   }, 10000);
   return true;
@@ -46,7 +46,7 @@ function renderRecentlyPlayed() {
   }
 }
 
-function closePlayer() {
-  clearTimeout(meaningfulPlayTimer);
+function closeProfilePlayer() {
+  clearTimeout(profileMeaningfulPlayTimer);
   QuaverPlayer.hide();
 }

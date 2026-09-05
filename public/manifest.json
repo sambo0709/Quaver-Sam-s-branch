@@ -2,7 +2,7 @@
   "name": "Quaver",
   "short_name": "Quaver",
   "description": "Mood-based music discovery",
-  "start_url": "/Index.html",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#080c14",
   "theme_color": "#00d4ff",

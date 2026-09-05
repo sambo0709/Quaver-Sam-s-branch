@@ -43,6 +43,7 @@ function updateAuthUI() {
     userMenu.style.display = 'none';
     loginLink.style.display = 'inline-block';
   }
+  if (window.QuaverShell) QuaverShell.setUser(user);
 }
 
 function toggleUserMenu(event) {
@@ -77,6 +78,7 @@ function applyTheme(theme) {
   }
   const onboardingLogo = document.querySelector('.onboarding-brand-mark');
   if (onboardingLogo) onboardingLogo.src = activeTheme === 'dark' ? 'quaver-q-dark.png' : 'quaver-q-light.png';
+  if (window.QuaverShell) QuaverShell.setTheme(theme);
 }
 
 window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', function() {
@@ -161,6 +163,8 @@ function dismissOnboarding() {
 }
 
 function initializeHome() {
+  const initialRoute = window.QuaverShell && window.QuaverShell.state.initialRoute;
+  const deferHomeIntro = initialRoute && initialRoute !== 'home';
   applyTheme(localStorage.getItem('theme') || 'dark');
   const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
   document.documentElement.classList.toggle('reduce-motion', !!preferences.reducedMotion);
@@ -176,7 +180,7 @@ function initializeHome() {
   }
 
   const splash = document.getElementById('splash-screen');
-  if (sessionStorage.getItem('quaver_launched')) {
+  if (deferHomeIntro || sessionStorage.getItem('quaver_launched')) {
     splash.style.display = 'none';
   } else {
     sessionStorage.setItem('quaver_launched', '1');
@@ -203,7 +207,16 @@ function initializeHome() {
     navigator.serviceWorker.register('/sw.js').catch(function() {});
   }
   if (!localStorage.getItem('quaver_onboarded')) {
-    document.getElementById('onboarding-overlay').style.display = 'flex';
+    if (deferHomeIntro && window.QuaverShell) {
+      const showOnHome = function(event) {
+        if (event.detail.route !== 'home' || localStorage.getItem('quaver_onboarded')) return;
+        document.getElementById('onboarding-overlay').style.display = 'flex';
+        window.QuaverShell.events.removeEventListener('routechange', showOnHome);
+      };
+      window.QuaverShell.events.addEventListener('routechange', showOnHome);
+    } else {
+      document.getElementById('onboarding-overlay').style.display = 'flex';
+    }
   }
   if (new URLSearchParams(window.location.search).get('open') === 'playlist') {
     window.location.replace('playlists.html?create=1');

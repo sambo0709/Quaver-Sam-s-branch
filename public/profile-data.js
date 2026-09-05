@@ -10,10 +10,10 @@ function profileSongHTML(song, reason) {
   const index = profileActionSongs.push(song) - 1;
   const trackId = profileTrackId(song.spotify_url, song.trackId);
   return '<div class="profile-suggestion-item">' +
-    (song.album_art || song.albumArt ? '<img class="profile-suggestion-art" src="' + escapeHTML(song.album_art || song.albumArt) + '" alt="art"/>' : '<div class="profile-suggestion-art"></div>') +
-    '<div class="profile-suggestion-info"><div class="profile-suggestion-title">' + escapeHTML(song.title) + '</div><div class="profile-suggestion-artist">' + escapeHTML(song.artist || '') + '</div>' +
-    (reason ? '<div class="recommendation-reason">' + escapeHTML(reason) + '</div>' : '') + '</div>' +
-    (trackId ? '<button class="profile-suggestion-play" data-profile-song="' + index + '" aria-label="Play ' + escapeHTML(song.title) + '">&#9654;</button>' : '') +
+    (song.album_art || song.albumArt ? '<img class="profile-suggestion-art" src="' + profileEscapeHTML(song.album_art || song.albumArt) + '" alt="art"/>' : '<div class="profile-suggestion-art"></div>') +
+    '<div class="profile-suggestion-info"><div class="profile-suggestion-title">' + profileEscapeHTML(song.title) + '</div><div class="profile-suggestion-artist">' + profileEscapeHTML(song.artist || '') + '</div>' +
+    (reason ? '<div class="recommendation-reason">' + profileEscapeHTML(reason) + '</div>' : '') + '</div>' +
+    (trackId ? '<button class="profile-suggestion-play" data-profile-song="' + index + '" aria-label="Play ' + profileEscapeHTML(song.title) + '">&#9654;</button>' : '') +
   '</div>';
 }
 
@@ -42,14 +42,14 @@ function renderMoodAnalytics(moods) {
   const streak = getMoodStreak(moods);
   let html = '<div class="mood-summary"><span>Recorded moods</span><strong>' + total + '</strong></div>';
   if (streak) {
-    html += '<div class="mood-streak"><strong>' + streak.count + '-pick streak</strong><span>' + escapeHTML(streak.mood) + '</span></div>';
+    html += '<div class="mood-streak"><strong>' + streak.count + '-pick streak</strong><span>' + profileEscapeHTML(streak.mood) + '</span></div>';
   }
 
   html += '<div class="mood-stat-list">';
   sorted.forEach(function(mood) {
     const pct = Math.round((counts[mood] / total) * 100);
     html += '<div class="mood-stat-row">';
-    html += '<span class="mood-stat-name">' + escapeHTML(mood) + '</span>';
+    html += '<span class="mood-stat-name">' + profileEscapeHTML(mood) + '</span>';
     html += '<div class="mood-stat-track"><span style="width:' + pct + '%"></span></div>';
     html += '<span class="mood-stat-count">' + counts[mood] + '</span>';
     html += '<span class="mood-stat-percent">' + pct + '%</span>';
@@ -67,8 +67,8 @@ function renderPlaylists(playlists) {
   }
   container.innerHTML = playlists.map(function(pl, i) {
     return '<div class="profile-playlist-item" data-profile-playlist="' + i + '" role="button" tabindex="0">' +
-      '<div><div class="profile-playlist-name">' + escapeHTML(pl.name) + '</div>' +
-      '<div class="profile-playlist-meta">' + pl.songs.length + ' songs · ' + escapeHTML(pl.mood) + '</div></div>' +
+      '<div><div class="profile-playlist-name">' + profileEscapeHTML(pl.name) + '</div>' +
+      '<div class="profile-playlist-meta">' + pl.songs.length + ' songs · ' + profileEscapeHTML(pl.mood) + '</div></div>' +
       '<span style="color:var(--accent);font-size:12px;flex-shrink:0;">▼</span>' +
     '</div>' +
     '<div id="playlist-songs-' + i + '" style="display:none;padding:8px 0 4px;">' +
@@ -113,7 +113,7 @@ async function loadProfileData() {
   let playlists = JSON.parse(localStorage.getItem('quaver_playlists') || '[]');
   if (hasSession) {
     try {
-      const res = await fetch(API + '/api/playlist', {
+      const res = await fetch(PROFILE_API + '/api/playlist', {
         credentials: 'include'
       });
       const data = await res.json();
@@ -126,7 +126,7 @@ async function loadProfileData() {
   let moods = [];
   if (hasSession) {
     try {
-      const moodRes = await fetch(API + '/api/mood/history', {
+      const moodRes = await fetch(PROFILE_API + '/api/mood/history', {
         credentials: 'include'
       });
       const moodData = await moodRes.json();
@@ -138,7 +138,7 @@ async function loadProfileData() {
   let plays = JSON.parse(localStorage.getItem('quaver_recently_played') || '[]');
   if (hasSession) {
     try {
-      const playRes = await fetch(API + '/api/listening/history', { credentials: 'include' });
+      const playRes = await fetch(PROFILE_API + '/api/listening/history', { credentials: 'include' });
       const playData = await playRes.json();
       if (playData.plays && playData.plays.length) plays = playData.plays;
     } catch (_) {}

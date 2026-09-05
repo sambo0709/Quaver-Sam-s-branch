@@ -113,7 +113,7 @@ test.describe('Quaver Homepage Interactions', () => {
       await route.fulfill({ json: { context: { activity: 'studying' }, learning: { personalized: true, completed: 4, skipped: 1, ratings: 2, familiarTracks: 3, variety: 'balanced' }, songs: [{ title: 'Focus Song', artist: 'SZA', duration: '3:00', album_art: '', spotify_url: 'https://open.spotify.com/track/focus123', recommendation_reasons: ['Chosen for studying', 'Designed to help you focus'] }] } });
     });
     await page.goto('/');
-    await page.getByText('Shape this recommendation').click();
+    await page.getByText('Fine-tune your mix').click();
     await page.locator('#secondary-mood').selectOption('calm');
     await page.locator('#mood-activity').selectOption('studying');
     await page.locator('#mood-direction').selectOption('focus');

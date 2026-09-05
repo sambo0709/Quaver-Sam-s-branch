@@ -1,12 +1,15 @@
 (function () {
   'use strict';
   const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
-  const input = document.getElementById('search-page-input');
-  const results = document.getElementById('search-page-results');
-  const status = document.getElementById('search-page-status');
+  let input = null;
+  let results = null;
+  let status = null;
+  let mountedRoot = null;
+  let listeners = null;
   let savedPlaylists = [];
   let pendingPlaylistSong = null;
   let playlistLoadPromise = Promise.resolve();
+  let currentQuery = '';
 
   function escapeHTML(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
@@ -51,11 +54,8 @@
     } catch (_) {}
   }
 
-  document.getElementById('user-menu-button').addEventListener('click',function(event){event.stopPropagation();const dropdown=document.getElementById('user-menu-dropdown');dropdown.hidden=!dropdown.hidden;this.setAttribute('aria-expanded',String(!dropdown.hidden));});
-  document.addEventListener('click',function(){document.getElementById('user-menu-dropdown').hidden=true;document.getElementById('user-menu-button').setAttribute('aria-expanded','false');});
-  document.getElementById('search-logout').addEventListener('click',async function(){try{await fetch(API+'/api/auth/logout',{method:'POST',credentials:'include'});}catch(_){}localStorage.removeItem('quaver_user');location.href='login.html';});
-
   function showToast(message, type) {
+    if (window.QuaverShell && window.QuaverShell.state.mounted) return window.QuaverShell.showToast(message, type);
     const toast = document.getElementById('toast');
     toast.textContent = message;
     toast.className = 'toast ' + (type || 'success') + ' show';
@@ -149,6 +149,7 @@
   async function search(query) {
     const q = query.trim();
     if (!q) return;
+    currentQuery = q;
     input.value = q;
     document.getElementById('search-starters').hidden = true;
     status.innerHTML = '<span class="loading-bar" aria-hidden="true"></span><span>Searching…</span>';
@@ -164,32 +165,76 @@
     }
   }
 
-  document.getElementById('search-page-form').addEventListener('submit', function (event) { event.preventDefault(); search(input.value); });
-  document.getElementById('search-starters').addEventListener('click', function(event) { const button=event.target.closest('[data-search-starter]'); if(button)search(button.dataset.searchStarter); });
-  results.addEventListener('click', function (event) {
-    const playButton = event.target.closest('[data-play-index]');
-    if (playButton) { playSearchSong(Number(playButton.dataset.playIndex)); return; }
-    const addButton = event.target.closest('[data-add-index]');
-    if (addButton) addToPlaylist(Number(addButton.dataset.addIndex));
-  });
-  document.getElementById('playlist-picker-list').addEventListener('click', function(event) {
-    const button = event.target.closest('[data-playlist-index]');
-    if (button) addToExistingPlaylist(Number(button.dataset.playlistIndex));
-  });
-  document.getElementById('playlist-picker-close').addEventListener('click', closePlaylistPicker);
-  document.getElementById('playlist-picker-overlay').addEventListener('click', closePlaylistPicker);
-  document.getElementById('playlist-picker-create').addEventListener('click', function() { if (pendingPlaylistSong) startNewPlaylist(pendingPlaylistSong); });
-
   window.playerPrevious = function () { QuaverPlayer.previous(); };
   window.playerNext = function () { QuaverPlayer.next(); };
   window.closePlayer = function () { QuaverPlayer.hide(); };
 
-  const savedTheme = localStorage.getItem('theme') || 'dark';
-  applyTheme(savedTheme);
-  syncSearchAccount();
-  const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
-  document.documentElement.classList.toggle('reduce-motion', !!preferences.reducedMotion);
-  const query = new URLSearchParams(window.location.search).get('q') || '';
-  playlistLoadPromise = loadPlaylists();
-  if (query) search(query); else input.focus();
+  function mount(root) {
+    const scope = root || document;
+    const nextInput = scope.querySelector('#search-page-input');
+    if (!nextInput) return false;
+    if (mountedRoot === scope && input === nextInput) { update(); return true; }
+    unmount();
+    mountedRoot = scope;
+    listeners = new AbortController();
+    const signal = listeners.signal;
+    input = nextInput;
+    results = scope.querySelector('#search-page-results');
+    status = scope.querySelector('#search-page-status');
+    scope.querySelector('#search-page-form').addEventListener('submit', function (event) { event.preventDefault(); search(input.value); }, { signal: signal });
+    scope.querySelector('#search-starters').addEventListener('click', function(event) { const button=event.target.closest('[data-search-starter]'); if(button)search(button.dataset.searchStarter); }, { signal: signal });
+    results.addEventListener('click', function (event) {
+      const playButton = event.target.closest('[data-play-index]');
+      if (playButton) { playSearchSong(Number(playButton.dataset.playIndex)); return; }
+      const addButton = event.target.closest('[data-add-index]');
+      if (addButton) addToPlaylist(Number(addButton.dataset.addIndex));
+    }, { signal: signal });
+    const pickerList = document.getElementById('playlist-picker-list');
+    const pickerClose = document.getElementById('playlist-picker-close') || document.querySelector('#playlist-picker button[aria-label="Close"]');
+    const pickerOverlay = document.getElementById('playlist-picker-overlay');
+    const pickerCreate = document.getElementById('playlist-picker-create') || document.querySelector('.playlist-picker-create');
+    if (pickerList) pickerList.addEventListener('click', function(event) { const button=event.target.closest('[data-playlist-index]'); if (button) addToExistingPlaylist(Number(button.dataset.playlistIndex)); }, { signal: signal });
+    if (pickerClose) pickerClose.addEventListener('click', closePlaylistPicker, { signal: signal });
+    if (pickerOverlay) pickerOverlay.addEventListener('click', closePlaylistPicker, { signal: signal });
+    if (pickerCreate) pickerCreate.addEventListener('click', function() { if (pendingPlaylistSong) startNewPlaylist(pendingPlaylistSong); }, { signal: signal });
+    const menuButton = document.getElementById('user-menu-button');
+    if (menuButton && !menuButton.hasAttribute('onclick')) menuButton.addEventListener('click', function(event) { event.stopPropagation(); const dropdown=document.getElementById('user-menu-dropdown'); dropdown.hidden=!dropdown.hidden; this.setAttribute('aria-expanded',String(!dropdown.hidden)); }, { signal: signal });
+    const logoutButton = document.getElementById('search-logout');
+    if (logoutButton) logoutButton.addEventListener('click', async function() { try { await fetch(API+'/api/auth/logout',{method:'POST',credentials:'include'}); } catch (_) {} localStorage.removeItem('quaver_user'); location.href='login.html'; }, { signal: signal });
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    applyTheme(savedTheme);
+    syncSearchAccount();
+    const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
+    document.documentElement.classList.toggle('reduce-motion', !!preferences.reducedMotion);
+    const query = new URLSearchParams(window.location.search).get('q') || '';
+    playlistLoadPromise = loadPlaylists();
+    if (query) search(query); else input.focus();
+    return true;
+  }
+
+  function update() {
+    if (!input) return;
+    const query = new URLSearchParams(window.location.search).get('q') || '';
+    if (query && query !== currentQuery) search(query);
+    if (!query && currentQuery) {
+      currentQuery = '';
+      input.value = '';
+      results.innerHTML = '';
+      status.textContent = 'Start with a song, artist, or album.';
+      document.getElementById('search-starters').hidden = false;
+    }
+  }
+
+  function unmount() {
+    if (listeners) listeners.abort();
+    listeners = null;
+    mountedRoot = null;
+    input = null;
+    results = null;
+    status = null;
+  }
+
+  window.QuaverSearch = { mount: mount, unmount: unmount, update: update, search: search };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { mount(document); }, { once: true });
+  else mount(document);
 })();
