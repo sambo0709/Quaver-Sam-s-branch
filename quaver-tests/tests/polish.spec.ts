@@ -356,8 +356,7 @@ test('mobile player restores across pages and expands its saved queue', async ({
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('quaver_playback_session') || '{}').repeatMode)).toBe('one');
 });
 
-test('expanded player suggests songs for a single-song queue', async ({ page, browserName }) => {
-  test.skip(browserName === 'webkit', 'The registered service worker bypasses WebKit request mocks for this API test.');
+test('expanded player suggests songs for a single-song queue', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
     localStorage.setItem('quaver_spotify_name', 'Listener');

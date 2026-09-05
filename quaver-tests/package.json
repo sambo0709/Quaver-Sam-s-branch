@@ -4,14 +4,22 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "playwright test"
+    "test": "playwright test",
+    "test:a11y": "playwright test tests/accessibility.spec.ts --project=chromium",
+    "test:html": "html-validate --config .htmlvalidate.json \"../public/*.html\"",
+    "test:lighthouse": "node scripts/lighthouse-audit.mjs",
+    "test:web": "npm run test:html && npm run test:a11y && npm run test:lighthouse"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.60.0",
-    "@types/node": "^25.9.1"
+    "@types/node": "^25.9.1",
+    "chrome-launcher": "^1.2.1",
+    "html-validate": "^11.13.0",
+    "lighthouse": "^13.4.1"
   }
 }

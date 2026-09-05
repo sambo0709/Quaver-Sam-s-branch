@@ -28,6 +28,11 @@ export default defineConfig({
     /* Base URL to use in actions like `await page.goto('')`. */
     baseURL: 'http://127.0.0.1:3000',
 
+    // API-heavy tests use deterministic route fixtures. A previously installed
+    // PWA worker can otherwise satisfy requests before Playwright sees them,
+    // particularly in Firefox and WebKit.
+    serviceWorkers: 'block',
+
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
   },

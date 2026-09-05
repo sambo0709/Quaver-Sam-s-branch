@@ -1,0 +1,20 @@
+{
+  "extends": ["html-validate:recommended"],
+  "rules": {
+    "attr-quotes": "off",
+    "doctype-style": "off",
+    "element-permitted-content": "off",
+    "element-required-attributes": "off",
+    "multiple-labeled-controls": "off",
+    "no-implicit-button-type": "off",
+    "no-implicit-input-type": "off",
+    "no-inline-style": "off",
+    "no-raw-characters": "off",
+    "no-redundant-for": "off",
+    "prefer-native-element": "off",
+    "script-element": "off",
+    "unique-landmark": "off",
+    "wcag/h32": "off",
+    "void-style": "off"
+  }
+}

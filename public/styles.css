@@ -3642,7 +3642,6 @@ html.reduce-motion *::after {
   font-size: 13px;
   text-align: center;
   padding: 40px 0;
-  opacity: 0.6;
 }
 
 .box-empty p { margin-bottom: 12px; }
@@ -4439,7 +4438,6 @@ html.reduce-motion *::after {
   letter-spacing: 4px;
   text-transform: uppercase;
   color: var(--accent);
-  opacity: 0.6;
   margin-bottom: 10px;
 }
 
