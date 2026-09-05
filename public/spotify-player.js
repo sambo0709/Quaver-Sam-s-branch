@@ -184,6 +184,13 @@
       toggle.setAttribute('aria-label', paused ? 'Play' : 'Pause');
       toggle.title = paused ? 'Play' : 'Pause';
     }
+    const expandedToggle = document.querySelector('#expanded-player [data-expanded-action="toggle"]');
+    if (expandedToggle) {
+      expandedToggle.textContent = paused ? '▶' : 'Ⅱ';
+      expandedToggle.setAttribute('aria-label', paused ? 'Play' : 'Pause');
+      expandedToggle.title = paused ? 'Play' : 'Pause';
+      expandedToggle.classList.toggle('is-playing', !paused);
+    }
     clearInterval(progressTimer);
     if (!paused && duration > 0) {
       progressTimer = setInterval(function () {
@@ -486,7 +493,9 @@
 
   async function next() {
     const queue = Array.isArray(persistedPlayback.queue) ? persistedPlayback.queue : [];
+    if (persistedPlayback.repeatMode === 'one' && queue.length) return playQueueIndex(Number(persistedPlayback.index) || 0);
     if (queue.length && Number(persistedPlayback.index) < queue.length - 1) return playQueueIndex(Number(persistedPlayback.index) + 1);
+    if (persistedPlayback.repeatMode === 'all' && queue.length) return playQueueIndex(0);
     if (!player || !deviceId) return false;
     try { await player.nextTrack(); return true; }
     catch (error) { handleError(error, true); return false; }
@@ -567,6 +576,46 @@
     return play(track);
   }
 
+  function toggleQueueShuffle() {
+    const queue = Array.isArray(persistedPlayback.queue) ? persistedPlayback.queue.slice() : [];
+    if (queue.length < 2) return notify('Add another song before shuffling.', 'error');
+    const currentId = (queue[Number(persistedPlayback.index) || 0] || {}).trackId;
+    if (persistedPlayback.shuffleEnabled && Array.isArray(persistedPlayback.originalQueue)) {
+      persistedPlayback.queue = persistedPlayback.originalQueue.map(normalizeQueueTrack);
+      persistedPlayback.originalQueue = null;
+      persistedPlayback.index = Math.max(0, persistedPlayback.queue.findIndex(function(item) { return item.trackId === currentId; }));
+      persistedPlayback.shuffleEnabled = false;
+    } else {
+      persistedPlayback.originalQueue = queue.slice();
+      const current = queue.splice(Number(persistedPlayback.index) || 0, 1)[0];
+      for (let index = queue.length - 1; index > 0; index--) {
+        const swap = Math.floor(Math.random() * (index + 1));
+        [queue[index], queue[swap]] = [queue[swap], queue[index]];
+      }
+      persistedPlayback.queue = [current].concat(queue);
+      persistedPlayback.index = 0;
+      persistedPlayback.shuffleEnabled = true;
+    }
+    localStorage.setItem(PLAYBACK_STORAGE_KEY, JSON.stringify(persistedPlayback));
+    renderExpandedPlayer();
+  }
+
+  async function cycleRepeatMode() {
+    const modes = ['off', 'all', 'one'];
+    const currentMode = persistedPlayback.repeatMode || 'off';
+    persistedPlayback.repeatMode = modes[(modes.indexOf(currentMode) + 1) % modes.length];
+    localStorage.setItem(PLAYBACK_STORAGE_KEY, JSON.stringify(persistedPlayback));
+    renderExpandedPlayer();
+    if (!deviceId) return;
+    try {
+      const token = await getAccessToken(false);
+      const spotifyMode = persistedPlayback.repeatMode === 'all' ? 'context' : (persistedPlayback.repeatMode === 'one' ? 'track' : 'off');
+      await fetch('https://api.spotify.com/v1/me/player/repeat?state=' + spotifyMode + '&device_id=' + encodeURIComponent(deviceId), {
+        method: 'PUT', headers: { 'Authorization': 'Bearer ' + token }
+      });
+    } catch (_) {}
+  }
+
   function addSuggestedTrack(index, playNow) {
     const track = similarTracks[index];
     if (!track) return;
@@ -616,8 +665,8 @@
     if (element('expanded-player')) return;
     const shell=document.createElement('div');
     shell.id='expanded-player';shell.className='expanded-player';shell.hidden=true;
-    shell.innerHTML='<div class="expanded-player-header"><span>NOW PLAYING</span><button type="button" data-expanded-action="close" aria-label="Collapse player">⌄</button></div><div class="expanded-player-now"><div class="expanded-player-art"><img id="expanded-player-art" alt=""/></div><div><strong id="expanded-player-title">Choose a song</strong><span id="expanded-player-artist">Quaver</span></div></div><div class="expanded-player-progress"><span id="expanded-player-current">0:00</span><div><i id="expanded-player-progress-fill"></i></div><span id="expanded-player-duration">0:00</span></div><div class="expanded-player-controls"><button type="button" data-expanded-action="previous" aria-label="Previous song">◀</button><button type="button" data-expanded-action="toggle" aria-label="Play or pause">▶</button><button type="button" data-expanded-action="next" aria-label="Next song">▶</button></div><section><div class="expanded-queue-heading"><h2>Up next</h2><span id="expanded-queue-count"></span></div><div id="expanded-queue-list" class="expanded-queue-list"></div></section><section id="expanded-suggestions" class="expanded-suggestions" hidden><div class="expanded-queue-heading"><div><h2>You might also like</h2><small>Based on what is playing</small></div></div><div id="expanded-suggestions-list" class="expanded-suggestions-list"></div></section>';
-    shell.addEventListener('click',function(event){const button=event.target.closest('[data-expanded-action]');if(!button)return;const action=button.dataset.expandedAction;if(action==='close')closeExpandedPlayer();if(action==='toggle')toggle();if(action==='previous')previous();if(action==='next')next();const index=button.dataset.queueIndex;if(index!=null)playQueueIndex(Number(index));const suggestionIndex=button.dataset.suggestionIndex;if(suggestionIndex!=null)addSuggestedTrack(Number(suggestionIndex),action==='play-suggestion');});
+    shell.innerHTML='<div class="expanded-player-header"><span>NOW PLAYING</span><button type="button" data-expanded-action="close" aria-label="Collapse player">⌄</button></div><div class="expanded-player-now"><div class="expanded-player-art"><img id="expanded-player-art" alt=""/></div><div><strong id="expanded-player-title">Choose a song</strong><span id="expanded-player-artist">Quaver</span></div></div><div class="expanded-player-progress"><span id="expanded-player-current">0:00</span><div><i id="expanded-player-progress-fill"></i></div><span id="expanded-player-duration">0:00</span></div><div class="expanded-player-controls"><button type="button" data-expanded-action="shuffle" aria-label="Turn shuffle on" aria-pressed="false">⇄</button><button type="button" data-expanded-action="previous" aria-label="Previous song">◀</button><button class="expanded-player-play" type="button" data-expanded-action="toggle" aria-label="Play or pause">▶</button><button type="button" data-expanded-action="next" aria-label="Next song">▶</button><button type="button" data-expanded-action="repeat" aria-label="Turn repeat on" aria-pressed="false">↻</button></div><section><div class="expanded-queue-heading"><h2>Up next</h2><span id="expanded-queue-count"></span></div><div id="expanded-queue-list" class="expanded-queue-list"></div></section><section id="expanded-suggestions" class="expanded-suggestions" hidden><div class="expanded-queue-heading"><div><h2>You might also like</h2><small>Based on what is playing</small></div></div><div id="expanded-suggestions-list" class="expanded-suggestions-list"></div></section>';
+    shell.addEventListener('click',function(event){const button=event.target.closest('[data-expanded-action]');if(!button)return;const action=button.dataset.expandedAction;if(action==='close')closeExpandedPlayer();if(action==='toggle')toggle();if(action==='previous')previous();if(action==='next')next();if(action==='shuffle')toggleQueueShuffle();if(action==='repeat')cycleRepeatMode();const index=button.dataset.queueIndex;if(index!=null)playQueueIndex(Number(index));const suggestionIndex=button.dataset.suggestionIndex;if(suggestionIndex!=null)addSuggestedTrack(Number(suggestionIndex),action==='play-suggestion');});
     document.body.appendChild(shell);
   }
 
@@ -631,8 +680,13 @@
     element('expanded-player-current').textContent=formatTime(position||persistedPlayback.position);
     element('expanded-player-duration').textContent=formatTime(duration||persistedPlayback.duration);
     element('expanded-player-progress-fill').style.width=((duration||persistedPlayback.duration)?((position||persistedPlayback.position)/(duration||persistedPlayback.duration))*100:0)+'%';
+    const expandedToggle=shell.querySelector('[data-expanded-action="toggle"]');expandedToggle.textContent=paused?'▶':'Ⅱ';expandedToggle.setAttribute('aria-label',paused?'Play':'Pause');expandedToggle.title=paused?'Play':'Pause';expandedToggle.classList.toggle('is-playing',!paused);
     const queue=Array.isArray(persistedPlayback.queue)?persistedPlayback.queue:[];
     const active=Number(persistedPlayback.index)||0;
+    const shuffleButton=shell.querySelector('[data-expanded-action="shuffle"]');
+    shuffleButton.classList.toggle('active',!!persistedPlayback.shuffleEnabled);shuffleButton.setAttribute('aria-pressed',String(!!persistedPlayback.shuffleEnabled));shuffleButton.setAttribute('aria-label',persistedPlayback.shuffleEnabled?'Turn shuffle off':'Turn shuffle on');
+    const repeatButton=shell.querySelector('[data-expanded-action="repeat"]');
+    const repeatMode=persistedPlayback.repeatMode||'off';repeatButton.classList.toggle('active',repeatMode!=='off');repeatButton.classList.toggle('repeat-one',repeatMode==='one');repeatButton.textContent=repeatMode==='one'?'1':'↻';repeatButton.setAttribute('aria-pressed',String(repeatMode!=='off'));repeatButton.setAttribute('aria-label',repeatMode==='off'?'Turn repeat on':(repeatMode==='all'?'Repeat one song':'Turn repeat off'));
     element('expanded-queue-count').textContent=queue.length+(queue.length===1?' song':' songs');
     element('expanded-queue-list').innerHTML=queue.map(function(item,index){return '<button type="button" data-expanded-action="queue" data-queue-index="'+index+'" class="expanded-queue-item'+(index===active?' active':'')+'"><span>'+(index+1)+'</span>'+(item.albumArt?'<img src="'+escapeText(item.albumArt)+'" alt=""/>':'<i></i>')+'<span><strong>'+escapeText(item.title)+'</strong><small>'+escapeText(item.artist)+'</small></span>'+(index===active?'<b>Playing</b>':'')+'</button>';}).join('')||'<p>Your queue will appear here when you play a mix.</p>';
     const suggestionsSection=element('expanded-suggestions');

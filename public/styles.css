@@ -2657,7 +2657,9 @@ body.modal-open { overflow: hidden; }
 .expanded-player-progress i { display:block;height:100%;border-radius:inherit;background:#fff; }
 .expanded-player-controls { display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:34px; }
 .expanded-player-controls button { display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:50%;background:rgba(255,255,255,.09);color:#fff;cursor:pointer; }
-.expanded-player-controls button:nth-child(2) { width:58px;height:58px;background:#fff;color:#111827;font-size:1.05rem; }
+.expanded-player-controls .expanded-player-play { width:58px;height:58px;background:#fff;color:#111827;font-size:1.05rem; }
+.expanded-player-controls button.active { background:rgba(113,234,250,.14);color:#71eafa;box-shadow:inset 0 0 0 1px rgba(113,234,250,.32); }
+.expanded-player-controls button.repeat-one { font-size:.82rem;font-weight:800; }
 .expanded-queue-heading { display:flex;align-items:end;justify-content:space-between;padding-bottom:13px;border-bottom:1px solid rgba(255,255,255,.12); }
 .expanded-queue-heading h2 { font-size:1.25rem; }
 .expanded-queue-heading span { color:rgba(255,255,255,.52);font-size:11px; }

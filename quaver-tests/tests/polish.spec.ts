@@ -333,8 +333,14 @@ test('mobile player restores across pages and expands its saved queue', async ({
   await expect(page.locator('#player-song-name')).toHaveText('Still Playing');
   await page.locator('.player-identity').click();
   await expect(page.locator('#expanded-player')).toBeVisible();
+  await expect(page.locator('#expanded-player').getByRole('button', { name: 'Pause' })).toHaveText('Ⅱ');
   await expect(page.getByRole('heading', { name: 'Up next' })).toBeVisible();
   await expect(page.getByText('Up Next Song')).toBeVisible();
+  await page.getByRole('button', { name: 'Turn shuffle on' }).click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('quaver_playback_session') || '{}').shuffleEnabled)).toBe(true);
+  await page.getByRole('button', { name: 'Turn repeat on' }).click();
+  await page.getByRole('button', { name: 'Repeat one song' }).click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('quaver_playback_session') || '{}').repeatMode)).toBe('one');
 });
 
 test('expanded player suggests songs for a single-song queue', async ({ page, browserName }) => {
