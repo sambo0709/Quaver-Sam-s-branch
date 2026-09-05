@@ -19,6 +19,10 @@ async function ensureIndexes(database) {
         { 'recentMoods.ts': -1 },
         { name: 'users_recent_moods_ts' }
       ),
+      database.collection('sotd_archive').createIndex(
+        { date: -1 },
+        { name: 'sotd_archive_date' }
+      ),
     ]);
   } catch (error) {
     // Preserve availability for an existing deployment with conflicting legacy data.

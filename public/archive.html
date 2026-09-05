@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Mood Archive - Quaver</title><link rel="stylesheet" href="styles.css"/></head>
+<body>
+  <main class="archive-main">
+    <header class="settings-header archive-header">
+      <span>Daily discovery</span>
+      <h1>Mood Archive</h1>
+      <p>Return to previous moods and replay the three songs that defined each day.</p>
+    </header>
+    <div class="archive-toolbar">
+      <label for="archive-month">Browse by month</label>
+      <select id="archive-month" aria-label="Filter mood archive by month"><option value="all">All months</option></select>
+    </div>
+    <div id="archive-status" class="archive-status" role="status">Loading the archive…</div>
+    <div id="archive-list" class="archive-list" aria-live="polite"></div>
+  </main>
+</body>
+</html>

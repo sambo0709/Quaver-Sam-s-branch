@@ -9,6 +9,7 @@
     '/playlists.html': 'playlists',
     '/profile.html': 'profile',
     '/settings.html': 'settings',
+    '/archive.html': 'archive',
   };
 
   const routePaths = {
@@ -17,6 +18,7 @@
     playlists: '/playlists.html',
     profile: '/profile.html',
     settings: '/settings.html',
+    archive: '/archive.html',
   };
 
   const views = new Map();
@@ -298,6 +300,23 @@
       },
       unmount: function () {
         if (window.QuaverSettings) window.QuaverSettings.unmount();
+      },
+    });
+    registerView('archive', {
+      title: 'Mood Archive - Quaver',
+      bodyClass: 'profile-page archive-page',
+      source: '/archive.html',
+      render: async function () {
+        const page = await loadPage('/archive.html');
+        const main = page.querySelector('main.archive-main');
+        if (!main) throw new Error('Mood Archive is unavailable.');
+        return document.importNode(main, true);
+      },
+      mount: function (view) {
+        if (window.QuaverArchive) window.QuaverArchive.mount(view);
+      },
+      unmount: function () {
+        if (window.QuaverArchive) window.QuaverArchive.unmount();
       },
     });
     document.documentElement.classList.add('app-shell-mounted');

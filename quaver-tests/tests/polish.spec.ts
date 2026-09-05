@@ -159,12 +159,19 @@ test('direct migrated URLs boot through one shared SPA shell', async ({ page }) 
   await page.route('**/api/mood/history', route => route.fulfill({ json: { moods: [] } }));
   await page.route('**/api/listening/history', route => route.fulfill({ json: { plays: [] } }));
   await page.route('**/spotify/status', route => route.fulfill({ json: { connected: false } }));
+  await page.route('**/api/music/sotd/archive?*', route => route.fulfill({ json: { entries: [{ date: '2026-09-05', mood: 'calm', songs: [
+    { title: 'Archive One', artist: 'Quaver', spotify_url: 'https://open.spotify.com/track/archive1', album_art: '' },
+    { title: 'Archive Two', artist: 'Quaver', spotify_url: 'https://open.spotify.com/track/archive2', album_art: '' },
+    { title: 'Archive Three', artist: 'Quaver', spotify_url: 'https://open.spotify.com/track/archive3', album_art: '' },
+  ] }] } }));
+  await page.route('**/api/music/sotd', route => route.fulfill({ json: { date: '2026-09-05', mood: 'calm', songs: [] } }));
 
   for (const destination of [
     { path: '/search.html', view: 'search', heading: 'Search' },
     { path: '/playlists.html', view: 'playlists', heading: 'Playlists' },
     { path: '/profile.html', view: 'profile', heading: 'Direct Listener' },
     { path: '/settings.html', view: 'settings', heading: 'Settings' },
+    { path: '/archive.html', view: 'archive', heading: 'Mood Archive' },
   ]) {
     await page.goto(destination.path);
     await expect(page.locator('[data-shell="top-nav"]')).toHaveCount(1);
@@ -172,6 +179,10 @@ test('direct migrated URLs boot through one shared SPA shell', async ({ page }) 
     await expect(page.locator('[data-shell="view"]')).toHaveAttribute('data-view', destination.view);
     await expect(page.getByRole('heading', { name: destination.heading, exact: true })).toBeVisible();
   }
+  await expect(page.getByText('Archive One', { exact: true })).toBeVisible();
+  await expect(page.locator('.archive-track')).toHaveCount(3);
+  await page.getByRole('button', { name: 'Play daily mix' }).click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('quaver_playback_session') || '{}').queue?.length)).toBe(3);
 });
 
 test('SPA history restores query-driven views without remounting the player', async ({ page }) => {

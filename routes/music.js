@@ -24,6 +24,10 @@ let tokenExpiresAt = 0;
 let sotdCache = null;
 let sotdExpiresAt = 0;
 
+function sotdDateKey(date) {
+  return (date || new Date()).toISOString().slice(0, 10);
+}
+
 // Per-mood pool cache — avoids hitting Spotify on every recommend request
 const moodPoolCache = {};
 const POOL_TTL = 2 * 60 * 60 * 1000; // 2 hours
@@ -102,7 +106,7 @@ async function loadSotdFromDB() {
   try {
     const db = await getDB();
     const doc = await db.collection('sotd_cache').findOne({ _id: 'sotd' });
-    if (doc && doc.expiresAt > Date.now()) {
+    if (doc && doc.expiresAt > Date.now() && doc.picks?.date === sotdDateKey()) {
       sotdCache = doc.picks;
       sotdExpiresAt = doc.expiresAt;
     }
@@ -112,11 +116,14 @@ async function loadSotdFromDB() {
 async function saveSotdToDB(picks, expiresAt) {
   try {
     const db = await getDB();
-    await db.collection('sotd_cache').updateOne(
-      { _id: 'sotd' },
-      { $set: { picks, expiresAt } },
-      { upsert: true }
-    );
+    await Promise.all([
+      db.collection('sotd_cache').updateOne({ _id: 'sotd' }, { $set: { picks, expiresAt } }, { upsert: true }),
+      db.collection('sotd_archive').updateOne(
+        { _id: picks.date },
+        { $setOnInsert: { date: picks.date, mood: picks.mood, songs: picks.songs.slice(0, 3), createdAt: new Date() } },
+        { upsert: true }
+      ),
+    ]);
   } catch (_) {}
 }
 
@@ -405,16 +412,32 @@ function getTodayMood() {
   return all[dayNum % all.length];
 }
 
-// GET /api/music/sotd — mood of the day: 3 songs from one mood, cached in MongoDB for 24 hours
+// GET /api/music/sotd/archive — retained daily three-song mixes, newest first
+router.get('/sotd/archive', async function(req, res) {
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 120, 1), 366);
+  try {
+    const db = await getDB();
+    const entries = await db.collection('sotd_archive')
+      .find({}, { projection: { _id: 0, date: 1, mood: 1, songs: 1 } })
+      .sort({ date: -1 })
+      .limit(limit)
+      .toArray();
+    res.json({ entries });
+  } catch (error) {
+    res.status(500).json({ error: 'Mood archive is unavailable right now.' });
+  }
+});
+
+// GET /api/music/sotd — mood of the day: 3 songs from one mood, cached in MongoDB and archived by date
 router.get('/sotd', async function(_req, res) {
   // 1. Fast path: in-memory cache still valid
-  if (sotdCache && Date.now() < sotdExpiresAt) {
+  if (sotdCache && sotdCache.date === sotdDateKey() && Date.now() < sotdExpiresAt) {
     return res.json(sotdCache);
   }
 
   // 2. Try loading from MongoDB (survives server restarts)
   await loadSotdFromDB();
-  if (sotdCache && Date.now() < sotdExpiresAt) {
+  if (sotdCache && sotdCache.date === sotdDateKey() && Date.now() < sotdExpiresAt) {
     return res.json(sotdCache);
   }
 
@@ -423,7 +446,7 @@ router.get('/sotd', async function(_req, res) {
   try {
     const token = await getSpotifyToken();
     const songs = await searchTracks(moodToSearch[mood], token, 3);
-    const payload = { mood, songs };
+    const payload = { date: sotdDateKey(), mood, songs: songs.slice(0, 3) };
     const expiresAt = Date.now() + SOTD_TTL_MS;
     sotdCache = payload;
     sotdExpiresAt = expiresAt;
