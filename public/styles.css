@@ -2709,16 +2709,7 @@ body.expanded-player-open { overflow:hidden; }
 body:has(#spotify-player[style*="display: grid"]) .site-footer { margin-bottom:112px; }
 
 @media (max-width:768px) {
-  .site-footer { width:calc(100% - 32px);margin-top:56px;padding-top:28px; }
-  .site-footer-main { grid-template-columns:1fr;gap:30px; }
-  .site-footer-links { gap:18px; }
-  body:has(#spotify-player[style*="display: grid"]) .site-footer { margin-bottom:142px; }
-}
-
-@media (max-width:520px) {
-  .site-footer { width:calc(100% - 28px);margin-bottom:82px; }
-  .site-footer-links { grid-template-columns:repeat(2,minmax(0,1fr));row-gap:28px; }
-  .site-footer-bottom { align-items:flex-start;flex-direction:column;gap:8px; }
+  .site-footer { display:none; }
 }
 
 .app-view-transitioning::after {

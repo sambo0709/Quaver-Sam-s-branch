@@ -330,6 +330,7 @@ test('mobile player restores across pages and expands its saved queue', async ({
 
   await page.goto('/search.html');
 
+  await expect(page.locator('[data-shell="footer"]')).toBeHidden();
   await expect(page.locator('#spotify-player')).toBeVisible();
   await expect(page.locator('#player-song-name')).toHaveText('Still Playing');
   await page.locator('.player-identity').click();
