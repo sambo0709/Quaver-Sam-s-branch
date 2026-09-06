@@ -171,20 +171,68 @@
     const queryKey = query.trim().toLowerCase();
     const artistMatches = primaryArtists.filter(function(artist) { return artist === queryKey; }).length;
     const subject = artistMatches >= Math.ceil(songs.length / 2) ? query : 'These results';
-    panel.innerHTML = '<div><span>QUAVER MOOD PROFILE</span><h2 id="search-mood-profile-title">' + escapeHTML(subject) + ' often sounds</h2><p>Our interpretation based on the tracks in these results.</p></div><div class="search-mood-profile-breakdown">' + ranked.map(function(item) { const percent = Math.round((item.score / total) * 100); return '<span><b>' + escapeHTML(item.mood) + '</b><small>' + percent + '%</small></span>'; }).join('') + '</div><a href="Index.html?mood=' + encodeURIComponent(ranked[0].mood) + '" data-route="home">Create a ' + escapeHTML(ranked[0].mood) + ' mix</a>';
+    panel.innerHTML = '<div><span>QUAVER MOOD PROFILE</span><h2 id="search-mood-profile-title">' + escapeHTML(subject) + ' often sounds</h2><p>Our interpretation based on the tracks in these results.</p></div><div class="search-mood-profile-breakdown">' + ranked.map(function(item) { const percent = Math.round((item.score / total) * 100); return '<span><b>' + escapeHTML(item.mood) + '</b><small>' + percent + '%</small></span>'; }).join('') + '</div><button type="button" data-create-mix="' + escapeHTML(ranked[0].mood) + '">Create a ' + escapeHTML(ranked[0].mood) + ' mix</button>';
     panel.hidden = false;
   }
 
-  function renderSongs(songs, query) {
-    window.searchSongs = songs;
-    status.textContent = songs.length ? songs.length + ' results for “' + query + '”' : 'No results for “' + query + '”.';
-    renderMoodProfile(songs, query);
-    results.innerHTML = songs.map(function (song, index) {
+  function songCards(songs) {
+    return songs.map(function (song, index) {
       const art = song.album_art ? '<img src="' + escapeHTML(song.album_art) + '" alt="" loading="lazy"/>' : '<div class="search-result-art"></div>';
       const spotify = song.spotify_url ? '<a href="' + escapeHTML(song.spotify_url) + '" target="_blank" rel="noopener">Open Spotify</a>' : '';
       const play = spotifyTrackId(song) ? '<button class="search-result-play" type="button" data-play-index="' + index + '" aria-label="Play ' + escapeHTML(song.title || 'song') + '">▶ Play</button>' : '';
       return '<article class="search-result-card">' + art + '<div><strong>' + escapeHTML(song.title || 'Untitled song') + '</strong><span>' + escapeHTML(song.artist || 'Unknown artist') + '</span></div><div class="search-result-actions">' + play + spotify + '<button type="button" data-add-index="' + index + '">Add to playlist</button></div></article>';
     }).join('');
+  }
+
+  function resultGroup(title, type, items, content) {
+    if (!items.length) return '';
+    return '<section class="search-result-group search-result-group-' + type + '"><div class="search-result-group-heading"><span>' + type + '</span><h2>' + title + '</h2><small>' + items.length + '</small></div>' + content + '</section>';
+  }
+
+  function renderSearchResults(data, query) {
+    const songs = data.songs || [];
+    const artists = data.artists || [];
+    const albums = data.albums || [];
+    const count = songs.length + artists.length + albums.length;
+    window.searchSongs = songs;
+    status.textContent = count ? count + ' results for “' + query + '”' : 'No results for “' + query + '”.';
+    renderMoodProfile(songs, query);
+    const artistCards = artists.map(function(artist) {
+      const art = artist.image ? '<img src="' + escapeHTML(artist.image) + '" alt="" loading="lazy"/>' : '<div class="search-result-art search-result-artist-art"></div>';
+      const detail = (artist.genres || []).join(' · ') || 'Artist';
+      return '<a class="search-entity-card" href="' + escapeHTML(artist.spotify_url || '#') + '" target="_blank" rel="noopener">' + art + '<strong>' + escapeHTML(artist.name || 'Unknown artist') + '</strong><span>' + escapeHTML(detail) + '</span></a>';
+    }).join('');
+    const albumCards = albums.map(function(album) {
+      const art = album.image ? '<img src="' + escapeHTML(album.image) + '" alt="" loading="lazy"/>' : '<div class="search-result-art"></div>';
+      const year = String(album.release_date || '').slice(0, 4);
+      return '<a class="search-entity-card" href="' + escapeHTML(album.spotify_url || '#') + '" target="_blank" rel="noopener">' + art + '<strong>' + escapeHTML(album.name || 'Untitled album') + '</strong><span>' + escapeHTML([album.artist, year].filter(Boolean).join(' · ')) + '</span></a>';
+    }).join('');
+    results.innerHTML = resultGroup('Songs', 'songs', songs, '<div class="search-song-list">' + songCards(songs) + '</div>') + resultGroup('Artists', 'artists', artists, '<div class="search-entity-grid">' + artistCards + '</div>') + resultGroup('Albums', 'albums', albums, '<div class="search-entity-grid">' + albumCards + '</div>');
+  }
+
+  async function createMoodMix(mood, button) {
+    if (!mood || button.disabled) return;
+    const originalLabel = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Creating mix…';
+    status.textContent = 'Shaping a ' + mood + ' mix…';
+    try {
+      const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
+      const limit = Math.min(Math.max(Number(preferences.defaultCount) || 8, 1), 10);
+      const params = new URLSearchParams({ mood: mood, limit: String(limit), variety: preferences.variety || 'balanced', explicit: String(preferences.explicitContent !== false) });
+      const response = await fetch(API + '/api/music/recommend?' + params.toString(), { credentials: 'include' });
+      const data = await response.json().catch(function() { return {}; });
+      if (!response.ok) throw new Error(data.error || 'Could not create this mix.');
+      const songs = data.songs || [];
+      window.searchSongs = songs;
+      results.innerHTML = '<section class="search-result-group search-generated-mix"><div class="search-result-group-heading"><span>MADE FOR YOU</span><h2>Your ' + escapeHTML(mood) + ' mix</h2><small>' + songs.length + ' songs</small></div><div class="search-song-list">' + songCards(songs) + '</div></section>';
+      status.textContent = songs.length ? 'Your ' + mood + ' mix is ready.' : 'No songs were available for this mix.';
+      results.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    } catch (error) {
+      status.textContent = error.message || 'Could not create this mix. Please try again.';
+      button.disabled = false;
+      button.textContent = originalLabel;
+    }
   }
 
   async function search(query) {
@@ -201,7 +249,7 @@
       const response = await fetch(API + '/api/music/search?q=' + encodeURIComponent(q) + '&explicit=' + (preferences.explicitContent !== false));
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Search failed.');
-      renderSongs(data.songs || [], q);
+      renderSearchResults(data, q);
     } catch (error) {
       status.textContent = error.message || 'Search failed. Please try again.';
     }
@@ -225,6 +273,7 @@
     status = scope.querySelector('#search-page-status');
     scope.querySelector('#search-page-form').addEventListener('submit', function (event) { event.preventDefault(); search(input.value); }, { signal: signal });
     scope.querySelector('#search-starters').addEventListener('click', function(event) { const button=event.target.closest('[data-search-starter]'); if(button)search(button.dataset.searchStarter); }, { signal: signal });
+    scope.querySelector('#search-mood-profile').addEventListener('click', function(event) { const button=event.target.closest('[data-create-mix]'); if (button) createMoodMix(button.dataset.createMix, button); }, { signal: signal });
     results.addEventListener('click', function (event) {
       const playButton = event.target.closest('[data-play-index]');
       if (playButton) { playSearchSong(Number(playButton.dataset.playIndex)); return; }

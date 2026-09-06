@@ -705,19 +705,26 @@ test('search results can play through the shared Quaver player', async ({ page }
   await expect(page.locator('#spotify-player')).toBeAttached();
 });
 
-test('search results show a Quaver mood profile and open a matching mix', async ({ page }) => {
+test('search results show distinct content types and generate a matching mix in place', async ({ page }) => {
   await page.route('**/api/music/search?*', route => route.fulfill({ json: { songs: [
     { title: 'Midnight Love', artist: 'Profile Artist', spotify_url: 'https://open.spotify.com/track/profile1' },
     { title: 'Heart and Passion', artist: 'Profile Artist', spotify_url: 'https://open.spotify.com/track/profile2' },
     { title: 'Romantic Night', artist: 'Profile Artist', spotify_url: 'https://open.spotify.com/track/profile3' },
-  ] } }));
+  ], artists: [{ name: 'Profile Artist', genres: ['dream pop'], spotify_url: 'https://open.spotify.com/artist/profile' }], albums: [{ name: 'Heart Album', artist: 'Profile Artist', release_date: '2026', spotify_url: 'https://open.spotify.com/album/profile' }] } }));
+  await page.route('**/api/music/recommend?*', route => route.fulfill({ json: { songs: [{ title: 'Generated Love', artist: 'Mix Artist', spotify_url: 'https://open.spotify.com/track/generated1' }] } }));
   await page.goto('/search.html?q=Profile%20Artist');
   const profile = page.locator('#search-mood-profile');
   await expect(profile).toBeVisible();
   await expect(profile.getByRole('heading', { name: 'Profile Artist often sounds' })).toBeVisible();
   await expect(profile.getByText('romantic', { exact: true })).toBeVisible();
-  await profile.getByRole('link', { name: 'Create a romantic mix' }).click();
-  await expect(page.locator('#mood-select')).toHaveValue('romantic');
+  await expect(page.getByRole('heading', { name: 'Songs' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Artists' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Albums' })).toBeVisible();
+  await expect(page.getByText('dream pop')).toBeVisible();
+  await profile.getByRole('button', { name: 'Create a romantic mix' }).click();
+  await expect(page.getByRole('heading', { name: 'Your romantic mix' })).toBeVisible();
+  await expect(page.getByText('Generated Love')).toBeVisible();
+  await expect(page).toHaveURL(/search\.html\?q=Profile%20Artist/);
 });
 
 test('a searched song can be added to an existing playlist', async ({ page }) => {

@@ -451,7 +451,7 @@ router.delete('/feedback', async function(req, res) {
   } catch (_) { res.status(500).json({ error: 'Server error' }); }
 });
 
-// GET /api/music/search?q=...&genre=...&year=... - search for specific songs/artists
+// GET /api/music/search?q=...&genre=...&year=... - search songs, artists, and albums
 router.get('/search', async function(req, res) {
   const q = (req.query.q || '').trim();
   if (!q) return res.status(400).json({ error: 'Query required' });
@@ -462,13 +462,14 @@ router.get('/search', async function(req, res) {
   if (year) query += ' year:' + year;
   try {
     const token = await getSpotifyToken();
-    const url = 'https://api.spotify.com/v1/search?q=' + encodeURIComponent(query) + '&type=track&limit=10';
+    const url = 'https://api.spotify.com/v1/search?q=' + encodeURIComponent(query) + '&type=track,artist,album&limit=10';
     const searchRes = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
     if (!searchRes.ok) throw await spotifyApiError(searchRes, 'Spotify search failed');
     const data = await searchRes.json();
     const allowExplicit = req.query.explicit !== 'false';
     const songs = (data.tracks?.items || []).filter(function(track) { return allowExplicit || !track.explicit; }).map(function(track) {
       return {
+        trackId: track.id,
         title: track.name,
         artist: track.artists.map(function(a) { return a.name; }).join(', '),
         duration: msToMinSec(track.duration_ms),
@@ -478,7 +479,24 @@ router.get('/search', async function(req, res) {
         album_art: track.album.images[1] ? track.album.images[1].url : null,
       };
     });
-    res.json({ query: q, count: songs.length, songs });
+    const artists = (data.artists?.items || []).slice(0, 6).map(function(artist) {
+      return {
+        name: artist.name,
+        image: artist.images?.[1]?.url || artist.images?.[0]?.url || null,
+        genres: (artist.genres || []).slice(0, 3),
+        spotify_url: artist.external_urls?.spotify || '',
+      };
+    });
+    const albums = (data.albums?.items || []).slice(0, 6).map(function(album) {
+      return {
+        name: album.name,
+        artist: (album.artists || []).map(function(artist) { return artist.name; }).join(', '),
+        image: album.images?.[1]?.url || album.images?.[0]?.url || null,
+        release_date: album.release_date || '',
+        spotify_url: album.external_urls?.spotify || '',
+      };
+    });
+    res.json({ query: q, count: songs.length + artists.length + albums.length, songs, artists, albums });
   } catch (err) {
     console.error('Search error:', err.message);
     res.status(500).json({ error: err.message });
