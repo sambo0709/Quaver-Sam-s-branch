@@ -162,6 +162,16 @@ function dismissOnboarding() {
   setTimeout(function() { overlay.style.display = 'none'; }, 300);
 }
 
+function applyRequestedMoodFromNavigation() {
+  const requestedMood = new URLSearchParams(window.location.search).get('mood');
+  const select = document.getElementById('mood-select');
+  if (!select || !requestedMood || !Array.from(select.options).some(function(option) { return option.value === requestedMood; })) return;
+  select.value = requestedMood;
+  currentMood = requestedMood;
+  applyMoodColors(currentMood);
+}
+window.applyRequestedMoodFromNavigation = applyRequestedMoodFromNavigation;
+
 function initializeHome() {
   const initialRoute = window.QuaverShell && window.QuaverShell.state.initialRoute;
   const deferHomeIntro = initialRoute && initialRoute !== 'home';
@@ -174,6 +184,7 @@ function initializeHome() {
     currentMood = preferences.defaultMood;
     applyMoodColors(currentMood);
   }
+  applyRequestedMoodFromNavigation();
   if ([5, 8, 10].includes(Number(preferences.songCount))) {
     currentLimit = Number(preferences.songCount);
     document.getElementById('count-select').value = String(currentLimit);

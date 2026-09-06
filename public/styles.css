@@ -5328,6 +5328,16 @@ body > nav:not(.mobile-bottom-nav),
   cursor: pointer;
 }
 .search-page-status { min-height: 52px; display: flex; align-items: center; gap: 12px; color: var(--text-muted); font-size: .82rem; }
+.search-mood-profile { display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:22px;margin:0 0 18px;padding:20px;border:1px solid var(--glass-border);border-radius:16px;background:color-mix(in srgb,var(--card-solid) 88%,transparent); }
+.search-mood-profile[hidden] { display:none; }
+.search-mood-profile > div:first-child > span { color:var(--accent);font-size:.62rem;font-weight:800;letter-spacing:.14em; }
+.search-mood-profile h2 { margin:5px 0 4px;color:var(--text);font-size:1.15rem;text-transform:none; }
+.search-mood-profile p { margin:0;color:var(--text-muted);font-size:.7rem; }
+.search-mood-profile-breakdown { display:flex;gap:7px; }
+.search-mood-profile-breakdown > span { min-width:78px;padding:9px 11px;border-radius:10px;background:var(--bg2); }
+.search-mood-profile-breakdown b,.search-mood-profile-breakdown small { display:block;text-transform:capitalize; }
+.search-mood-profile-breakdown b { color:var(--text);font-size:.7rem; }.search-mood-profile-breakdown small { margin-top:3px;color:var(--text-muted);font-size:.62rem; }
+.search-mood-profile > a { padding:10px 14px;border-radius:999px;background:var(--text);color:var(--bg);font-size:.7rem;font-weight:800;text-decoration:none;white-space:nowrap; }
 .search-starters { padding: 20px; border: 1px solid var(--glass-border); border-radius: 14px; background: color-mix(in srgb,var(--card-solid) 72%,transparent); }
 .search-starters[hidden] { display: none; }
 .search-starters > span { display: block; margin-bottom: 13px; color: var(--text-muted); font-size: .68rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
@@ -5373,6 +5383,9 @@ body > nav:not(.mobile-bottom-nav),
   .search-header h1 { font-size: 2.5rem; }
   .search-page-form { grid-template-columns: auto minmax(0, 1fr); padding: 13px 15px; }
   .search-page-form button { grid-column: 1 / -1; min-height: 40px; }
+  .search-mood-profile { grid-template-columns:1fr;gap:14px;padding:16px; }
+  .search-mood-profile-breakdown { overflow-x:auto;padding-bottom:3px; }
+  .search-mood-profile > a { justify-self:start; }
   .results { margin-top: 22px; }
   .results-header { margin-bottom: 14px; padding-bottom: 12px; }
   .recommendation-learning { margin-bottom: 10px; }

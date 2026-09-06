@@ -234,7 +234,12 @@
     const missing = required.filter(function (name) { return !shellElement(name); });
     if (missing.length) throw new Error('Quaver shell is missing: ' + missing.join(', '));
     state.mounted = true;
-    registerView('home', { title: 'Quaver', bodyClass: '' });
+    registerView('home', {
+      title: 'Quaver',
+      bodyClass: '',
+      mount: function () { if (window.applyRequestedMoodFromNavigation) window.applyRequestedMoodFromNavigation(); },
+      update: function () { if (window.applyRequestedMoodFromNavigation) window.applyRequestedMoodFromNavigation(); },
+    });
     registerView('search', {
       title: 'Search - Quaver',
       bodyClass: 'profile-page search-page',

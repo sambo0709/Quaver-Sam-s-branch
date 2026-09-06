@@ -705,6 +705,21 @@ test('search results can play through the shared Quaver player', async ({ page }
   await expect(page.locator('#spotify-player')).toBeAttached();
 });
 
+test('search results show a Quaver mood profile and open a matching mix', async ({ page }) => {
+  await page.route('**/api/music/search?*', route => route.fulfill({ json: { songs: [
+    { title: 'Midnight Love', artist: 'Profile Artist', spotify_url: 'https://open.spotify.com/track/profile1' },
+    { title: 'Heart and Passion', artist: 'Profile Artist', spotify_url: 'https://open.spotify.com/track/profile2' },
+    { title: 'Romantic Night', artist: 'Profile Artist', spotify_url: 'https://open.spotify.com/track/profile3' },
+  ] } }));
+  await page.goto('/search.html?q=Profile%20Artist');
+  const profile = page.locator('#search-mood-profile');
+  await expect(profile).toBeVisible();
+  await expect(profile.getByRole('heading', { name: 'Profile Artist often sounds' })).toBeVisible();
+  await expect(profile.getByText('romantic', { exact: true })).toBeVisible();
+  await profile.getByRole('link', { name: 'Create a romantic mix' }).click();
+  await expect(page.locator('#mood-select')).toHaveValue('romantic');
+});
+
 test('a searched song can be added to an existing playlist', async ({ page }) => {
   let addedBody: any;
   await page.addInitScript(() => localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' })));

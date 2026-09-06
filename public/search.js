@@ -135,9 +135,50 @@
     QuaverPlayer.play({ trackId: trackId, title: song.title || '', artist: song.artist || '', albumArt: song.album_art || '' });
   }
 
+  const moodSignals = {
+    energetic: ['energy','energetic','hype','workout','fast','power','fire','run'],
+    calm: ['calm','peace','peaceful','quiet','soft','gentle','ambient','relax','chill'],
+    focused: ['focus','focused','study','work','deep','instrumental','lofi'],
+    sleepy: ['sleep','sleepy','dream','night','lullaby','rest','bed'],
+    romantic: ['love','lover','romance','romantic','kiss','heart','passion'],
+    sad: ['sad','cry','tears','heartbreak','lonely','alone','miss','blue'],
+    happy: ['happy','joy','smile','sunshine','good time','feel good'],
+    angry: ['angry','rage','hate','war','metal','aggressive','mad'],
+    nostalgic: ['throwback','classic','retro','memories','memory','yesterday','old school'],
+    party: ['party','club','dance','anthem','celebrate','tonight'],
+    anxious: ['anxious','anxiety','stress','worry','panic','nervous'],
+  };
+
+  function scoreMoods(text) {
+    const normalized = String(text || '').toLowerCase();
+    return Object.keys(moodSignals).map(function(mood) {
+      return { mood: mood, score: moodSignals[mood].reduce(function(total, phrase) { return total + (normalized.includes(phrase) ? 1 : 0); }, 0) };
+    }).filter(function(item) { return item.score > 0; }).sort(function(a, b) { return b.score - a.score; });
+  }
+
+  function renderMoodProfile(songs, query) {
+    const panel = mountedRoot.querySelector('#search-mood-profile');
+    const totals = {};
+    songs.forEach(function(song) {
+      scoreMoods([song.title, song.artist, query].join(' ')).slice(0, 2).forEach(function(item, index) {
+        totals[item.mood] = (totals[item.mood] || 0) + item.score * (index ? 0.5 : 1);
+      });
+    });
+    const ranked = Object.keys(totals).map(function(mood) { return { mood: mood, score: totals[mood] }; }).sort(function(a, b) { return b.score - a.score; }).slice(0, 3);
+    if (!songs.length || !ranked.length) { panel.hidden = true; panel.innerHTML = ''; return; }
+    const total = ranked.reduce(function(sum, item) { return sum + item.score; }, 0);
+    const primaryArtists = songs.map(function(song) { return String(song.artist || '').split(',')[0].trim().toLowerCase(); });
+    const queryKey = query.trim().toLowerCase();
+    const artistMatches = primaryArtists.filter(function(artist) { return artist === queryKey; }).length;
+    const subject = artistMatches >= Math.ceil(songs.length / 2) ? query : 'These results';
+    panel.innerHTML = '<div><span>QUAVER MOOD PROFILE</span><h2 id="search-mood-profile-title">' + escapeHTML(subject) + ' often sounds</h2><p>Our interpretation based on the tracks in these results.</p></div><div class="search-mood-profile-breakdown">' + ranked.map(function(item) { const percent = Math.round((item.score / total) * 100); return '<span><b>' + escapeHTML(item.mood) + '</b><small>' + percent + '%</small></span>'; }).join('') + '</div><a href="Index.html?mood=' + encodeURIComponent(ranked[0].mood) + '" data-route="home">Create a ' + escapeHTML(ranked[0].mood) + ' mix</a>';
+    panel.hidden = false;
+  }
+
   function renderSongs(songs, query) {
     window.searchSongs = songs;
     status.textContent = songs.length ? songs.length + ' results for “' + query + '”' : 'No results for “' + query + '”.';
+    renderMoodProfile(songs, query);
     results.innerHTML = songs.map(function (song, index) {
       const art = song.album_art ? '<img src="' + escapeHTML(song.album_art) + '" alt="" loading="lazy"/>' : '<div class="search-result-art"></div>';
       const spotify = song.spotify_url ? '<a href="' + escapeHTML(song.spotify_url) + '" target="_blank" rel="noopener">Open Spotify</a>' : '';
@@ -154,6 +195,7 @@
     document.getElementById('search-starters').hidden = true;
     status.innerHTML = '<span class="loading-bar" aria-hidden="true"></span><span>Searching…</span>';
     results.innerHTML = '';
+    mountedRoot.querySelector('#search-mood-profile').hidden = true;
     try {
       const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
       const response = await fetch(API + '/api/music/search?q=' + encodeURIComponent(q) + '&explicit=' + (preferences.explicitContent !== false));
@@ -220,6 +262,7 @@
       currentQuery = '';
       input.value = '';
       results.innerHTML = '';
+      mountedRoot.querySelector('#search-mood-profile').hidden = true;
       status.textContent = 'Start with a song, artist, or album.';
       document.getElementById('search-starters').hidden = false;
     }
