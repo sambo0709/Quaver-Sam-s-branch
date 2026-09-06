@@ -1,4 +1,5 @@
 const profileActionSongs = [];
+let profileMoodStatsExpanded = false;
 
 function profileTrackId(url, fallback) {
   if (fallback && /^[A-Za-z0-9]+$/.test(fallback)) return fallback;
@@ -46,7 +47,7 @@ function renderMoodAnalytics(moods) {
   }
 
   html += '<div class="mood-stat-list">';
-  sorted.forEach(function(mood) {
+  sorted.slice(0, profileMoodStatsExpanded ? sorted.length : 5).forEach(function(mood) {
     const pct = Math.round((counts[mood] / total) * 100);
     html += '<div class="mood-stat-row">';
     html += '<span class="mood-stat-name">' + profileEscapeHTML(mood) + '</span>';
@@ -56,6 +57,7 @@ function renderMoodAnalytics(moods) {
     html += '</div>';
   });
   html += '</div>';
+  if (sorted.length > 5) html += '<button class="mood-stats-toggle" type="button" data-toggle-mood-stats aria-expanded="' + profileMoodStatsExpanded + '">' + (profileMoodStatsExpanded ? 'Show fewer moods' : 'View all ' + sorted.length + ' moods') + '</button>';
   container.innerHTML = html;
 }
 
@@ -88,6 +90,12 @@ function getWeeklyMoods(moods) {
 }
 
 document.addEventListener('click', function(event) {
+  const moodToggle = event.target.closest('[data-toggle-mood-stats]');
+  if (moodToggle) {
+    profileMoodStatsExpanded = !profileMoodStatsExpanded;
+    renderMoodAnalytics(window._profileMoods || []);
+    return;
+  }
   const playButton = event.target.closest('[data-profile-song]');
   if (playButton) {
     event.stopPropagation();

@@ -19,16 +19,19 @@
 
   <main class="settings-main">
     <header class="settings-header"><span>Account</span><h1>Settings</h1><p>Manage how Quaver looks, recommends music, and stores your data.</p></header>
+    <nav class="settings-jump-nav" aria-label="Settings sections">
+      <a href="#settings-account">Account</a><a href="#settings-music">Music</a><a href="#settings-playback">Playback</a><a href="#settings-privacy">Privacy</a>
+    </nav>
     <div class="settings-layout">
-      <section class="settings-section">
+      <section class="settings-section" id="settings-account">
         <h2>Profile</h2><p>Update the name displayed throughout Quaver.</p>
         <form class="settings-form" onsubmit="saveSettings(event)"><label for="settings-name">Display name</label><input id="settings-name" maxlength="40" required/><button type="submit">Save preferences</button></form>
       </section>
-      <section class="settings-section">
+      <section class="settings-section" id="settings-music">
         <h2>Music preferences</h2><p>Control the recommendations you receive.</p>
         <div class="settings-form"><label for="settings-mood">Default mood</label><select id="settings-mood"><option value="">No default</option><option value="happy">Happy</option><option value="sad">Sad</option><option value="energetic">Energetic</option><option value="calm">Calm</option><option value="focused">Focused</option><option value="angry">Angry</option><option value="romantic">Romantic</option><option value="nostalgic">Nostalgic</option><option value="party">Party</option><option value="sleepy">Sleepy</option><option value="anxious">Anxious</option></select><label for="settings-count">Playlist size</label><select id="settings-count"><option value="5">5 songs</option><option value="8">8 songs</option><option value="10">10 songs</option></select><label for="settings-variety">Recommendation variety</label><select id="settings-variety"><option value="familiar">Familiar</option><option value="balanced">Balanced</option><option value="adventurous">Adventurous</option></select><label class="settings-check"><input id="settings-explicit" type="checkbox" checked/> Allow explicit music</label></div>
       </section>
-      <section class="settings-section">
+      <section class="settings-section" id="settings-playback">
         <h2>Appearance</h2><p>Choose your preferred theme and motion level.</p>
         <div class="settings-form"><label for="settings-theme">Default theme</label><select id="settings-theme"><option value="dark">Dark</option><option value="light">Light</option><option value="system">Use system setting</option></select><label class="settings-check"><input id="settings-motion" type="checkbox"/> Reduce animations</label></div>
       </section>
@@ -39,7 +42,7 @@
       <section class="settings-section" id="spotify-settings">
         <h2>Spotify</h2><p>Connect a Premium account to play full songs through Quaver's player.</p><div class="connection-status"><span>Connection</span><strong id="settings-spotify-status">Not connected</strong></div><div class="spotify-setting-actions"><button onclick="connectSpotify()">Connect or reconnect</button><button onclick="disconnectSpotify()">Disconnect</button></div>
       </section>
-      <section class="settings-section settings-section-wide">
+      <section class="settings-section settings-section-wide" id="settings-privacy">
         <h2>Privacy and data</h2><p>Your moods and listening history are stored to personalize Quaver. You can remove or download them at any time.</p><div class="settings-danger"><button onclick="clearData('/api/listening/history','listening history')">Clear listening history</button><button onclick="clearData('/api/mood/history','mood history')">Clear mood history</button><button onclick="clearData('/api/music/feedback','recommendation feedback')">Reset recommendations</button><button onclick="exportData()">Download my data</button></div>
       </section>
       <section class="settings-section danger-zone settings-section-wide"><h2>Danger zone</h2><p>Deleting your account permanently removes all Quaver data.</p><button onclick="deleteAccount()">Delete account</button></section>

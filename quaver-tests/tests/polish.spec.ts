@@ -799,7 +799,7 @@ test('mixed search moods receive an emotional blend name and weighted recommenda
   await page.goto('/search.html?q=mixed%20feelings');
   await page.getByRole('button', { name: 'Create “Heavy Thoughts”' }).click();
   await expect(page.getByRole('button', { name: /Heavy Thoughts/ })).toBeVisible();
-  await expect(page.getByText('60% sad · 40% anxious · 8 songs')).toBeVisible();
+  await expect(page.getByText('Mostly sad with anxious energy · 8 songs')).toBeVisible();
   expect(new URL(recommendationUrl).searchParams.get('mood')).toBe('sad');
   expect(new URL(recommendationUrl).searchParams.get('secondaryMood')).toBe('anxious');
 });

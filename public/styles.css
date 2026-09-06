@@ -2859,7 +2859,11 @@ button.archive-calendar-day.is-selected { border-color:var(--accent);background:
 .settings-main { display: block; width: 100%; max-width: calc(var(--app-reading-max) + (2 * var(--app-gutter))); margin: 0 auto; padding: 52px var(--app-gutter) 100px; position: relative; z-index: 1; text-align: left; }
 .settings-header p, .settings-section > p { color: var(--text-muted); font-size: 13px; line-height: 1.5; }
 .settings-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.settings-jump-nav { position:sticky;top:82px;z-index:3;display:flex;gap:7px;width:max-content;max-width:100%;margin:0 0 16px;padding:6px;border:1px solid var(--glass-border);border-radius:999px;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(16px);overflow-x:auto; }
+.settings-jump-nav a { padding:8px 13px;border-radius:999px;color:var(--text-muted);font-size:.72rem;font-weight:750;text-decoration:none;white-space:nowrap; }
+.settings-jump-nav a:hover,.settings-jump-nav a:focus-visible { background:var(--card-solid);color:var(--text); }
 .settings-section { padding: 24px; border: 1px solid var(--glass-border); border-radius: 14px; background: var(--glass); text-align: left; }
+.settings-section[id] { scroll-margin-top:150px; }
 :root[data-theme="dark"] .settings-section { background: #171c2b; border-color: #282e3e; }
 :root[data-theme="light"] .settings-section { background: #f8f9fc; }
 .settings-section h2 { color: var(--text); font-size: 1.15rem; margin-bottom: 5px; }
@@ -2867,9 +2871,12 @@ button.archive-calendar-day.is-selected { border-color:var(--accent);background:
 .settings-section-wide { grid-column: 1 / -1; }
 .danger-zone { border-color: rgba(224,85,85,.35) !important; }
 .danger-zone button { margin-top: 8px; padding: 10px 16px; border: 1px solid #e05555; border-radius: 8px; background: transparent; color: #e05555; cursor: pointer; }
+.mood-stats-toggle { display:block;margin:14px auto 0;padding:8px 14px;border:1px solid var(--glass-border);border-radius:999px;background:transparent;color:var(--text);font:700 .72rem/1 var(--font-family);cursor:pointer; }
+.mood-stats-toggle:hover { border-color:var(--accent);color:var(--accent); }
 
 @media (max-width: 768px) {
   .settings-main { padding: 42px 12px 70px; }
+  .settings-jump-nav { top:70px;width:100%;border-radius:12px; }
   .settings-layout { grid-template-columns: 1fr; }
   .settings-section-wide { grid-column: auto; }
 }
@@ -5346,6 +5353,13 @@ body > nav:not(.mobile-bottom-nav),
 .search-starters button { padding: 9px 13px; border: 1px solid var(--glass-border); border-radius: 999px; background: var(--bg2); color: var(--text); font: 700 .72rem/1 var(--font-family); cursor: pointer; }
 .search-starters button:hover { border-color: var(--accent); color: var(--accent); }
 .search-page-results { display: grid; gap: 7px; }
+.search-result-filters { display:flex;gap:8px;margin:0 0 20px;overflow-x:auto;scrollbar-width:none; }
+.search-result-filters[hidden] { display:none; }
+.search-result-filters button { padding:9px 15px;border:1px solid var(--glass-border);border-radius:999px;background:var(--card-solid);color:var(--text-muted);font:750 .72rem/1 var(--font-family);cursor:pointer;white-space:nowrap; }
+.search-result-filters button[aria-pressed="true"] { border-color:var(--text);background:var(--text);color:var(--bg); }
+.search-result-group[hidden] { display:none; }
+.inline-retry-button { margin-left:10px;padding:7px 12px;border:1px solid var(--glass-border);border-radius:999px;background:transparent;color:var(--text);font:700 .7rem/1 var(--font-family);cursor:pointer; }
+.inline-retry-button:hover { border-color:var(--accent);color:var(--accent); }
 .search-result-group { display:grid;gap:10px;margin-bottom:24px;scroll-margin-top:90px; }
 .search-result-group-heading { display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;padding:4px 2px; }
 .search-result-group-heading > span { grid-column:1 / -1;color:var(--accent);font-size:.6rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase; }
@@ -5361,9 +5375,11 @@ body > nav:not(.mobile-bottom-nav),
 .search-generated-copy span { color:var(--accent);font-size:.58rem;font-weight:800;letter-spacing:.14em; }
 .search-generated-copy strong { margin-top:5px;font-size:1.15rem;text-transform:capitalize; }.search-generated-copy small { margin-top:5px;color:var(--text-muted);font-size:.7rem; }
 .search-generated-actions { display:flex;align-items:center;gap:8px; }
-.search-generated-play,.search-generated-save { padding:11px 16px;border-radius:999px;font:800 .72rem/1 var(--font-family);cursor:pointer;white-space:nowrap; }
+.search-generated-play,.search-generated-save,.search-generated-regenerate { padding:11px 16px;border-radius:999px;font:800 .72rem/1 var(--font-family);cursor:pointer;white-space:nowrap; }
 .search-generated-play { border:0;background:var(--text);color:var(--bg); }
 .search-generated-save { border:1px solid var(--glass-border);background:transparent;color:var(--text); }
+.search-generated-regenerate { border:0;background:transparent;color:var(--text-muted); }
+.search-generated-regenerate:hover { color:var(--accent); }
 .search-generated-save:hover { border-color:var(--accent);color:var(--accent); }
 .search-generated-save:disabled { cursor:default;opacity:.72; }
 .search-generated-tracks { margin-top:14px;padding-top:14px;border-top:1px solid var(--glass-border); }
@@ -5419,8 +5435,9 @@ body > nav:not(.mobile-bottom-nav),
   .search-entity-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .search-generated-summary { grid-template-columns:58px minmax(0,1fr); }
   .search-generated-cover { width:58px;height:58px; }.search-generated-cover img,.search-generated-cover span { width:29px;height:29px; }
-  .search-generated-actions { grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr; }
-  .search-generated-play,.search-generated-save { width:100%; }
+  .search-generated-actions { grid-column:1 / -1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .search-generated-regenerate { grid-column:1 / -1; }
+  .search-generated-play,.search-generated-save,.search-generated-regenerate { width:100%; }
   .results { margin-top: 22px; }
   .results-header { margin-bottom: 14px; padding-bottom: 12px; }
   .recommendation-learning { margin-bottom: 10px; }
