@@ -1210,6 +1210,7 @@ h1 span {
 .song-menu-divider { height:1px; margin:5px 4px; background:var(--glass-border); }
 @media (min-width: 769px) {
   .song-menu-wrap.drop-up .song-action-menu { top:auto; bottom:calc(100% + 6px); }
+  .song-menu-wrap.open-right .song-action-menu { right:auto; left:0; }
 }
 
 .song-duration {
@@ -5498,4 +5499,56 @@ body > nav:not(.mobile-bottom-nav),
 .trending-pill:hover,
 .trending-pill.is-active {
   background: var(--card-solid-hover);
+}
+
+/* The expanded player follows the selected app theme. */
+:root[data-theme="light"] .expanded-player {
+  background: linear-gradient(165deg, #eefbfc 0%, #f5f7fb 40%, #f3f0ff 100%);
+  box-shadow: -24px 0 70px rgba(15, 23, 42, .16);
+  color: var(--text);
+}
+
+:root[data-theme="light"] .expanded-player-header { color: var(--accent); }
+:root[data-theme="light"] .expanded-player-header button,
+:root[data-theme="light"] .expanded-player-controls button {
+  border-color: var(--glass-border);
+  background: var(--card-solid);
+  color: var(--text);
+}
+:root[data-theme="light"] .expanded-player-art,
+:root[data-theme="light"] .expanded-queue-item img,
+:root[data-theme="light"] .expanded-queue-item > i,
+:root[data-theme="light"] .expanded-suggestion-item img,
+:root[data-theme="light"] .expanded-suggestion-item > i {
+  background: var(--bg3);
+}
+:root[data-theme="light"] .expanded-player-art { box-shadow: 0 24px 54px rgba(15, 23, 42, .16); }
+:root[data-theme="light"] .expanded-player-now span,
+:root[data-theme="light"] .expanded-player-progress,
+:root[data-theme="light"] .expanded-queue-heading span,
+:root[data-theme="light"] .expanded-queue-list > p,
+:root[data-theme="light"] .expanded-queue-item > span:first-child,
+:root[data-theme="light"] .expanded-queue-item small,
+:root[data-theme="light"] .expanded-suggestions .expanded-queue-heading small,
+:root[data-theme="light"] .expanded-suggestions-list > p,
+:root[data-theme="light"] .expanded-suggestion-item small { color: var(--text-muted); }
+:root[data-theme="light"] .expanded-queue-heading,
+:root[data-theme="light"] .search-generated-tracks { border-color: var(--glass-border); }
+:root[data-theme="light"] .expanded-queue-item { color: var(--text); }
+:root[data-theme="light"] .expanded-queue-item:hover,
+:root[data-theme="light"] .expanded-queue-item.active,
+:root[data-theme="light"] .expanded-suggestion-item { background: var(--card-solid); }
+:root[data-theme="light"] .expanded-suggestion-item strong { color: var(--text); }
+:root[data-theme="light"] .expanded-suggestion-item button {
+  border-color: var(--glass-border);
+  color: var(--text);
+}
+:root[data-theme="light"] .expanded-player-controls .expanded-player-play {
+  background: var(--text);
+  color: var(--bg);
+}
+:root[data-theme="light"] .expanded-player-controls button.active {
+  background: var(--card-solid-hover);
+  color: var(--accent);
+  box-shadow: none;
 }

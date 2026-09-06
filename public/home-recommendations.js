@@ -17,7 +17,7 @@ function closeSongMenus(except) {
   document.querySelectorAll('.song-action-menu').forEach(function(menu) {
     if (menu === except) return;
     menu.hidden = true;
-    menu.parentElement.classList.remove('drop-up');
+    menu.parentElement.classList.remove('drop-up', 'open-right');
     const trigger = menu.previousElementSibling;
     if (trigger) trigger.setAttribute('aria-expanded', 'false');
     const card = menu.closest('.song-card,.sotd-card,.media-card');
@@ -30,12 +30,13 @@ function toggleSongMenu(event, button) {
   const menu = button.nextElementSibling;
   const open = menu.hidden;
   closeSongMenus(menu);
-  menu.parentElement.classList.remove('drop-up');
+  menu.parentElement.classList.remove('drop-up', 'open-right');
   menu.hidden = !open;
   button.setAttribute('aria-expanded', String(open));
   const card = menu.closest('.song-card,.sotd-card,.media-card');
   if (card) card.classList.toggle('menu-open', open);
   if (open && window.innerWidth > 768) {
+    if (menu.getBoundingClientRect().left < 8) menu.parentElement.classList.add('open-right');
     const player = document.getElementById('spotify-player');
     const limit = player && player.style.display !== 'none' ? player.getBoundingClientRect().top : window.innerHeight;
     if (menu.getBoundingClientRect().bottom > limit - 8) menu.parentElement.classList.add('drop-up');
