@@ -1,3 +1,5 @@
+let recommendationRequestController = null;
+
 function spotifyTrackId(url) {
   const match = String(url || '').match(/^https:\/\/open\.spotify\.com\/track\/([A-Za-z0-9]+)(?:\?.*)?$/);
   return match ? match[1] : '';
@@ -180,6 +182,10 @@ function focusMobileResults() {
 }
 
 async function fetchSongs() {
+  if (recommendationRequestController) recommendationRequestController.abort();
+  const controller = new AbortController();
+  recommendationRequestController = controller;
+  const timeout = setTimeout(function() { controller.abort('timeout'); }, 15000);
   document.getElementById('loading').style.display = 'none';
   showSkeletons(currentLimit);
   try {
@@ -195,16 +201,23 @@ async function fetchSongs() {
     };
     const params = new URLSearchParams({ mood: currentMood, limit: currentLimit, explicit: String(preferences.explicitContent !== false), variety: preferences.recommendationVariety || 'balanced', ...context });
     const url = API + '/api/music/recommend?' + params.toString();
-    const res = await fetch(url, { credentials: 'include' });
+    const res = await fetch(url, { credentials: 'include', signal: controller.signal });
     const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Recommendation request failed');
+    if (controller !== recommendationRequestController) return;
     if (data.songs && data.songs.length > 0) {
       renderRecommendationSongs(data.songs, data.learning);
       focusMobileResults();
       trackRecommendationEvent('impression', '', { count: data.songs.length, context: data.context });
     }
     else document.getElementById('results').innerHTML = '<div class="error-state"><p>No matches for that exact combination.</p><button class="retry-btn" onclick="document.getElementById(\'preferred-artist\').value=\'\';fetchSongs()">Try without the artist</button></div>';
-  } catch (_) {
-    document.getElementById('results').innerHTML = '<div class="error-state"><p>Could not load songs.</p><button class="retry-btn" onclick="fetchSongs()">Try again</button></div>';
+  } catch (error) {
+    if (controller !== recommendationRequestController) return;
+    const message = controller.signal.aborted ? 'This mix is taking longer than expected.' : 'Could not load songs.';
+    document.getElementById('results').innerHTML = '<div class="error-state"><p>' + message + '</p><button class="retry-btn" onclick="fetchSongs()">Try again</button></div>';
+  } finally {
+    clearTimeout(timeout);
+    if (controller === recommendationRequestController) recommendationRequestController = null;
   }
 }
 

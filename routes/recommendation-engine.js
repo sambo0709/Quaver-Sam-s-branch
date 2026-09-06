@@ -60,7 +60,10 @@ function buildSearchQueries(context) {
 function scoreAndExplain(song, context, history) {
   const id = song.trackId;
   const artistKey = String(song.artist || '').toLowerCase();
-  let score = Math.random() * 0.15;
+  const stableKey = String(song.trackId || song.spotify_url || song.title || '') + '|' + context.mood;
+  let hash = 0;
+  for (let index = 0; index < stableKey.length; index += 1) hash = ((hash << 5) - hash + stableKey.charCodeAt(index)) | 0;
+  let score = (Math.abs(hash) % 1000) / 1000 * 0.15;
   const reasons = [];
   if (history.disliked.has(id)) return { score: -Infinity, reasons: [] };
   if (history.liked.has(id)) { score += context.direction === 'stay' ? 1.5 : 0.55; reasons.push('Because you liked this track'); }
@@ -78,7 +81,7 @@ function scoreAndExplain(song, context, history) {
   if (context.activity !== 'none') reasons.push('Chosen for ' + context.activity);
   if (context.direction !== 'stay') reasons.push('Designed to help you ' + context.direction);
   if (context.secondaryMood) reasons.push('Blends ' + context.mood + ' with ' + context.secondaryMood);
-  if (!reasons.length) reasons.push('Matches your ' + context.mood + ' mood at intensity ' + context.intensity);
+  if (!reasons.length) reasons.push('Selected from Quaver’s ' + context.mood + ' discovery');
   return { score, reasons: reasons.slice(0, 2) };
 }
 

@@ -57,6 +57,9 @@
   }
 
   async function load() {
+    const status = root.querySelector('#archive-status');
+    status.setAttribute('aria-busy', 'true');
+    status.textContent = entries.length ? 'Refreshing archive…' : 'Loading the archive…';
     try {
       await fetch(API + '/api/music/sotd').catch(function() {});
       const response = await fetch(API + '/api/music/sotd/archive?limit=366');
@@ -66,7 +69,9 @@
       populateMonths();
       render();
     } catch (error) {
-      root.querySelector('#archive-status').textContent = error.message || 'Could not load the mood archive.';
+      status.innerHTML = '<span>' + escapeHTML(error.message || 'Could not load the mood archive.') + '</span><button type="button" data-retry-archive>Try again</button>';
+    } finally {
+      status.removeAttribute('aria-busy');
     }
   }
 
@@ -84,6 +89,9 @@
       const song = entries[parts[0]]?.songs?.[parts[1]];
       const track = playerTrack(song || {});
       if (track.trackId && window.QuaverPlayer) QuaverPlayer.play(track);
+    }, { signal:listeners.signal });
+    root.querySelector('#archive-status').addEventListener('click', function(event) {
+      if (event.target.closest('[data-retry-archive]')) load();
     }, { signal:listeners.signal });
     load();
     return true;

@@ -139,6 +139,7 @@ function renderQueuePanel() {
 
 function jumpToQueue(index) {
   queueIndex = index;
+  if (window.QuaverPlayer) QuaverPlayer.setQueue(songQueue, queueIndex);
   const song = songQueue[index];
   const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
   if (trackId) playInApp(trackId, song.title, song.artist, song.album_art);
@@ -152,7 +153,7 @@ function removeFromQueue(index) {
     closePlayer();
     document.getElementById('queue-panel').classList.remove('open');
     document.getElementById('queue-overlay').classList.remove('open');
-  }
+  } else if (window.QuaverPlayer) QuaverPlayer.setQueue(songQueue, queueIndex);
   updateQueueCounter();
   renderQueuePanel();
 }

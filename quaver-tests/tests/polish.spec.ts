@@ -346,6 +346,8 @@ test('mobile player restores across pages and expands its saved queue', async ({
   await expect(page.locator('#player-song-name')).toHaveText('Still Playing');
   await page.locator('.player-identity').click();
   await expect(page.locator('#expanded-player')).toBeVisible();
+  await expect(page.locator('#expanded-player-progress-range')).toBeVisible();
+  await expect(page.locator('#expanded-player-progress-range')).toHaveValue('42000');
   await expect(page.locator('#expanded-player').getByRole('button', { name: 'Pause' })).toHaveText('Ⅱ');
   await expect(page.getByRole('heading', { name: 'Up next' })).toBeVisible();
   await expect(page.getByText('Up Next Song')).toBeVisible();
@@ -354,6 +356,10 @@ test('mobile player restores across pages and expands its saved queue', async ({
   await page.getByRole('button', { name: 'Turn repeat on' }).click();
   await page.getByRole('button', { name: 'Repeat one song' }).click();
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('quaver_playback_session') || '{}').repeatMode)).toBe('one');
+  await page.evaluate(() => (window as any).QuaverShell.navigate('/Index.html', { scroll: false }));
+  await expect(page.locator('body')).toHaveClass(/player-active/);
+  await expect(page.locator('body')).toHaveClass(/expanded-player-open/);
+  await expect(page.locator('#expanded-player')).toBeVisible();
 });
 
 test('expanded player suggests songs for a single-song queue', async ({ page }) => {
@@ -543,7 +549,7 @@ test('Quaver player starts a Spotify SDK track without rendering an embed', asyn
   await expect(page.locator('#spotify-iframe')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
   await expect(page.getByText('Playing on Quaver', { exact: true })).toBeVisible();
-  await expect(page.getByLabel('Song progress')).toBeVisible();
+  await expect(page.getByLabel('Song progress', { exact: true })).toBeVisible();
   await expect(page.getByLabel('Volume')).toBeVisible();
 });
 

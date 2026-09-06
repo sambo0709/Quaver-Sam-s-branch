@@ -33,6 +33,22 @@
     theme: document.documentElement.dataset.theme || 'dark',
   };
   const events = new EventTarget();
+  const persistentBodyClasses = new Set(['player-active', 'expanded-player-open', 'modal-open']);
+
+  function applyRouteBodyClass(routeClass) {
+    const preserved = Array.from(document.body.classList).filter(function (name) { return persistentBodyClasses.has(name); });
+    document.body.className = [routeClass || ''].concat(preserved).filter(Boolean).join(' ');
+  }
+
+  document.addEventListener('error', function (event) {
+    const image = event.target;
+    if (!(image instanceof HTMLImageElement) || image.dataset.artworkFallback === 'true') return;
+    if (!image.matches('.album-art,.media-art-wrap img,.sotd-art,.search-result-card img,.playlist-library-card img,.playlist-detail-track img,.mood-collection-track img,.archive-track img,.queue-item-art,.expanded-player-art img,.expanded-queue-item img,.expanded-suggestion-item img')) return;
+    image.dataset.artworkFallback = 'true';
+    image.classList.add('artwork-fallback-image');
+    image.alt = '';
+    image.src = document.documentElement.dataset.theme === 'light' ? '/quaver-logo-orange.svg' : '/quaver-logo-cyan.svg';
+  }, true);
 
   function routeFromUrl(value) {
     let url;
@@ -146,8 +162,7 @@
         if (typeof content === 'string') view.innerHTML = content;
         else if (content instanceof Node) view.replaceChildren(content);
       }
-      if (definition.bodyClass) document.body.className = definition.bodyClass;
-      else document.body.removeAttribute('class');
+      applyRouteBodyClass(definition.bodyClass);
       if (definition.title) document.title = definition.title;
       setActiveRoute(route);
       if (typeof definition.mount === 'function') await definition.mount(view);

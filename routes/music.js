@@ -73,10 +73,9 @@ async function getMoodPool(context, token) {
     return entry.songs;
   }
   try {
-    // Spotify Search currently returns at most 10 tracks per request, which is
-    // also Quaver's maximum result count. A second query is only used if the
-    // first one returns no tracks.
-    const songs = await searchTracks(buildSearchQueries(context), token, 10);
+    // Blend several mood/context searches into a larger candidate pool before
+    // ranking. This keeps one broad Spotify result page from defining a mix.
+    const songs = await searchTracks(buildSearchQueries(context), token, 30);
     moodPoolCache[cacheKey] = { songs, expiresAt: Date.now() + POOL_TTL, staleUntil: Date.now() + POOL_STALE_TTL };
     return songs;
   } catch (error) {
@@ -151,11 +150,25 @@ async function getSpotifyToken() {
 }
 
 async function searchTracks(queries, token, limit) {
-  for (const query of queries) {
-    const songs = await cachedSpotifySearch(query, token);
-    if (songs.length) return songs.slice(0, limit);
+  const merged = [];
+  const seen = new Set();
+  let lastError = null;
+  for (const query of queries.slice(0, 3)) {
+    try {
+      const songs = await cachedSpotifySearch(query, token);
+      songs.forEach(function(song) {
+        const id = song.trackId || song.spotify_url;
+        if (!id || seen.has(id)) return;
+        seen.add(id);
+        merged.push({ ...song, matchedQuery: query });
+      });
+    } catch (error) {
+      lastError = error;
+    }
+    if (merged.length >= limit) break;
   }
-  return [];
+  if (!merged.length && lastError) throw lastError;
+  return merged.slice(0, limit);
 }
 
 async function loadSearchCache(query) {
