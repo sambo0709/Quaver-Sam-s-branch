@@ -721,7 +721,7 @@ test('search results show distinct content types and generate a matching mix in 
   await expect(page.getByRole('heading', { name: 'Artists' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Albums' })).toBeVisible();
   await expect(page.getByText('dream pop')).toBeVisible();
-  await profile.getByRole('button', { name: 'Create “Romantic Mix”' }).click();
+  await profile.getByRole('button', { name: 'Create “Romantic Mix” with Profile Artist' }).click();
   await expect(page.getByRole('button', { name: /Romantic Mix/ })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Songs' })).toBeVisible();
   await page.getByRole('button', { name: /Romantic Mix/ }).click();
@@ -802,6 +802,41 @@ test('mixed search moods receive an emotional blend name and weighted recommenda
   await expect(page.getByText('60% sad · 40% anxious · 8 songs')).toBeVisible();
   expect(new URL(recommendationUrl).searchParams.get('mood')).toBe('sad');
   expect(new URL(recommendationUrl).searchParams.get('secondaryMood')).toBe('anxious');
+});
+
+test('an artist search creates a mood mix led by that artist and similar music', async ({ page }) => {
+  let recommendationUrl = '';
+  await page.route('**/api/music/search?*', route => route.fulfill({ json: {
+    songs: [
+      { title: 'Love Signal', artist: 'Drake', spotify_url: 'https://open.spotify.com/track/drakesearch1' },
+      { title: 'Heart Motion', artist: 'Drake', spotify_url: 'https://open.spotify.com/track/drakesearch2' },
+    ],
+    artists: [{ name: 'Drake', genres: ['rap', 'r&b'], spotify_url: 'https://open.spotify.com/artist/drake' }],
+  } }));
+  const mixSongs = [
+    { title: 'Different Drake Track', artist: 'Drake', spotify_url: 'https://open.spotify.com/track/drakemix1' },
+    { title: 'Similar Feeling', artist: 'PARTYNEXTDOOR', spotify_url: 'https://open.spotify.com/track/drakemix2' },
+    { title: 'Late Reflection', artist: 'Bryson Tiller', spotify_url: 'https://open.spotify.com/track/drakemix3' },
+    { title: 'Soft Hours', artist: 'Giveon', spotify_url: 'https://open.spotify.com/track/drakemix4' },
+    { title: 'After Midnight', artist: 'The Weeknd', spotify_url: 'https://open.spotify.com/track/drakemix5' },
+    { title: 'Close Enough', artist: 'Majid Jordan', spotify_url: 'https://open.spotify.com/track/drakemix6' },
+    { title: 'Low Light', artist: '6LACK', spotify_url: 'https://open.spotify.com/track/drakemix7' },
+    { title: 'Slow Motion', artist: 'dvsn', spotify_url: 'https://open.spotify.com/track/drakemix8' },
+  ];
+  await page.route('**/api/music/recommend?*', route => {
+    recommendationUrl = route.request().url();
+    return route.fulfill({ json: { songs: mixSongs } });
+  });
+
+  await page.goto('/search.html?q=drake');
+  await expect(page.getByRole('heading', { name: 'Drake often sounds' })).toBeVisible();
+  await expect(page.getByText('A mood mix led by Drake and sonically similar artists.')).toBeVisible();
+  await page.getByRole('button', { name: /Create .* with Drake/ }).click();
+  await expect(page.getByText(/Inspired by Drake/)).toBeVisible();
+  expect(new URL(recommendationUrl).searchParams.get('artist')).toBe('Drake');
+  await page.getByRole('button', { name: /Inspired by Drake/ }).click();
+  await expect(page.getByText('Different Drake Track')).toBeVisible();
+  await expect(page.getByText('Similar Feeling')).toBeVisible();
 });
 
 test('a searched song can be added to an existing playlist', async ({ page }) => {

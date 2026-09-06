@@ -214,6 +214,10 @@
     }).filter(function(item) { return item.score > 0; }).sort(function(a, b) { return b.score - a.score; });
   }
 
+  function normalizedArtistName(value) {
+    return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
   const blendNames = {
     'sad|anxious': 'Heavy Thoughts', 'anxious|sad': 'Fragile Static',
     'calm|sleepy': 'Quiet Drift', 'sleepy|calm': 'Soft Landing',
@@ -243,7 +247,7 @@
     };
   }
 
-  function renderMoodProfile(songs, query) {
+  function renderMoodProfile(songs, query, artists) {
     const panel = mountedRoot.querySelector('#search-mood-profile');
     const totals = {};
     songs.forEach(function(song) {
@@ -254,12 +258,13 @@
     const ranked = Object.keys(totals).map(function(mood) { return { mood: mood, score: totals[mood] }; }).sort(function(a, b) { return b.score - a.score; }).slice(0, 3);
     if (!songs.length || !ranked.length) { panel.hidden = true; panel.innerHTML = ''; return; }
     const total = ranked.reduce(function(sum, item) { return sum + item.score; }, 0);
-    const primaryArtists = songs.map(function(song) { return String(song.artist || '').split(',')[0].trim().toLowerCase(); });
-    const queryKey = query.trim().toLowerCase();
-    const artistMatches = primaryArtists.filter(function(artist) { return artist === queryKey; }).length;
-    const subject = artistMatches >= Math.ceil(songs.length / 2) ? query : 'These results';
+    const queryKey = normalizedArtistName(query);
+    const matchedArtist = (artists || []).find(function(artist) { return normalizedArtistName(artist.name) === queryKey; });
+    const songArtist = songs.map(function(song) { return String(song.artist || '').split(',')[0].trim(); }).find(function(artist) { return normalizedArtistName(artist) === queryKey; });
+    const preferredArtist = matchedArtist?.name || songArtist || '';
+    const subject = preferredArtist || 'These results';
     const identity = moodMixIdentity(ranked);
-    panel.innerHTML = '<div><span>QUAVER MOOD PROFILE</span><h2 id="search-mood-profile-title">' + escapeHTML(subject) + ' often sounds</h2><p>Our interpretation based on the tracks in these results.</p></div><div class="search-mood-profile-breakdown">' + ranked.map(function(item) { const percent = Math.round((item.score / total) * 100); return '<span><b>' + escapeHTML(item.mood) + '</b><small>' + percent + '%</small></span>'; }).join('') + '</div><button type="button" data-create-mix="' + escapeHTML(identity.primary) + '" data-secondary-mood="' + escapeHTML(identity.secondary) + '" data-mix-name="' + escapeHTML(identity.name) + '" data-primary-percent="' + identity.primaryPercent + '" data-secondary-percent="' + identity.secondaryPercent + '">Create “' + escapeHTML(identity.name) + '”</button>';
+    panel.innerHTML = '<div><span>QUAVER MOOD PROFILE</span><h2 id="search-mood-profile-title">' + escapeHTML(subject) + ' often sounds</h2><p>' + (preferredArtist ? 'A mood mix led by ' + escapeHTML(preferredArtist) + ' and sonically similar artists.' : 'Our interpretation based on the tracks in these results.') + '</p></div><div class="search-mood-profile-breakdown">' + ranked.map(function(item) { const percent = Math.round((item.score / total) * 100); return '<span><b>' + escapeHTML(item.mood) + '</b><small>' + percent + '%</small></span>'; }).join('') + '</div><button type="button" data-create-mix="' + escapeHTML(identity.primary) + '" data-secondary-mood="' + escapeHTML(identity.secondary) + '" data-mix-name="' + escapeHTML(identity.name) + '" data-preferred-artist="' + escapeHTML(preferredArtist) + '" data-primary-percent="' + identity.primaryPercent + '" data-secondary-percent="' + identity.secondaryPercent + '">Create “' + escapeHTML(identity.name) + '”' + (preferredArtist ? ' with ' + escapeHTML(preferredArtist) : '') + '</button>';
     panel.hidden = false;
   }
 
@@ -285,7 +290,7 @@
     const count = songs.length + artists.length + albums.length;
     window.searchSongs = songs;
     status.textContent = count ? count + ' results for “' + query + '”' : 'No results for “' + query + '”.';
-    renderMoodProfile(songs, query);
+    renderMoodProfile(songs, query, artists);
     const artistCards = artists.map(function(artist) {
       const art = artist.image ? '<img src="' + escapeHTML(artist.image) + '" alt="" loading="lazy"/>' : '<div class="search-result-art search-result-artist-art"></div>';
       const detail = (artist.genres || []).join(' · ') || 'Artist';
@@ -309,9 +314,10 @@
       const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
       const limit = 8;
       const secondaryMood = button.dataset.secondaryMood || '';
+      const preferredArtist = button.dataset.preferredArtist || '';
       const mixName = button.dataset.mixName || (mood.charAt(0).toUpperCase() + mood.slice(1) + ' Mix');
       const blendLabel = secondaryMood ? button.dataset.primaryPercent + '% ' + mood + ' · ' + button.dataset.secondaryPercent + '% ' + secondaryMood : '100% ' + mood;
-      const params = new URLSearchParams({ mood: mood, secondaryMood: secondaryMood, limit: '10', minutes: '40', variety: preferences.variety || 'balanced', explicit: String(preferences.explicitContent !== false) });
+      const params = new URLSearchParams({ mood: mood, secondaryMood: secondaryMood, artist: preferredArtist, limit: '10', minutes: '40', variety: preferences.variety || 'balanced', explicit: String(preferences.explicitContent !== false) });
       const response = await fetch(API + '/api/music/recommend?' + params.toString(), { credentials: 'include' });
       const data = await response.json().catch(function() { return {}; });
       if (!response.ok) throw new Error(data.error || 'Could not create this mix.');
@@ -329,7 +335,7 @@
       generatedMixName = mixName;
       results.querySelector('.search-generated-mix')?.remove();
       const artwork = songs.slice(0, 4).map(function(song) { return song.album_art ? '<img src="' + escapeHTML(song.album_art) + '" alt=""/>' : '<span></span>'; }).join('');
-      results.insertAdjacentHTML('afterbegin', '<section class="search-result-group search-generated-mix"><div class="search-generated-summary"><button class="search-generated-cover" type="button" data-mix-action="toggle" aria-expanded="false" aria-controls="search-generated-tracks">' + artwork + '</button><button class="search-generated-copy" type="button" data-mix-action="toggle" aria-expanded="false" aria-controls="search-generated-tracks"><span>MADE FOR YOU</span><strong>' + escapeHTML(mixName) + '</strong><small>' + escapeHTML(blendLabel) + ' · 8 songs</small></button><div class="search-generated-actions"><button class="search-generated-save" type="button" data-mix-action="save">Save as playlist</button><button class="search-generated-play" type="button" data-mix-action="play">▶ Play all</button></div></div><div id="search-generated-tracks" class="search-song-list search-generated-tracks" hidden>' + songCards(songs, 'mix') + '</div></section>');
+      results.insertAdjacentHTML('afterbegin', '<section class="search-result-group search-generated-mix"><div class="search-generated-summary"><button class="search-generated-cover" type="button" data-mix-action="toggle" aria-expanded="false" aria-controls="search-generated-tracks">' + artwork + '</button><button class="search-generated-copy" type="button" data-mix-action="toggle" aria-expanded="false" aria-controls="search-generated-tracks"><span>MADE FOR YOU</span><strong>' + escapeHTML(mixName) + '</strong><small>' + (preferredArtist ? 'Inspired by ' + escapeHTML(preferredArtist) + ' · ' : '') + escapeHTML(blendLabel) + ' · 8 songs</small></button><div class="search-generated-actions"><button class="search-generated-save" type="button" data-mix-action="save">Save as playlist</button><button class="search-generated-play" type="button" data-mix-action="play">▶ Play all</button></div></div><div id="search-generated-tracks" class="search-song-list search-generated-tracks" hidden>' + songCards(songs, 'mix') + '</div></section>');
       status.textContent = mixName + ' was created with 8 different songs. Open it or press Play all.';
       button.disabled = false;
       button.textContent = 'Mix created ✓';
