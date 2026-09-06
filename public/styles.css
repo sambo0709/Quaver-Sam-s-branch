@@ -579,10 +579,12 @@ h1 span {
 .mood-select:hover,
 .mood-select:focus {
   background: var(--glass-hover);
-  border-color: var(--accent);
-  box-shadow: 0 0 20px var(--accent-glow);
-  color: var(--accent);
+  border-color: color-mix(in srgb, var(--text-muted) 52%, var(--glass-border));
+  box-shadow: none;
+  color: var(--text);
 }
+
+.mood-select:focus:not(:focus-visible) { outline: none; }
 
 .mood-select option {
   background: #080c14;
@@ -5446,4 +5448,54 @@ body > nav:not(.mobile-bottom-nav),
   .search-result-art { width: 46px; height: 46px; }
   .search-result-actions { grid-column: 2; justify-content: flex-start; }
   .search-result-actions button { padding: 8px 12px; }
+}
+
+/* Calm interaction treatment: controls should not look permanently illuminated. */
+:where(input, select, textarea):focus,
+.search-page-form:focus-within,
+.global-search:focus-within,
+.playlist-input:focus,
+.playlist-create-fields input:focus,
+.playlist-create-fields select:focus,
+.playlist-create-search input:focus,
+.auth-field input:focus {
+  border-color: color-mix(in srgb, var(--text-muted) 48%, var(--glass-border));
+  box-shadow: none;
+}
+
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--text) 70%, transparent);
+  outline-offset: 3px;
+  box-shadow: none;
+}
+
+.profile:hover,
+.play-all-btn:hover,
+.play-btn:hover,
+.retry-btn:hover,
+.add-btn:hover,
+.auth-tab.active,
+.trending-pill.is-active,
+.mood-card:hover,
+.mood-card.active {
+  box-shadow: none;
+}
+
+.song-card:hover .album-art {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .4);
+}
+
+.trending-pill:hover,
+.trending-pill.is-active,
+.mood-card:hover,
+.mood-card.active,
+.feedback-actions button.selected,
+.add-btn.added,
+.sotd-add-btn.added {
+  border-color: color-mix(in srgb, var(--text-muted) 52%, var(--glass-border));
+}
+
+.trending-pill:hover,
+.trending-pill.is-active {
+  background: var(--card-solid-hover);
 }
