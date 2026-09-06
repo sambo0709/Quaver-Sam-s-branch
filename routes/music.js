@@ -101,12 +101,27 @@ function pickUnseenSongs(pool, mood, limit) {
 
 const SOTD_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
+function trackIdentity(song) {
+  const spotifyId = String(song?.spotify_url || song?.trackId || '').match(/(?:track\/|^)([A-Za-z0-9]+)(?:\?|$)/)?.[1];
+  return spotifyId || [song?.title, song?.artist].map(function(value) { return String(value || '').trim().toLowerCase(); }).join('|');
+}
+
+function uniqueSongs(songs) {
+  const seen = new Set();
+  return (songs || []).filter(function(song) {
+    const key = trackIdentity(song);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 async function loadSotdFromDB() {
   try {
     const db = await getDB();
     const doc = await db.collection('sotd_cache').findOne({ _id: 'sotd' });
     if (doc && doc.expiresAt > Date.now() && doc.picks?.date === sotdDateKey()) {
-      sotdCache = doc.picks;
+      sotdCache = Object.assign({}, doc.picks, { songs: uniqueSongs(doc.picks.songs).slice(0, 3) });
       sotdExpiresAt = doc.expiresAt;
     }
   } catch (_) {}
@@ -114,6 +129,7 @@ async function loadSotdFromDB() {
 
 async function saveSotdToDB(picks, expiresAt) {
   try {
+    picks = Object.assign({}, picks, { songs: uniqueSongs(picks.songs).slice(0, 3) });
     const db = await getDB();
     await Promise.all([
       db.collection('sotd_cache').updateOne({ _id: 'sotd' }, { $set: { picks, expiresAt } }, { upsert: true }),
@@ -435,7 +451,9 @@ router.get('/sotd/archive', async function(req, res) {
       .sort({ date: -1 })
       .limit(limit)
       .toArray();
-    res.json({ entries });
+    res.json({ entries: entries.map(function(entry) {
+      return Object.assign({}, entry, { songs: uniqueSongs(entry.songs).slice(0, 3) });
+    }) });
   } catch (error) {
     res.status(500).json({ error: 'Mood archive is unavailable right now.' });
   }
@@ -458,8 +476,16 @@ router.get('/sotd', async function(_req, res) {
   const mood = getTodayMood();
   try {
     const token = await getSpotifyToken();
-    const songs = await searchTracks(moodToSearch[mood], token, 3);
-    const payload = { date: sotdDateKey(), mood, songs: songs.slice(0, 3) };
+    const candidates = uniqueSongs(await searchTracks(moodToSearch[mood], token, 18));
+    let previousKeys = new Set();
+    try {
+      const db = await getDB();
+      const previous = await db.collection('sotd_archive').find({ mood }, { projection: { songs: 1 } }).sort({ date: -1 }).limit(10).toArray();
+      previousKeys = new Set(previous.flatMap(function(entry) { return uniqueSongs(entry.songs).map(trackIdentity); }));
+    } catch (_) {}
+    const fresh = candidates.filter(function(song) { return !previousKeys.has(trackIdentity(song)); });
+    const songs = uniqueSongs(fresh.concat(candidates)).slice(0, 3);
+    const payload = { date: sotdDateKey(), mood, songs };
     const expiresAt = Date.now() + SOTD_TTL_MS;
     sotdCache = payload;
     sotdExpiresAt = expiresAt;

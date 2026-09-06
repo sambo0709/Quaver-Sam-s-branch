@@ -2736,7 +2736,17 @@ body.player-active .site-footer { margin-bottom:calc(34px + var(--desktop-player
 .archive-status:has(button) { display:flex;align-items:center;justify-content:space-between;gap:16px; }
 .archive-status button { padding:8px 12px;border:1px solid var(--glass-border);border-radius:999px;background:var(--card-solid);color:var(--text);font:700 .7rem/1 var(--font-family);cursor:pointer; }
 .archive-status button:hover { border-color:var(--accent);color:var(--accent); }
-.archive-list { display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));gap:16px; }
+.archive-calendar { padding:16px;border:1px solid var(--glass-border);border-radius:18px;background:color-mix(in srgb,var(--card-solid) 88%,transparent); }
+.archive-weekdays,.archive-calendar-grid { display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px; }
+.archive-weekdays { margin-bottom:7px;color:var(--text-muted);font-size:.62rem;font-weight:750;text-align:center;text-transform:uppercase; }
+.archive-calendar-day,.archive-calendar-blank { min-width:0;min-height:82px;border-radius:12px; }
+.archive-calendar-day { display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding:10px;border:1px solid transparent;background:var(--bg2);color:var(--text-muted);font:inherit;text-align:left; }
+.archive-calendar-day b { font-size:.72rem; }
+.archive-calendar-day span { max-width:100%;overflow:hidden;text-overflow:ellipsis;color:var(--accent);font-size:.61rem;font-weight:800;text-transform:capitalize; }
+button.archive-calendar-day.has-mix { border-color:var(--glass-border);color:var(--text);cursor:pointer;transition:border-color .18s ease,background .18s ease,transform .18s ease; }
+button.archive-calendar-day.has-mix:hover { border-color:var(--accent);background:var(--card-solid-hover);transform:translateY(-2px); }
+button.archive-calendar-day.is-selected { border-color:var(--accent);background:var(--accent-glow);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 35%,transparent); }
+.archive-list { margin-top:16px; }
 .archive-day { min-width:0;padding:20px;border:1px solid var(--glass-border);border-radius:18px;background:color-mix(in srgb,var(--card-solid) 88%,transparent); }
 .archive-day:only-child { grid-column:1/-1; }
 .archive-day:only-child .archive-tracks { grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); }
@@ -2760,6 +2770,9 @@ body.player-active .site-footer { margin-bottom:calc(34px + var(--desktop-player
   .archive-day:only-child .archive-tracks { grid-template-columns:1fr; }
   .archive-toolbar { align-items:flex-start;flex-direction:column; }
   .archive-toolbar select { width:100%; }
+  .archive-calendar { padding:10px;overflow-x:auto; }
+  .archive-weekdays,.archive-calendar-grid { min-width:620px; }
+  .archive-calendar-day,.archive-calendar-blank { min-height:72px; }
   .archive-day { padding:16px; }
 }
 
@@ -3434,6 +3447,23 @@ body.player-active .site-footer { margin-bottom:calc(34px + var(--desktop-player
 .mood-collection-track-actions { display:flex;gap:6px; }
 .mood-collection-track-actions button:last-child { width:auto;padding:0 10px; }
 .mood-collection-loading { display:grid;grid-template-columns:repeat(3,1fr);gap:8px; }.mood-collection-loading span { height:66px;border-radius:10px;background:linear-gradient(100deg,var(--bg2) 20%,var(--card-solid-hover) 40%,var(--bg2) 60%);background-size:220% 100%;animation:shimmer 1.4s linear infinite; }
+
+@media (min-width:1200px) {
+  .mood-collection-grid {
+    display:flex;
+    gap:12px;
+    overflow-x:auto;
+    overscroll-behavior-inline:contain;
+    scroll-snap-type:x proximity;
+    scrollbar-width:thin;
+    scrollbar-color:var(--glass-border) transparent;
+    padding-bottom:10px;
+  }
+  .mood-collection-grid::-webkit-scrollbar { height:6px; }
+  .mood-collection-grid::-webkit-scrollbar-track { background:transparent; }
+  .mood-collection-grid::-webkit-scrollbar-thumb { border-radius:999px;background:var(--glass-border); }
+  .mood-collection-card { flex:0 0 clamp(260px,20vw,310px);scroll-snap-align:start; }
+}
 
 .artwork-fallback-image { padding:18%;background:var(--bg3);object-fit:contain !important;box-shadow:none !important; }
 

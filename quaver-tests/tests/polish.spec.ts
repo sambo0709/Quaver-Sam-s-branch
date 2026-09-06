@@ -180,6 +180,8 @@ test('direct migrated URLs boot through one shared SPA shell', async ({ page }) 
     await expect(page.getByRole('heading', { name: destination.heading, exact: true })).toBeVisible();
   }
   await expect(page.getByText('Archive One', { exact: true })).toBeVisible();
+  await expect(page.locator('.archive-calendar-day.has-mix')).toHaveCount(1);
+  await expect(page.locator('.archive-calendar-day.is-selected')).toHaveAttribute('data-select-date', '2026-09-05');
   await expect(page.locator('.archive-track')).toHaveCount(3);
   await page.getByRole('button', { name: 'Play daily mix' }).click();
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('quaver_playback_session') || '{}').queue?.length)).toBe(3);
@@ -929,4 +931,23 @@ test('mood collections stay contained on mobile and add tracks to a saved playli
   await page.getByRole('button', { name: 'Add Curated Song to a playlist' }).click();
   await page.getByRole('dialog', { name: 'Add to playlist' }).getByRole('button', { name: /My Mix/ }).click();
   await expect(page.getByText('Added “Curated Song” to My Mix.')).toBeVisible();
+});
+
+test('mood collections use a desktop rail and retain the half-window grid', async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.addInitScript(() => localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' })));
+  await page.route('**/api/playlist', route => route.fulfill({ json: { playlists: [] } }));
+  await page.goto('/playlists.html');
+  await page.waitForTimeout(750);
+
+  const collectionGrid = page.locator('#mood-collection-grid');
+  const cards = collectionGrid.locator('.mood-collection-card');
+  await expect(cards).toHaveCount(6);
+  const wideCardTops = await cards.evaluateAll(elements => elements.map(element => Math.round(element.getBoundingClientRect().top)));
+  expect(new Set(wideCardTops).size).toBe(1);
+  expect(await collectionGrid.evaluate(element => element.scrollWidth > element.clientWidth)).toBeTruthy();
+
+  await page.setViewportSize({ width: 980, height: 900 });
+  const halfWindowTops = await cards.evaluateAll(elements => elements.map(element => Math.round(element.getBoundingClientRect().top)));
+  expect(new Set(halfWindowTops).size).toBeGreaterThan(1);
 });
