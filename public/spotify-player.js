@@ -186,7 +186,7 @@
     }
     const expandedToggle = document.querySelector('#expanded-player [data-expanded-action="toggle"]');
     if (expandedToggle) {
-      expandedToggle.textContent = paused ? '▶' : 'Ⅱ';
+      expandedToggle.innerHTML = expandedControlIcon(paused ? 'play' : 'pause');
       expandedToggle.setAttribute('aria-label', paused ? 'Play' : 'Pause');
       expandedToggle.title = paused ? 'Play' : 'Pause';
       expandedToggle.classList.toggle('is-playing', !paused);
@@ -197,6 +197,18 @@
         renderProgress(Math.min(position + 1000, duration), duration);
       }, 1000);
     }
+  }
+
+  function expandedControlIcon(name, repeatOne) {
+    const icons = {
+      shuffle: '<path d="M4 7h2.2c4.8 0 5.6 10 10.4 10H20m-3-3 3 3-3 3M4 17h2.2c1.5 0 2.6-1 3.5-2.4M14.3 9.4c.7-1.4 1.4-2.4 2.3-2.4H20m-3-3 3 3-3 3"/>',
+      previous: '<path d="M19 5 9 12l10 7V5ZM7 5H5v14h2V5Z"/>',
+      play: '<path d="m8 5 11 7-11 7V5Z"/>',
+      pause: '<path d="M7 5h4v14H7V5Zm6 0h4v14h-4V5Z"/>',
+      next: '<path d="m5 5 10 7-10 7V5Zm12 0h2v14h-2V5Z"/>',
+      repeat: '<path d="m17 2 3 3-3 3M4 11V9a4 4 0 0 1 4-4h12M7 22l-3-3 3-3m13-3v2a4 4 0 0 1-4 4H4"/>'
+    };
+    return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + icons[name] + '</svg>' + (repeatOne ? '<span class="repeat-one-label">1</span>' : '');
   }
 
   function handleState(state) {
@@ -665,7 +677,7 @@
     if (element('expanded-player')) return;
     const shell=document.createElement('div');
     shell.id='expanded-player';shell.className='expanded-player';shell.hidden=true;
-    shell.innerHTML='<div class="expanded-player-header"><span>NOW PLAYING</span><button type="button" data-expanded-action="close" aria-label="Collapse player">⌄</button></div><div class="expanded-player-now"><div class="expanded-player-art"><img id="expanded-player-art" alt=""/></div><div><strong id="expanded-player-title">Choose a song</strong><span id="expanded-player-artist">Quaver</span></div></div><div class="expanded-player-progress"><span id="expanded-player-current">0:00</span><input id="expanded-player-progress-range" class="player-range" type="range" min="0" max="1" value="0" aria-label="Song progress"/><span id="expanded-player-duration">0:00</span></div><div class="expanded-player-controls"><button type="button" data-expanded-action="shuffle" aria-label="Turn shuffle on" aria-pressed="false">⇄</button><button type="button" data-expanded-action="previous" aria-label="Previous song">◀</button><button class="expanded-player-play" type="button" data-expanded-action="toggle" aria-label="Play or pause">▶</button><button type="button" data-expanded-action="next" aria-label="Next song">▶</button><button type="button" data-expanded-action="repeat" aria-label="Turn repeat on" aria-pressed="false">↻</button></div><section><div class="expanded-queue-heading"><h2>Up next</h2><span id="expanded-queue-count"></span></div><div id="expanded-queue-list" class="expanded-queue-list"></div></section><section id="expanded-suggestions" class="expanded-suggestions" hidden><div class="expanded-queue-heading"><div><h2>You might also like</h2><small>Based on what is playing</small></div></div><div id="expanded-suggestions-list" class="expanded-suggestions-list"></div></section>';
+    shell.innerHTML='<div class="expanded-player-header"><span>NOW PLAYING</span><button type="button" data-expanded-action="close" aria-label="Collapse player">⌄</button></div><div class="expanded-player-now"><div class="expanded-player-art"><img id="expanded-player-art" alt=""/></div><div><strong id="expanded-player-title">Choose a song</strong><span id="expanded-player-artist">Quaver</span></div></div><div class="expanded-player-progress"><span id="expanded-player-current">0:00</span><input id="expanded-player-progress-range" class="player-range" type="range" min="0" max="1" value="0" aria-label="Song progress"/><span id="expanded-player-duration">0:00</span></div><div class="expanded-player-controls"><button type="button" data-expanded-action="shuffle" aria-label="Turn shuffle on" aria-pressed="false">'+expandedControlIcon('shuffle')+'</button><button type="button" data-expanded-action="previous" aria-label="Previous song">'+expandedControlIcon('previous')+'</button><button class="expanded-player-play" type="button" data-expanded-action="toggle" aria-label="Play or pause">'+expandedControlIcon('play')+'</button><button type="button" data-expanded-action="next" aria-label="Next song">'+expandedControlIcon('next')+'</button><button type="button" data-expanded-action="repeat" aria-label="Turn repeat on" aria-pressed="false">'+expandedControlIcon('repeat')+'</button></div><section><div class="expanded-queue-heading"><h2>Up next</h2><span id="expanded-queue-count"></span></div><div id="expanded-queue-list" class="expanded-queue-list"></div></section><section id="expanded-suggestions" class="expanded-suggestions" hidden><div class="expanded-queue-heading"><div><h2>You might also like</h2><small>Based on what is playing</small></div></div><div id="expanded-suggestions-list" class="expanded-suggestions-list"></div></section>';
     shell.addEventListener('click',function(event){const button=event.target.closest('[data-expanded-action]');if(!button)return;const action=button.dataset.expandedAction;if(action==='close')closeExpandedPlayer();if(action==='toggle')toggle();if(action==='previous')previous();if(action==='next')next();if(action==='shuffle')toggleQueueShuffle();if(action==='repeat')cycleRepeatMode();const index=button.dataset.queueIndex;if(index!=null)playQueueIndex(Number(index));const suggestionIndex=button.dataset.suggestionIndex;if(suggestionIndex!=null)addSuggestedTrack(Number(suggestionIndex),action==='play-suggestion');});
     const progress=shell.querySelector('#expanded-player-progress-range');
     progress.setAttribute('aria-label','Expanded player song progress');
@@ -686,13 +698,13 @@
     const expandedProgress=element('expanded-player-progress-range');
     const expandedDuration=duration||persistedPlayback.duration||1;
     expandedProgress.max=String(expandedDuration);expandedProgress.value=String(position||persistedPlayback.position||0);expandedProgress.style.setProperty('--player-progress',((position||persistedPlayback.position||0)/expandedDuration)*100+'%');
-    const expandedToggle=shell.querySelector('[data-expanded-action="toggle"]');expandedToggle.textContent=paused?'▶':'Ⅱ';expandedToggle.setAttribute('aria-label',paused?'Play':'Pause');expandedToggle.title=paused?'Play':'Pause';expandedToggle.classList.toggle('is-playing',!paused);
+    const expandedToggle=shell.querySelector('[data-expanded-action="toggle"]');expandedToggle.innerHTML=expandedControlIcon(paused?'play':'pause');expandedToggle.setAttribute('aria-label',paused?'Play':'Pause');expandedToggle.title=paused?'Play':'Pause';expandedToggle.classList.toggle('is-playing',!paused);
     const queue=Array.isArray(persistedPlayback.queue)?persistedPlayback.queue:[];
     const active=Number(persistedPlayback.index)||0;
     const shuffleButton=shell.querySelector('[data-expanded-action="shuffle"]');
     shuffleButton.classList.toggle('active',!!persistedPlayback.shuffleEnabled);shuffleButton.setAttribute('aria-pressed',String(!!persistedPlayback.shuffleEnabled));shuffleButton.setAttribute('aria-label',persistedPlayback.shuffleEnabled?'Turn shuffle off':'Turn shuffle on');
     const repeatButton=shell.querySelector('[data-expanded-action="repeat"]');
-    const repeatMode=persistedPlayback.repeatMode||'off';repeatButton.classList.toggle('active',repeatMode!=='off');repeatButton.classList.toggle('repeat-one',repeatMode==='one');repeatButton.textContent=repeatMode==='one'?'1':'↻';repeatButton.setAttribute('aria-pressed',String(repeatMode!=='off'));repeatButton.setAttribute('aria-label',repeatMode==='off'?'Turn repeat on':(repeatMode==='all'?'Repeat one song':'Turn repeat off'));
+    const repeatMode=persistedPlayback.repeatMode||'off';repeatButton.classList.toggle('active',repeatMode!=='off');repeatButton.classList.toggle('repeat-one',repeatMode==='one');repeatButton.innerHTML=expandedControlIcon('repeat',repeatMode==='one');repeatButton.setAttribute('aria-pressed',String(repeatMode!=='off'));repeatButton.setAttribute('aria-label',repeatMode==='off'?'Turn repeat on':(repeatMode==='all'?'Repeat one song':'Turn repeat off'));
     element('expanded-queue-count').textContent=queue.length+(queue.length===1?' song':' songs');
     element('expanded-queue-list').innerHTML=queue.map(function(item,index){return '<button type="button" data-expanded-action="queue" data-queue-index="'+index+'" class="expanded-queue-item'+(index===active?' active':'')+'"><span>'+(index+1)+'</span>'+(item.albumArt?'<img src="'+escapeText(item.albumArt)+'" alt=""/>':'<i></i>')+'<span><strong>'+escapeText(item.title)+'</strong><small>'+escapeText(item.artist)+'</small></span>'+(index===active?'<b>Playing</b>':'')+'</button>';}).join('')||'<p>Your queue will appear here when you play a mix.</p>';
     const suggestionsSection=element('expanded-suggestions');

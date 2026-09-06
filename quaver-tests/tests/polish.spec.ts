@@ -350,7 +350,9 @@ test('mobile player restores across pages and expands its saved queue', async ({
   await expect(page.locator('#expanded-player')).toBeVisible();
   await expect(page.locator('#expanded-player-progress-range')).toBeVisible();
   await expect(page.locator('#expanded-player-progress-range')).toHaveValue('42000');
-  await expect(page.locator('#expanded-player').getByRole('button', { name: 'Pause' })).toHaveText('Ⅱ');
+  const expandedPause = page.locator('#expanded-player').getByRole('button', { name: 'Pause' });
+  await expect(expandedPause).toBeVisible();
+  await expect(expandedPause.locator('svg')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Up next' })).toBeVisible();
   await expect(page.getByText('Up Next Song')).toBeVisible();
   await page.getByRole('button', { name: 'Turn shuffle on' }).click();
