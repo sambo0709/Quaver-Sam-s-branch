@@ -128,6 +128,37 @@
     return match ? match[1] : '';
   }
 
+  function uniquePlayableSongs(songs, limit) {
+    const seen = new Set();
+    return (songs || []).filter(function(song) {
+      const key = spotifyTrackId(song) || [song.title, song.artist].map(function(value) { return String(value || '').trim().toLowerCase(); }).join('|');
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, limit);
+  }
+
+  function moodPlaylistName(mood) {
+    return mood.charAt(0).toUpperCase() + mood.slice(1) + ' Mix';
+  }
+
+  async function saveGeneratedPlaylist(mood, songs) {
+    if (!localStorage.getItem('quaver_user')) return null;
+    const response = await fetch(API + '/api/playlist', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: moodPlaylistName(mood), mood: mood, songs: songs })
+    });
+    const data = await response.json().catch(function() { return {}; });
+    if (!response.ok) throw new Error(data.error || 'The mix was generated, but the playlist could not be saved.');
+    if (data.playlist) {
+      savedPlaylists.unshift(data.playlist);
+      localStorage.setItem('quaver_playlists', JSON.stringify(savedPlaylists));
+    }
+    return data.playlist || null;
+  }
+
   function playSearchSong(index) {
     const song = (window.searchSongs || [])[index];
     const trackId = spotifyTrackId(song);
@@ -218,15 +249,25 @@
     status.textContent = 'Shaping a ' + mood + ' mix…';
     try {
       const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
-      const limit = Math.min(Math.max(Number(preferences.defaultCount) || 8, 1), 10);
-      const params = new URLSearchParams({ mood: mood, limit: String(limit), variety: preferences.variety || 'balanced', explicit: String(preferences.explicitContent !== false) });
+      const limit = 8;
+      const params = new URLSearchParams({ mood: mood, limit: String(limit), minutes: '30', variety: preferences.variety || 'balanced', explicit: String(preferences.explicitContent !== false) });
       const response = await fetch(API + '/api/music/recommend?' + params.toString(), { credentials: 'include' });
       const data = await response.json().catch(function() { return {}; });
       if (!response.ok) throw new Error(data.error || 'Could not create this mix.');
-      const songs = data.songs || [];
+      const songs = uniquePlayableSongs(data.songs, limit);
+      if (songs.length !== limit) throw new Error('Quaver could only find ' + songs.length + ' unique songs. Please try creating the mix again.');
+      const playlist = await saveGeneratedPlaylist(mood, songs);
       window.searchSongs = songs;
-      results.innerHTML = '<section class="search-result-group search-generated-mix"><div class="search-result-group-heading"><span>MADE FOR YOU</span><h2>Your ' + escapeHTML(mood) + ' mix</h2><small>' + songs.length + ' songs</small></div><div class="search-song-list">' + songCards(songs) + '</div></section>';
-      status.textContent = songs.length ? 'Your ' + mood + ' mix is ready.' : 'No songs were available for this mix.';
+      results.innerHTML = '<section class="search-result-group search-generated-mix"><div class="search-result-group-heading"><span>MADE FOR YOU</span><h2>Your ' + escapeHTML(mood) + ' mix</h2><small>8 unique songs' + (playlist ? ' · Saved to Playlists' : '') + '</small></div><div class="search-song-list">' + songCards(songs) + '</div></section>';
+      if (playlist) {
+        status.textContent = moodPlaylistName(mood) + ' was created with 8 songs and saved to your playlists.';
+        button.textContent = 'Playlist created ✓';
+        showToast(moodPlaylistName(mood) + ' created with 8 songs.', 'success');
+      } else {
+        status.textContent = 'Your ' + mood + ' mix was created with 8 songs. Log in to save it as a playlist.';
+        button.textContent = 'Mix created ✓';
+        showToast('Your ' + mood + ' mix is ready with 8 songs.', 'success');
+      }
       results.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
     } catch (error) {
       status.textContent = error.message || 'Could not create this mix. Please try again.';
