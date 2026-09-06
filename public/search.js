@@ -12,6 +12,7 @@
   let currentQuery = '';
   let generatedMixSongs = [];
   let generatedMixMood = '';
+  let generatedMixName = '';
 
   function escapeHTML(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
@@ -169,7 +170,7 @@
     await playlistLoadPromise;
     button.disabled = true;
     button.textContent = 'Saving…';
-    const name = generatedMixMood.charAt(0).toUpperCase() + generatedMixMood.slice(1) + ' Mix';
+    const name = generatedMixName || (generatedMixMood.charAt(0).toUpperCase() + generatedMixMood.slice(1) + ' Mix');
     try {
       const response = await fetch(API + '/api/playlist', {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
@@ -213,6 +214,35 @@
     }).filter(function(item) { return item.score > 0; }).sort(function(a, b) { return b.score - a.score; });
   }
 
+  const blendNames = {
+    'sad|anxious': 'Heavy Thoughts', 'anxious|sad': 'Fragile Static',
+    'calm|sleepy': 'Quiet Drift', 'sleepy|calm': 'Soft Landing',
+    'romantic|nostalgic': 'Love Revisited', 'nostalgic|romantic': 'Familiar Hearts',
+    'energetic|happy': 'Bright Momentum', 'happy|energetic': 'Pure Lift',
+    'focused|calm': 'Clear Headspace', 'calm|focused': 'Steady Mind',
+    'sad|nostalgic': 'Faded Memories', 'nostalgic|sad': 'Beautiful Ache',
+    'angry|energetic': 'Controlled Fire', 'energetic|angry': 'Electric Release',
+    'romantic|sad': 'Tender Distance', 'sad|romantic': 'After Love',
+    'party|energetic': 'After Dark', 'energetic|party': 'Full Volume',
+    'anxious|calm': 'Finding Stillness', 'calm|anxious': 'Quiet Tension'
+  };
+  const moodAdjectives = { happy:'Bright',sad:'Heavy',angry:'Burning',calm:'Quiet',energetic:'Electric',romantic:'Tender',focused:'Clear',nostalgic:'Familiar',party:'Midnight',sleepy:'Dreaming',anxious:'Restless' };
+  const moodNouns = { happy:'Glow',sad:'Reflections',angry:'Release',calm:'Stillness',energetic:'Motion',romantic:'Hearts',focused:'Headspace',nostalgic:'Memories',party:'Pulse',sleepy:'Drift',anxious:'Thoughts' };
+
+  function moodMixIdentity(ranked) {
+    const primary = ranked[0];
+    const secondary = ranked[1];
+    if (!secondary) return { primary:primary.mood, secondary:'', primaryPercent:100, secondaryPercent:0, name:primary.mood.charAt(0).toUpperCase() + primary.mood.slice(1) + ' Mix' };
+    const pairTotal = primary.score + secondary.score;
+    const secondaryPercent = Math.round(secondary.score / pairTotal * 100);
+    const primaryPercent = 100 - secondaryPercent;
+    if (secondaryPercent < 25) return { primary:primary.mood, secondary:'', primaryPercent:100, secondaryPercent:0, name:primary.mood.charAt(0).toUpperCase() + primary.mood.slice(1) + ' Mix' };
+    return {
+      primary:primary.mood, secondary:secondary.mood, primaryPercent:primaryPercent, secondaryPercent:secondaryPercent,
+      name:blendNames[primary.mood + '|' + secondary.mood] || moodAdjectives[secondary.mood] + ' ' + moodNouns[primary.mood]
+    };
+  }
+
   function renderMoodProfile(songs, query) {
     const panel = mountedRoot.querySelector('#search-mood-profile');
     const totals = {};
@@ -228,7 +258,8 @@
     const queryKey = query.trim().toLowerCase();
     const artistMatches = primaryArtists.filter(function(artist) { return artist === queryKey; }).length;
     const subject = artistMatches >= Math.ceil(songs.length / 2) ? query : 'These results';
-    panel.innerHTML = '<div><span>QUAVER MOOD PROFILE</span><h2 id="search-mood-profile-title">' + escapeHTML(subject) + ' often sounds</h2><p>Our interpretation based on the tracks in these results.</p></div><div class="search-mood-profile-breakdown">' + ranked.map(function(item) { const percent = Math.round((item.score / total) * 100); return '<span><b>' + escapeHTML(item.mood) + '</b><small>' + percent + '%</small></span>'; }).join('') + '</div><button type="button" data-create-mix="' + escapeHTML(ranked[0].mood) + '">Create a ' + escapeHTML(ranked[0].mood) + ' mix</button>';
+    const identity = moodMixIdentity(ranked);
+    panel.innerHTML = '<div><span>QUAVER MOOD PROFILE</span><h2 id="search-mood-profile-title">' + escapeHTML(subject) + ' often sounds</h2><p>Our interpretation based on the tracks in these results.</p></div><div class="search-mood-profile-breakdown">' + ranked.map(function(item) { const percent = Math.round((item.score / total) * 100); return '<span><b>' + escapeHTML(item.mood) + '</b><small>' + percent + '%</small></span>'; }).join('') + '</div><button type="button" data-create-mix="' + escapeHTML(identity.primary) + '" data-secondary-mood="' + escapeHTML(identity.secondary) + '" data-mix-name="' + escapeHTML(identity.name) + '" data-primary-percent="' + identity.primaryPercent + '" data-secondary-percent="' + identity.secondaryPercent + '">Create “' + escapeHTML(identity.name) + '”</button>';
     panel.hidden = false;
   }
 
@@ -277,7 +308,10 @@
     try {
       const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
       const limit = 8;
-      const params = new URLSearchParams({ mood: mood, limit: '10', minutes: '40', variety: preferences.variety || 'balanced', explicit: String(preferences.explicitContent !== false) });
+      const secondaryMood = button.dataset.secondaryMood || '';
+      const mixName = button.dataset.mixName || (mood.charAt(0).toUpperCase() + mood.slice(1) + ' Mix');
+      const blendLabel = secondaryMood ? button.dataset.primaryPercent + '% ' + mood + ' · ' + button.dataset.secondaryPercent + '% ' + secondaryMood : '100% ' + mood;
+      const params = new URLSearchParams({ mood: mood, secondaryMood: secondaryMood, limit: '10', minutes: '40', variety: preferences.variety || 'balanced', explicit: String(preferences.explicitContent !== false) });
       const response = await fetch(API + '/api/music/recommend?' + params.toString(), { credentials: 'include' });
       const data = await response.json().catch(function() { return {}; });
       if (!response.ok) throw new Error(data.error || 'Could not create this mix.');
@@ -292,13 +326,14 @@
       if (songs.length !== limit) throw new Error('Quaver could only find ' + songs.length + ' unique songs. Please try creating the mix again.');
       generatedMixSongs = songs;
       generatedMixMood = mood;
+      generatedMixName = mixName;
       results.querySelector('.search-generated-mix')?.remove();
       const artwork = songs.slice(0, 4).map(function(song) { return song.album_art ? '<img src="' + escapeHTML(song.album_art) + '" alt=""/>' : '<span></span>'; }).join('');
-      results.insertAdjacentHTML('afterbegin', '<section class="search-result-group search-generated-mix"><div class="search-generated-summary"><button class="search-generated-cover" type="button" data-mix-action="toggle" aria-expanded="false" aria-controls="search-generated-tracks">' + artwork + '</button><button class="search-generated-copy" type="button" data-mix-action="toggle" aria-expanded="false" aria-controls="search-generated-tracks"><span>MADE FOR YOU</span><strong>Your ' + escapeHTML(mood) + ' mix</strong><small>8 songs · Separate from your search results</small></button><div class="search-generated-actions"><button class="search-generated-save" type="button" data-mix-action="save">Save as playlist</button><button class="search-generated-play" type="button" data-mix-action="play">▶ Play all</button></div></div><div id="search-generated-tracks" class="search-song-list search-generated-tracks" hidden>' + songCards(songs, 'mix') + '</div></section>');
-      status.textContent = 'Your ' + mood + ' mix was created with 8 different songs. Open it or press Play all.';
+      results.insertAdjacentHTML('afterbegin', '<section class="search-result-group search-generated-mix"><div class="search-generated-summary"><button class="search-generated-cover" type="button" data-mix-action="toggle" aria-expanded="false" aria-controls="search-generated-tracks">' + artwork + '</button><button class="search-generated-copy" type="button" data-mix-action="toggle" aria-expanded="false" aria-controls="search-generated-tracks"><span>MADE FOR YOU</span><strong>' + escapeHTML(mixName) + '</strong><small>' + escapeHTML(blendLabel) + ' · 8 songs</small></button><div class="search-generated-actions"><button class="search-generated-save" type="button" data-mix-action="save">Save as playlist</button><button class="search-generated-play" type="button" data-mix-action="play">▶ Play all</button></div></div><div id="search-generated-tracks" class="search-song-list search-generated-tracks" hidden>' + songCards(songs, 'mix') + '</div></section>');
+      status.textContent = mixName + ' was created with 8 different songs. Open it or press Play all.';
       button.disabled = false;
       button.textContent = 'Mix created ✓';
-      showToast('Your ' + mood + ' mix is ready with 8 different songs.', 'success');
+      showToast(mixName + ' is ready with 8 different songs.', 'success');
       results.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
     } catch (error) {
       status.textContent = error.message || 'Could not create this mix. Please try again.';
@@ -313,6 +348,7 @@
     currentQuery = q;
     generatedMixSongs = [];
     generatedMixMood = '';
+    generatedMixName = '';
     input.value = q;
     document.getElementById('search-starters').hidden = true;
     status.innerHTML = '<span class="loading-bar" aria-hidden="true"></span><span>Searching…</span>';

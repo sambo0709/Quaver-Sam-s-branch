@@ -707,9 +707,9 @@ test('search results can play through the shared Quaver player', async ({ page }
 
 test('search results show distinct content types and generate a matching mix in place', async ({ page }) => {
   await page.route('**/api/music/search?*', route => route.fulfill({ json: { songs: [
-    { title: 'Midnight Love', artist: 'Profile Artist', spotify_url: 'https://open.spotify.com/track/profile1' },
+    { title: 'Endless Love', artist: 'Profile Artist', spotify_url: 'https://open.spotify.com/track/profile1' },
     { title: 'Heart and Passion', artist: 'Profile Artist', spotify_url: 'https://open.spotify.com/track/profile2' },
-    { title: 'Romantic Night', artist: 'Profile Artist', spotify_url: 'https://open.spotify.com/track/profile3' },
+    { title: 'Romantic Kiss', artist: 'Profile Artist', spotify_url: 'https://open.spotify.com/track/profile3' },
   ], artists: [{ name: 'Profile Artist', genres: ['dream pop'], spotify_url: 'https://open.spotify.com/artist/profile' }], albums: [{ name: 'Heart Album', artist: 'Profile Artist', release_date: '2026', spotify_url: 'https://open.spotify.com/album/profile' }] } }));
   await page.route('**/api/music/recommend?*', route => route.fulfill({ json: { songs: Array.from({ length: 8 }, (_, index) => ({ title: `Generated Love ${index + 1}`, artist: 'Mix Artist', spotify_url: `https://open.spotify.com/track/generated${index + 1}` })) } }));
   await page.goto('/search.html?q=Profile%20Artist');
@@ -721,10 +721,10 @@ test('search results show distinct content types and generate a matching mix in 
   await expect(page.getByRole('heading', { name: 'Artists' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Albums' })).toBeVisible();
   await expect(page.getByText('dream pop')).toBeVisible();
-  await profile.getByRole('button', { name: 'Create a romantic mix' }).click();
-  await expect(page.getByRole('button', { name: /Your romantic mix/ })).toBeVisible();
+  await profile.getByRole('button', { name: 'Create “Romantic Mix”' }).click();
+  await expect(page.getByRole('button', { name: /Romantic Mix/ })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Songs' })).toBeVisible();
-  await page.getByRole('button', { name: /Your romantic mix/ }).click();
+  await page.getByRole('button', { name: /Romantic Mix/ }).click();
   await expect(page.getByText('Generated Love 1')).toBeVisible();
   await expect(page.locator('.search-generated-mix .search-result-card')).toHaveCount(8);
   await expect(profile.getByRole('button', { name: 'Mix created ✓' })).toBeVisible();
@@ -750,12 +750,12 @@ test('a search mood mix stays separate, excludes search tracks, and plays all ei
     (window as any).QuaverPlayer.setQueue = (queue: unknown[]) => { (window as any).__mixQueue = queue; };
     (window as any).QuaverPlayer.playQueueIndex = (index: number) => { (window as any).__mixStarted = index; };
   });
-  await page.getByRole('button', { name: 'Create a sad mix' }).click();
-  await expect(page.getByRole('button', { name: /Your sad mix/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Create “Sad Mix”' }).click();
+  await expect(page.getByRole('button', { name: /Sad Mix/ })).toBeVisible();
   await expect(page.getByText('Sad Song', { exact: true })).toHaveCount(1);
-  await page.getByRole('button', { name: /Your sad mix/ }).click();
+  await page.getByRole('button', { name: /Sad Mix/ }).click();
   await expect(page.locator('.search-generated-mix .search-result-card')).toHaveCount(8);
-  await expect(page.getByText('Your sad mix was created with 8 different songs. Open it or press Play all.')).toBeVisible();
+  await expect(page.getByText('Sad Mix was created with 8 different songs. Open it or press Play all.')).toBeVisible();
   await page.getByRole('button', { name: 'Play all' }).click();
   expect(playlistPosts).toBe(0);
   expect(await page.evaluate(() => (window as any).__mixQueue)).toHaveLength(8);
@@ -775,13 +775,33 @@ test('a generated search mix is saved only when the user chooses save as playlis
   });
 
   await page.goto('/search.html?q=calm');
-  await page.getByRole('button', { name: 'Create a calm mix' }).click();
+  await page.getByRole('button', { name: 'Create “Calm Mix”' }).click();
   expect(savedBody).toBeNull();
   await page.getByRole('button', { name: 'Save as playlist' }).click();
   await expect(page.getByRole('button', { name: 'Saved ✓' })).toBeVisible();
   await expect(page.getByText('Calm Mix was saved to your playlists.')).toBeVisible();
   expect(savedBody).toMatchObject({ name: 'Calm Mix', mood: 'calm' });
   expect(savedBody.songs).toHaveLength(8);
+});
+
+test('mixed search moods receive an emotional blend name and weighted recommendations', async ({ page }) => {
+  let recommendationUrl = '';
+  await page.route('**/api/music/search?*', route => route.fulfill({ json: { songs: [
+    { title: 'Sad and Alone', artist: 'One', spotify_url: 'https://open.spotify.com/track/blendsearch1' },
+    { title: 'Tears', artist: 'Two', spotify_url: 'https://open.spotify.com/track/blendsearch2' },
+    { title: 'Anxiety Worry', artist: 'Three', spotify_url: 'https://open.spotify.com/track/blendsearch3' },
+  ] } }));
+  await page.route('**/api/music/recommend?*', route => {
+    recommendationUrl = route.request().url();
+    return route.fulfill({ json: { songs: Array.from({ length: 8 }, (_, index) => ({ title: `Blend Song ${index + 1}`, artist: `Blend Artist ${index + 1}`, spotify_url: `https://open.spotify.com/track/blend${index + 1}` })) } });
+  });
+
+  await page.goto('/search.html?q=mixed%20feelings');
+  await page.getByRole('button', { name: 'Create “Heavy Thoughts”' }).click();
+  await expect(page.getByRole('button', { name: /Heavy Thoughts/ })).toBeVisible();
+  await expect(page.getByText('60% sad · 40% anxious · 8 songs')).toBeVisible();
+  expect(new URL(recommendationUrl).searchParams.get('mood')).toBe('sad');
+  expect(new URL(recommendationUrl).searchParams.get('secondaryMood')).toBe('anxious');
 });
 
 test('a searched song can be added to an existing playlist', async ({ page }) => {
