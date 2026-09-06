@@ -722,34 +722,66 @@ test('search results show distinct content types and generate a matching mix in 
   await expect(page.getByRole('heading', { name: 'Albums' })).toBeVisible();
   await expect(page.getByText('dream pop')).toBeVisible();
   await profile.getByRole('button', { name: 'Create a romantic mix' }).click();
-  await expect(page.getByRole('heading', { name: 'Your romantic mix' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Your romantic mix/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Songs' })).toBeVisible();
+  await page.getByRole('button', { name: /Your romantic mix/ }).click();
   await expect(page.getByText('Generated Love 1')).toBeVisible();
   await expect(page.locator('.search-generated-mix .search-result-card')).toHaveCount(8);
   await expect(profile.getByRole('button', { name: 'Mix created ✓' })).toBeVisible();
   await expect(page).toHaveURL(/search\.html\?q=Profile%20Artist/);
 });
 
-test('creating a search mood mix saves one playlist containing exactly eight unique songs', async ({ page }) => {
-  let playlistBody: any;
+test('a search mood mix stays separate, excludes search tracks, and plays all eight songs', async ({ page }) => {
+  let playlistPosts = 0;
   await page.addInitScript(() => localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' })));
   await page.route('**/api/music/search?*', route => route.fulfill({ json: { songs: [{ title: 'Sad Song', artist: 'Search Artist', spotify_url: 'https://open.spotify.com/track/sadsearch' }] } }));
   const generated = Array.from({ length: 8 }, (_, index) => ({ title: `Sad Mix Song ${index + 1}`, artist: `Artist ${index + 1}`, spotify_url: `https://open.spotify.com/track/sadmix${index + 1}` }));
-  await page.route('**/api/music/recommend?*', route => route.fulfill({ json: { songs: generated.concat(generated[0]) } }));
+  await page.route('**/api/music/recommend?*', route => route.fulfill({ json: { songs: [{ title: 'Sad Song', artist: 'Search Artist', spotify_url: 'https://open.spotify.com/track/sadsearch' }].concat(generated).concat(generated[0]) } }));
   await page.route('**/api/playlist', async route => {
     if (route.request().method() === 'GET') return route.fulfill({ json: { playlists: [] } });
-    playlistBody = route.request().postDataJSON();
-    return route.fulfill({ status: 201, json: { playlist: { id: 'saved-eight', ...playlistBody } } });
+    playlistPosts++;
+    return route.fulfill({ status: 500, json: { error: 'Mixes must not auto-save' } });
   });
 
   await page.goto('/search.html?q=sad');
+  await page.evaluate(() => {
+    (window as any).__mixQueue = [];
+    (window as any).__mixStarted = -1;
+    (window as any).QuaverPlayer.setQueue = (queue: unknown[]) => { (window as any).__mixQueue = queue; };
+    (window as any).QuaverPlayer.playQueueIndex = (index: number) => { (window as any).__mixStarted = index; };
+  });
   await page.getByRole('button', { name: 'Create a sad mix' }).click();
+  await expect(page.getByRole('button', { name: /Your sad mix/ })).toBeVisible();
+  await expect(page.getByText('Sad Song', { exact: true })).toHaveCount(1);
+  await page.getByRole('button', { name: /Your sad mix/ }).click();
   await expect(page.locator('.search-generated-mix .search-result-card')).toHaveCount(8);
-  await expect(page.getByText('Sad Mix was created with 8 songs and saved to your playlists.')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Playlist created ✓' })).toBeVisible();
-  expect(playlistBody.name).toBe('Sad Mix');
-  expect(playlistBody.mood).toBe('sad');
-  expect(playlistBody.songs).toHaveLength(8);
-  expect(new Set(playlistBody.songs.map((song: any) => song.spotify_url)).size).toBe(8);
+  await expect(page.getByText('Your sad mix was created with 8 different songs. Open it or press Play all.')).toBeVisible();
+  await page.getByRole('button', { name: 'Play all' }).click();
+  expect(playlistPosts).toBe(0);
+  expect(await page.evaluate(() => (window as any).__mixQueue)).toHaveLength(8);
+  expect(await page.evaluate(() => (window as any).__mixStarted)).toBe(0);
+});
+
+test('a generated search mix is saved only when the user chooses save as playlist', async ({ page }) => {
+  let savedBody: any = null;
+  await page.addInitScript(() => localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' })));
+  await page.route('**/api/music/search?*', route => route.fulfill({ json: { songs: [{ title: 'Quiet Search', artist: 'Search Artist', spotify_url: 'https://open.spotify.com/track/quietsearch' }] } }));
+  const generated = Array.from({ length: 8 }, (_, index) => ({ title: `Calm Mix Song ${index + 1}`, artist: `Artist ${index + 1}`, spotify_url: `https://open.spotify.com/track/calmmix${index + 1}` }));
+  await page.route('**/api/music/recommend?*', route => route.fulfill({ json: { songs: generated } }));
+  await page.route('**/api/playlist', async route => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { playlists: [] } });
+    savedBody = route.request().postDataJSON();
+    return route.fulfill({ status: 201, json: { playlist: { id: 'saved-calm', ...savedBody } } });
+  });
+
+  await page.goto('/search.html?q=calm');
+  await page.getByRole('button', { name: 'Create a calm mix' }).click();
+  expect(savedBody).toBeNull();
+  await page.getByRole('button', { name: 'Save as playlist' }).click();
+  await expect(page.getByRole('button', { name: 'Saved ✓' })).toBeVisible();
+  await expect(page.getByText('Calm Mix was saved to your playlists.')).toBeVisible();
+  expect(savedBody).toMatchObject({ name: 'Calm Mix', mood: 'calm' });
+  expect(savedBody.songs).toHaveLength(8);
 });
 
 test('a searched song can be added to an existing playlist', async ({ page }) => {

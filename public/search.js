@@ -10,6 +10,8 @@
   let pendingPlaylistSong = null;
   let playlistLoadPromise = Promise.resolve();
   let currentQuery = '';
+  let generatedMixSongs = [];
+  let generatedMixMood = '';
 
   function escapeHTML(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
@@ -62,12 +64,16 @@
     setTimeout(function () { toast.className = 'toast'; }, 2800);
   }
 
-  async function addToPlaylist(index) {
+  function songsForSource(source) {
+    return source === 'mix' ? generatedMixSongs : (window.searchSongs || []);
+  }
+
+  async function addToPlaylist(index, source) {
     if (!localStorage.getItem('quaver_user')) {
       showToast('Log in to add songs to a playlist.', 'error');
       return;
     }
-    const song = (window.searchSongs || [])[index];
+    const song = songsForSource(source)[index];
     if (!song) return;
     await playlistLoadPromise;
     if (!savedPlaylists.length) return startNewPlaylist(song);
@@ -138,32 +144,52 @@
     }).slice(0, limit);
   }
 
-  function moodPlaylistName(mood) {
-    return mood.charAt(0).toUpperCase() + mood.slice(1) + ' Mix';
-  }
-
-  async function saveGeneratedPlaylist(mood, songs) {
-    if (!localStorage.getItem('quaver_user')) return null;
-    const response = await fetch(API + '/api/playlist', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: moodPlaylistName(mood), mood: mood, songs: songs })
-    });
-    const data = await response.json().catch(function() { return {}; });
-    if (!response.ok) throw new Error(data.error || 'The mix was generated, but the playlist could not be saved.');
-    if (data.playlist) {
-      savedPlaylists.unshift(data.playlist);
-      localStorage.setItem('quaver_playlists', JSON.stringify(savedPlaylists));
-    }
-    return data.playlist || null;
-  }
-
-  function playSearchSong(index) {
-    const song = (window.searchSongs || [])[index];
+  function playSearchSong(index, source) {
+    const song = songsForSource(source)[index];
     const trackId = spotifyTrackId(song);
     if (!song || !trackId) return;
     QuaverPlayer.play({ trackId: trackId, title: song.title || '', artist: song.artist || '', albumArt: song.album_art || '' });
+  }
+
+  function playGeneratedMix() {
+    const queue = generatedMixSongs.map(function(song) {
+      return { trackId: spotifyTrackId(song), title: song.title || '', artist: song.artist || '', albumArt: song.album_art || '' };
+    }).filter(function(song) { return song.trackId; });
+    if (!queue.length) return;
+    QuaverPlayer.setQueue(queue, 0);
+    QuaverPlayer.playQueueIndex(0);
+  }
+
+  async function saveGeneratedMix(button) {
+    if (!generatedMixSongs.length || !generatedMixMood || button.disabled) return;
+    if (!localStorage.getItem('quaver_user')) {
+      showToast('Log in to save this mix as a playlist.', 'error');
+      return;
+    }
+    await playlistLoadPromise;
+    button.disabled = true;
+    button.textContent = 'Saving…';
+    const name = generatedMixMood.charAt(0).toUpperCase() + generatedMixMood.slice(1) + ' Mix';
+    try {
+      const response = await fetch(API + '/api/playlist', {
+        method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, mood: generatedMixMood, songs: generatedMixSongs })
+      });
+      const data = await response.json().catch(function() { return {}; });
+      if (!response.ok) throw new Error(data.error || 'Could not save this mix.');
+      if (data.playlist) {
+        savedPlaylists.unshift(data.playlist);
+        localStorage.setItem('quaver_playlists', JSON.stringify(savedPlaylists));
+      }
+      button.textContent = 'Saved ✓';
+      button.dataset.saved = 'true';
+      status.textContent = name + ' was saved to your playlists.';
+      showToast(name + ' saved to your playlists.', 'success');
+    } catch (error) {
+      button.disabled = false;
+      button.textContent = 'Save as playlist';
+      showToast(error.message || 'Could not save this mix.', 'error');
+    }
   }
 
   const moodSignals = {
@@ -206,12 +232,13 @@
     panel.hidden = false;
   }
 
-  function songCards(songs) {
+  function songCards(songs, source) {
+    const sourceAttribute = source === 'mix' ? ' data-song-source="mix"' : '';
     return songs.map(function (song, index) {
       const art = song.album_art ? '<img src="' + escapeHTML(song.album_art) + '" alt="" loading="lazy"/>' : '<div class="search-result-art"></div>';
       const spotify = song.spotify_url ? '<a href="' + escapeHTML(song.spotify_url) + '" target="_blank" rel="noopener">Open Spotify</a>' : '';
-      const play = spotifyTrackId(song) ? '<button class="search-result-play" type="button" data-play-index="' + index + '" aria-label="Play ' + escapeHTML(song.title || 'song') + '">▶ Play</button>' : '';
-      return '<article class="search-result-card">' + art + '<div><strong>' + escapeHTML(song.title || 'Untitled song') + '</strong><span>' + escapeHTML(song.artist || 'Unknown artist') + '</span></div><div class="search-result-actions">' + play + spotify + '<button type="button" data-add-index="' + index + '">Add to playlist</button></div></article>';
+      const play = spotifyTrackId(song) ? '<button class="search-result-play" type="button" data-play-index="' + index + '"' + sourceAttribute + ' aria-label="Play ' + escapeHTML(song.title || 'song') + '">▶ Play</button>' : '';
+      return '<article class="search-result-card">' + art + '<div><strong>' + escapeHTML(song.title || 'Untitled song') + '</strong><span>' + escapeHTML(song.artist || 'Unknown artist') + '</span></div><div class="search-result-actions">' + play + spotify + '<button type="button" data-add-index="' + index + '"' + sourceAttribute + '>Add to playlist</button></div></article>';
     }).join('');
   }
 
@@ -250,24 +277,28 @@
     try {
       const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
       const limit = 8;
-      const params = new URLSearchParams({ mood: mood, limit: String(limit), minutes: '30', variety: preferences.variety || 'balanced', explicit: String(preferences.explicitContent !== false) });
+      const params = new URLSearchParams({ mood: mood, limit: '10', minutes: '40', variety: preferences.variety || 'balanced', explicit: String(preferences.explicitContent !== false) });
       const response = await fetch(API + '/api/music/recommend?' + params.toString(), { credentials: 'include' });
       const data = await response.json().catch(function() { return {}; });
       if (!response.ok) throw new Error(data.error || 'Could not create this mix.');
-      const songs = uniquePlayableSongs(data.songs, limit);
+      const searchTrackIds = new Set((window.searchSongs || []).map(spotifyTrackId).filter(Boolean));
+      const searchSongKeys = new Set((window.searchSongs || []).map(function(song) { return [song.title, song.artist].map(function(value) { return String(value || '').trim().toLowerCase(); }).join('|'); }));
+      const separateSongs = (data.songs || []).filter(function(song) {
+        const id = spotifyTrackId(song);
+        const key = [song.title, song.artist].map(function(value) { return String(value || '').trim().toLowerCase(); }).join('|');
+        return !(id && searchTrackIds.has(id)) && !searchSongKeys.has(key);
+      });
+      const songs = uniquePlayableSongs(separateSongs, limit);
       if (songs.length !== limit) throw new Error('Quaver could only find ' + songs.length + ' unique songs. Please try creating the mix again.');
-      const playlist = await saveGeneratedPlaylist(mood, songs);
-      window.searchSongs = songs;
-      results.innerHTML = '<section class="search-result-group search-generated-mix"><div class="search-result-group-heading"><span>MADE FOR YOU</span><h2>Your ' + escapeHTML(mood) + ' mix</h2><small>8 unique songs' + (playlist ? ' · Saved to Playlists' : '') + '</small></div><div class="search-song-list">' + songCards(songs) + '</div></section>';
-      if (playlist) {
-        status.textContent = moodPlaylistName(mood) + ' was created with 8 songs and saved to your playlists.';
-        button.textContent = 'Playlist created ✓';
-        showToast(moodPlaylistName(mood) + ' created with 8 songs.', 'success');
-      } else {
-        status.textContent = 'Your ' + mood + ' mix was created with 8 songs. Log in to save it as a playlist.';
-        button.textContent = 'Mix created ✓';
-        showToast('Your ' + mood + ' mix is ready with 8 songs.', 'success');
-      }
+      generatedMixSongs = songs;
+      generatedMixMood = mood;
+      results.querySelector('.search-generated-mix')?.remove();
+      const artwork = songs.slice(0, 4).map(function(song) { return song.album_art ? '<img src="' + escapeHTML(song.album_art) + '" alt=""/>' : '<span></span>'; }).join('');
+      results.insertAdjacentHTML('afterbegin', '<section class="search-result-group search-generated-mix"><div class="search-generated-summary"><button class="search-generated-cover" type="button" data-mix-action="toggle" aria-expanded="false" aria-controls="search-generated-tracks">' + artwork + '</button><button class="search-generated-copy" type="button" data-mix-action="toggle" aria-expanded="false" aria-controls="search-generated-tracks"><span>MADE FOR YOU</span><strong>Your ' + escapeHTML(mood) + ' mix</strong><small>8 songs · Separate from your search results</small></button><div class="search-generated-actions"><button class="search-generated-save" type="button" data-mix-action="save">Save as playlist</button><button class="search-generated-play" type="button" data-mix-action="play">▶ Play all</button></div></div><div id="search-generated-tracks" class="search-song-list search-generated-tracks" hidden>' + songCards(songs, 'mix') + '</div></section>');
+      status.textContent = 'Your ' + mood + ' mix was created with 8 different songs. Open it or press Play all.';
+      button.disabled = false;
+      button.textContent = 'Mix created ✓';
+      showToast('Your ' + mood + ' mix is ready with 8 different songs.', 'success');
       results.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
     } catch (error) {
       status.textContent = error.message || 'Could not create this mix. Please try again.';
@@ -280,6 +311,8 @@
     const q = query.trim();
     if (!q) return;
     currentQuery = q;
+    generatedMixSongs = [];
+    generatedMixMood = '';
     input.value = q;
     document.getElementById('search-starters').hidden = true;
     status.innerHTML = '<span class="loading-bar" aria-hidden="true"></span><span>Searching…</span>';
@@ -316,10 +349,22 @@
     scope.querySelector('#search-starters').addEventListener('click', function(event) { const button=event.target.closest('[data-search-starter]'); if(button)search(button.dataset.searchStarter); }, { signal: signal });
     scope.querySelector('#search-mood-profile').addEventListener('click', function(event) { const button=event.target.closest('[data-create-mix]'); if (button) createMoodMix(button.dataset.createMix, button); }, { signal: signal });
     results.addEventListener('click', function (event) {
+      const mixAction = event.target.closest('[data-mix-action]');
+      if (mixAction) {
+        if (mixAction.dataset.mixAction === 'play') playGeneratedMix();
+        else if (mixAction.dataset.mixAction === 'save') saveGeneratedMix(mixAction);
+        else {
+          const tracks = results.querySelector('#search-generated-tracks');
+          const expanded = tracks.hidden;
+          tracks.hidden = !expanded;
+          results.querySelectorAll('[data-mix-action="toggle"]').forEach(function(control) { control.setAttribute('aria-expanded', String(expanded)); });
+        }
+        return;
+      }
       const playButton = event.target.closest('[data-play-index]');
-      if (playButton) { playSearchSong(Number(playButton.dataset.playIndex)); return; }
+      if (playButton) { playSearchSong(Number(playButton.dataset.playIndex), playButton.dataset.songSource); return; }
       const addButton = event.target.closest('[data-add-index]');
-      if (addButton) addToPlaylist(Number(addButton.dataset.addIndex));
+      if (addButton) addToPlaylist(Number(addButton.dataset.addIndex), addButton.dataset.songSource);
     }, { signal: signal });
     const pickerList = document.getElementById('playlist-picker-list');
     const pickerClose = document.getElementById('playlist-picker-close') || document.querySelector('#playlist-picker button[aria-label="Close"]');

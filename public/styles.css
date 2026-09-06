@@ -5352,6 +5352,22 @@ body > nav:not(.mobile-bottom-nav),
 .search-result-group-heading h2 { margin:4px 0 0;color:var(--text);font-size:1.25rem;text-transform:none; }
 .search-result-group-heading small { color:var(--text-muted);font-size:.7rem; }
 .search-song-list { display:grid;gap:7px; }
+.search-generated-mix { padding:14px;border:1px solid color-mix(in srgb,var(--accent) 35%,var(--glass-border));border-radius:16px;background:color-mix(in srgb,var(--card-solid) 88%,transparent); }
+.search-generated-summary { display:grid;grid-template-columns:74px minmax(0,1fr) auto;align-items:center;gap:14px; }
+.search-generated-cover { display:grid;grid-template-columns:1fr 1fr;width:74px;height:74px;padding:0;overflow:hidden;border:0;border-radius:10px;background:var(--bg3);cursor:pointer; }
+.search-generated-cover img,.search-generated-cover span { width:37px;height:37px;object-fit:cover;background:var(--bg2); }
+.search-generated-copy { min-width:0;padding:0;border:0;background:transparent;color:var(--text);text-align:left;cursor:pointer; }
+.search-generated-copy span,.search-generated-copy strong,.search-generated-copy small { display:block; }
+.search-generated-copy span { color:var(--accent);font-size:.58rem;font-weight:800;letter-spacing:.14em; }
+.search-generated-copy strong { margin-top:5px;font-size:1.15rem;text-transform:capitalize; }.search-generated-copy small { margin-top:5px;color:var(--text-muted);font-size:.7rem; }
+.search-generated-actions { display:flex;align-items:center;gap:8px; }
+.search-generated-play,.search-generated-save { padding:11px 16px;border-radius:999px;font:800 .72rem/1 var(--font-family);cursor:pointer;white-space:nowrap; }
+.search-generated-play { border:0;background:var(--text);color:var(--bg); }
+.search-generated-save { border:1px solid var(--glass-border);background:transparent;color:var(--text); }
+.search-generated-save:hover { border-color:var(--accent);color:var(--accent); }
+.search-generated-save:disabled { cursor:default;opacity:.72; }
+.search-generated-tracks { margin-top:14px;padding-top:14px;border-top:1px solid var(--glass-border); }
+.search-generated-tracks[hidden] { display:none; }
 .search-entity-grid { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px; }
 .search-entity-card { min-width:0;padding:12px;border-radius:13px;background:var(--card-solid);color:var(--text);text-decoration:none;transition:background .16s ease,transform .16s ease; }
 .search-entity-card:hover { background:var(--card-solid-hover);transform:translateY(-2px); }
@@ -5401,6 +5417,10 @@ body > nav:not(.mobile-bottom-nav),
   .search-mood-profile-breakdown { overflow-x:auto;padding-bottom:3px; }
   .search-mood-profile > button { justify-self:start; }
   .search-entity-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .search-generated-summary { grid-template-columns:58px minmax(0,1fr); }
+  .search-generated-cover { width:58px;height:58px; }.search-generated-cover img,.search-generated-cover span { width:29px;height:29px; }
+  .search-generated-actions { grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr; }
+  .search-generated-play,.search-generated-save { width:100%; }
   .results { margin-top: 22px; }
   .results-header { margin-bottom: 14px; padding-bottom: 12px; }
   .recommendation-learning { margin-bottom: 10px; }
