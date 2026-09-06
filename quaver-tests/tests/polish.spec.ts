@@ -377,9 +377,9 @@ test('expanded player suggests songs for a single-song queue', async ({ page }) 
     }));
   });
   await page.route('**/spotify/playback-token', route => route.fulfill({ status: 401, json: { error: 'Reconnect required' } }));
-  await page.route('**/api/music/search**', route => route.fulfill({ json: { songs: [
+  await page.route('**/api/music/similar**', route => route.fulfill({ json: { songs: [
     { title: 'Current Song', artist: 'Quaver Artist', spotify_url: 'https://open.spotify.com/track/current123', album_art: '' },
-    { title: 'Similar Song', artist: 'Quaver Artist', spotify_url: 'https://open.spotify.com/track/similar123', album_art: '' },
+    { title: 'Similar Song', artist: 'Different Artist', spotify_url: 'https://open.spotify.com/track/similar123', album_art: '' },
   ] } }));
 
   await page.goto('/search.html');
@@ -388,7 +388,8 @@ test('expanded player suggests songs for a single-song queue', async ({ page }) 
   await expect(page.getByText('Similar Song', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Add Similar Song to queue' }).click();
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('quaver_playback_session') || '{}').queue.length)).toBe(2);
-  await expect(page.locator('#expanded-suggestions')).toBeHidden();
+  await expect(page.locator('#expanded-suggestions')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Already added Similar Song' })).toBeDisabled();
 });
 
 test('profile rejects stale local authentication when the server session is missing', async ({ page }) => {

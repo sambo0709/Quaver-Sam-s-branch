@@ -638,7 +638,7 @@
     similarTracksRequest = key;
     const container = element('expanded-suggestions-list');
     if (container) container.innerHTML = '<p>Finding songs that fit…</p>';
-    fetch(API + '/api/music/search?q=' + encodeURIComponent(track.artist), { credentials: 'include' })
+    fetch(API + '/api/music/similar?trackId=' + encodeURIComponent(track.trackId) + '&artist=' + encodeURIComponent(track.artist) + '&title=' + encodeURIComponent(track.title || ''), { credentials: 'include' })
       .then(function(response) { if (!response.ok) throw new Error('Suggestions unavailable'); return response.json(); })
       .then(function(data) {
         if (similarTracksRequest !== key) return;
@@ -696,11 +696,11 @@
     element('expanded-queue-count').textContent=queue.length+(queue.length===1?' song':' songs');
     element('expanded-queue-list').innerHTML=queue.map(function(item,index){return '<button type="button" data-expanded-action="queue" data-queue-index="'+index+'" class="expanded-queue-item'+(index===active?' active':'')+'"><span>'+(index+1)+'</span>'+(item.albumArt?'<img src="'+escapeText(item.albumArt)+'" alt=""/>':'<i></i>')+'<span><strong>'+escapeText(item.title)+'</strong><small>'+escapeText(item.artist)+'</small></span>'+(index===active?'<b>Playing</b>':'')+'</button>';}).join('')||'<p>Your queue will appear here when you play a mix.</p>';
     const suggestionsSection=element('expanded-suggestions');
-    suggestionsSection.hidden=queue.length!==1;
-    if(queue.length===1){
+    suggestionsSection.hidden=!track.trackId;
+    if(track.trackId){
       const suggestionsList=element('expanded-suggestions-list');
       const key=[track.trackId||'',track.artist||'',track.title||''].join('|');
-      if(similarTracksKey===key) suggestionsList.innerHTML=similarTracks.map(function(item,index){return '<article class="expanded-suggestion-item">'+(item.albumArt?'<img src="'+escapeText(item.albumArt)+'" alt=""/>':'<i></i>')+'<span><strong>'+escapeText(item.title)+'</strong><small>'+escapeText(item.artist)+'</small></span><button type="button" data-expanded-action="play-suggestion" data-suggestion-index="'+index+'" aria-label="Play '+escapeText(item.title)+'">▶</button><button type="button" data-expanded-action="add-suggestion" data-suggestion-index="'+index+'" aria-label="Add '+escapeText(item.title)+' to queue">＋</button></article>';}).join('')||'<p>No similar songs found right now.</p>';
+      if(similarTracksKey===key) suggestionsList.innerHTML=similarTracks.map(function(item,index){const queued=queue.some(function(queuedItem){return queuedItem.trackId===item.trackId;});return '<article class="expanded-suggestion-item">'+(item.albumArt?'<img src="'+escapeText(item.albumArt)+'" alt=""/>':'<i></i>')+'<span><strong>'+escapeText(item.title)+'</strong><small>'+escapeText(item.artist)+'</small></span><button type="button" data-expanded-action="play-suggestion" data-suggestion-index="'+index+'" aria-label="Play '+escapeText(item.title)+'">▶</button><button type="button" data-expanded-action="add-suggestion" data-suggestion-index="'+index+'" aria-label="'+(queued?'Already added ':'Add ')+escapeText(item.title)+(queued?'':' to queue')+'"'+(queued?' disabled':'')+'>'+(queued?'✓':'＋')+'</button></article>';}).join('')||'<p>No similar songs found right now.</p>';
       else loadSimilarTracks(track);
     }
   }

@@ -261,6 +261,58 @@ function msToMinSec(ms) {
   return mins + ':' + secs;
 }
 
+function spotifyTrackToSong(track) {
+  return {
+    trackId: track.id,
+    title: track.name,
+    artist: (track.artists || []).map(function(artist) { return artist.name; }).join(', '),
+    duration: msToMinSec(track.duration_ms || 0),
+    explicit: !!track.explicit,
+    preview_url: track.preview_url,
+    spotify_url: track.external_urls?.spotify || (track.id ? 'https://open.spotify.com/track/' + track.id : ''),
+    album_art: track.album?.images?.[1]?.url || track.album?.images?.[0]?.url || null,
+  };
+}
+
+// Related listening for the expanded player. Spotify recommendations are the
+// primary source; genre discovery is the fallback for restricted applications.
+router.get('/similar', async function(req, res) {
+  const trackId = String(req.query.trackId || '').trim();
+  const seedArtist = String(req.query.artist || '').split(',')[0].trim().toLowerCase();
+  if (!/^[A-Za-z0-9]+$/.test(trackId)) return res.status(400).json({ error: 'A valid Spotify track is required.' });
+  try {
+    const token = await getSpotifyToken();
+    let songs = [];
+    const recommendationResponse = await fetch('https://api.spotify.com/v1/recommendations?limit=20&seed_tracks=' + encodeURIComponent(trackId), { headers: { Authorization: 'Bearer ' + token } });
+    if (recommendationResponse.ok) {
+      const recommendationData = await recommendationResponse.json();
+      songs = (recommendationData.tracks || []).map(spotifyTrackToSong);
+    }
+    if (!songs.length) {
+      const trackResponse = await fetch('https://api.spotify.com/v1/tracks/' + encodeURIComponent(trackId), { headers: { Authorization: 'Bearer ' + token } });
+      const seedTrack = trackResponse.ok ? await trackResponse.json() : null;
+      const artistId = seedTrack?.artists?.[0]?.id;
+      const artistResponse = artistId ? await fetch('https://api.spotify.com/v1/artists/' + encodeURIComponent(artistId), { headers: { Authorization: 'Bearer ' + token } }) : null;
+      const artist = artistResponse?.ok ? await artistResponse.json() : null;
+      const queries = (artist?.genres || []).slice(0, 3).map(function(genre) { return 'genre:"' + genre + '"'; });
+      if (!queries.length) queries.push(String(req.query.title || '') + ' music radio');
+      songs = await searchTracks(queries, token, 20);
+    }
+    const seen = new Set([trackId]);
+    const related = songs.filter(function(song) {
+      const id = trackIdentity(song);
+      const primaryArtist = String(song.artist || '').split(',')[0].trim().toLowerCase();
+      if (!id || seen.has(id) || (seedArtist && primaryArtist === seedArtist)) return false;
+      seen.add(id);
+      return true;
+    }).slice(0, 6);
+    res.json({ songs: related });
+  } catch (error) {
+    console.error('Similar tracks error:', error.message);
+    res.status(500).json({ error: 'Similar songs are unavailable right now.' });
+  }
+});
+
 router.get('/recommend', async function(req, res) {
   const mood = req.query.mood;
   const limit = req.query.limit;
