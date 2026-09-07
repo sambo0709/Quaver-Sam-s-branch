@@ -6050,7 +6050,7 @@ button.archive-calendar-day.is-selected {
   padding-inline: 12px;
   border-color: transparent;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text);
 }
 
 .recommendation-secondary .random-btn:hover,
@@ -6115,5 +6115,129 @@ main:has(.mood-context[open]) .recommendation-panel .recommendation-go-btn {
     flex-direction: column;
     gap: 2px;
     text-align: center;
+  }
+}
+
+/* Unified solid surfaces: hierarchy comes from spacing, not stacked card shells. */
+.mood-context-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 30px;
+  row-gap: 0;
+  padding: 26px 28px;
+  border: 0;
+  border-radius: var(--surface-radius);
+  background: var(--surface-panel);
+  box-shadow: var(--surface-shadow);
+}
+
+.mood-context-grid .fine-tune-group {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mood-context-grid .fine-tune-mood {
+  padding-right: 30px;
+  border-right: 1px solid var(--surface-line);
+}
+
+.mood-context-grid .fine-tune-preferences {
+  grid-column: 1 / -1;
+  margin-top: 26px;
+  padding-top: 24px;
+  border-top: 1px solid var(--surface-line);
+}
+
+.fine-tune-heading > span,
+.playlist-grid-heading > div > span,
+.profile-box-heading > div > span,
+.search-header > span,
+.settings-header > span {
+  color: var(--accent);
+}
+
+/* The same material system now covers every utility view. */
+.search-page-form,
+.search-mood-profile,
+.search-starters,
+.search-generated-mix,
+.playlist-library-summary article,
+.playlist-library-toolbar,
+.playlist-create,
+.playlist-detail,
+.mood-collection-detail,
+.profile-editor,
+.settings-jump-nav,
+.playlist-picker,
+.rename-modal {
+  border: 1px solid var(--surface-line);
+  background: var(--surface-panel);
+  box-shadow: var(--surface-shadow);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.search-result-card,
+.search-entity-card,
+.playlist-library-card,
+.archive-track,
+.playlist-detail-track,
+.playlist-create-result,
+.playlist-create-draft-item {
+  border: 1px solid var(--surface-line);
+  background: var(--surface-raised);
+  box-shadow: none;
+}
+
+.search-result-card:hover,
+.search-entity-card:hover,
+.playlist-library-card:hover {
+  border-color: color-mix(in srgb, var(--text-muted) 42%, var(--surface-line));
+  transform: translateY(-2px);
+}
+
+.choice-chips button[aria-pressed="true"],
+.main-mood-chips button[aria-pressed="true"],
+.search-result-filters button[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--surface-line));
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-raised));
+  box-shadow: none;
+}
+
+.archive-calendar {
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .mood-context-grid {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+
+  .mood-context-grid .fine-tune-mood {
+    padding-right: 0;
+    padding-bottom: 22px;
+    border-right: 0;
+    border-bottom: 1px solid var(--surface-line);
+  }
+
+  .mood-context-grid .fine-tune-context {
+    padding-top: 22px;
+  }
+
+  .mood-context-grid .fine-tune-preferences {
+    margin-top: 22px;
+    padding-top: 22px;
+  }
+
+  .search-page-form,
+  .playlist-library-toolbar,
+  .settings-jump-nav {
+    box-shadow: none;
   }
 }
