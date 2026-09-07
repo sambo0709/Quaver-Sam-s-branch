@@ -106,7 +106,7 @@
         </div>
         <label class="intensity-control" for="mood-intensity"><span>Intensity <output id="intensity-output">Balanced</output></span><input id="mood-intensity" type="range" min="1" max="5" value="3" oninput="updateIntensityLabel(this.value)"/><span class="intensity-ends"><small>Mellow</small><small>Intense</small></span></label>
       </section>
-      <section class="fine-tune-group" aria-labelledby="fine-tune-context-title">
+      <section class="fine-tune-group fine-tune-context" aria-labelledby="fine-tune-context-title">
         <div class="fine-tune-heading"><span>Context</span><h3 id="fine-tune-context-title">Match your moment</h3></div>
         <label class="fine-tune-label">What are you doing?</label>
         <select class="visually-hidden-select" id="mood-activity" aria-label="What are you doing?" onchange="syncChoiceChips('mood-activity')"><option value="none">Anything</option><option value="studying">Studying</option><option value="working out">Working out</option><option value="commuting">Commuting</option><option value="relaxing">Relaxing</option><option value="sleeping">Sleeping</option><option value="socializing">Socializing</option></select>
