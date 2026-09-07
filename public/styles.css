@@ -277,6 +277,9 @@ nav,
 }
 
 .spotify-nav-link { color: #1db954 !important; }
+.spotify-nav-mark { width:18px;height:18px;flex:0 0 auto;fill:#1db954; }
+.spotify-nav-mark path { fill:none;stroke:var(--bg);stroke-width:1.35;stroke-linecap:round; }
+:root[data-theme="light"] .spotify-nav-mark path { stroke:#fff; }
 .spotify-connected-link { color: #1db954 !important; font-size: 0.8rem; }
 .spotify-disconnect-btn {
   background: none;
@@ -5183,6 +5186,7 @@ main > .subtitle { max-width:560px; margin-bottom:1.7rem; font-size:1rem; line-h
 .main-mood-chips::-webkit-scrollbar { display:none; }
 .main-mood-chips.is-dragging { cursor:grabbing;user-select:none;scroll-snap-type:none; }
 .main-mood-chips button { flex:0 0 auto;min-height:48px;padding-inline:11px;background:var(--bg3);scroll-snap-align:start; }
+:root[data-theme="dark"] .main-mood-chips button:not(.active) { color:rgba(232,244,255,.7); }
 .recommendation-summary { grid-area:summary;margin:0;text-align:center;color:var(--text-muted);font-size:.7rem;font-weight:750; }
 .recommendation-controls { grid-area:controls; display:flex; align-items:center; justify-content:center; gap:10px; min-width:0; }
 .recommendation-count { display:grid;flex:0 1 170px;min-width:150px;color:var(--text-muted);font-size:.68rem;font-weight:800;text-align:left; }

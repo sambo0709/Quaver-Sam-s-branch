@@ -29,7 +29,10 @@
     <form class="global-search" action="search.html" method="get" role="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg><input name="q" type="search" placeholder="What do you want to play?" aria-label="Search songs, artists, or albums"/></form>
     <a class="nav-link" data-route="playlists" href="playlists.html" aria-label="Playlists">Playlists</a>
     <div id="spotify-login-btn" style="display:none">
-      <button onclick="connectSpotifyAccount()" class="nav-link spotify-nav-link">Connect Spotify</button>
+      <button type="button" onclick="connectSpotifyAccount()" class="nav-link spotify-nav-link" aria-label="Connect with Spotify">
+        <svg class="spotify-nav-mark" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7 9.1c3.7-1 7.7-.7 10.9.9M7.8 12.4c3-.8 6.5-.5 9.2.7M8.5 15.4c2.4-.6 5.1-.4 7.3.6"/></svg>
+        <span>Connect with Spotify</span>
+      </button>
     </div>
     <div id="spotify-user-info" style="display:none">
       <span class="nav-link spotify-connected-link" id="spotify-user-name"></span>

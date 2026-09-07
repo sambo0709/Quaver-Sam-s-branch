@@ -145,15 +145,16 @@ async function disconnectSpotify() {
 
 function updateSpotifyUI() {
   const name = localStorage.getItem('quaver_spotify_name');
-  const connectButton = document.getElementById('spotify-login-btn');
+  const connectContainer = document.getElementById('spotify-login-btn');
+  const connectedContainer = document.getElementById('spotify-user-info');
+  if (!connectContainer || !connectedContainer) return;
   if (spotifyToken && name) {
-    connectButton.style.display = 'none';
-    document.getElementById('spotify-user-info').style.display = 'flex';
+    connectContainer.style.display = 'none';
+    connectedContainer.style.display = 'flex';
     document.getElementById('spotify-user-name').textContent = '✓ ' + name;
   } else {
-    connectButton.textContent = 'Connect Spotify';
-    connectButton.style.display = 'flex';
-    document.getElementById('spotify-user-info').style.display = 'none';
+    connectContainer.style.display = 'flex';
+    connectedContainer.style.display = 'none';
   }
 }
 
