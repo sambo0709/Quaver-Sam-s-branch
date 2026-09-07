@@ -10,6 +10,7 @@
     '/profile.html': 'profile',
     '/settings.html': 'settings',
     '/archive.html': 'archive',
+    '/discover.html': 'discover',
   };
 
   const routePaths = {
@@ -19,6 +20,7 @@
     profile: '/profile.html',
     settings: '/settings.html',
     archive: '/archive.html',
+    discover: '/discover.html',
   };
 
   const views = new Map();
@@ -346,6 +348,19 @@
       unmount: function () {
         if (window.QuaverArchive) window.QuaverArchive.unmount();
       },
+    });
+    registerView('discover', {
+      title: 'Discover Moods - Quaver',
+      bodyClass: 'profile-page discover-moods-page',
+      source: '/discover.html',
+      render: async function () {
+        const page = await loadPage('/discover.html');
+        const main = page.querySelector('main.discover-moods-main');
+        if (!main) throw new Error('Mood discovery is unavailable.');
+        return document.importNode(main, true);
+      },
+      mount: function (view) { if (window.QuaverDiscover) window.QuaverDiscover.mount(view); },
+      unmount: function () { if (window.QuaverDiscover) window.QuaverDiscover.unmount(); },
     });
     document.documentElement.classList.add('app-shell-mounted');
     setActiveRoute('home');

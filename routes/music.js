@@ -325,6 +325,7 @@ router.get('/recommend', async function(req, res) {
   const allowExplicit = req.query.explicit !== 'false';
   const variety = ['familiar', 'balanced', 'adventurous'].includes(req.query.variety) ? req.query.variety : 'balanced';
   const context = { ...parseRecommendationContext(req.query), variety };
+  const dailyKey = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.daily || '')) ? String(req.query.daily) : '';
   // Only apply a time budget when the caller explicitly supplies one. The
   // main mix builder is count-based and should not be silently capped by the
   // context parser's legacy 30-minute default.
@@ -369,7 +370,18 @@ router.get('/recommend', async function(req, res) {
     function trackId(song) { return song.spotify_url ? song.spotify_url.split('/track/')[1]?.split('?')[0] : ''; }
     if (variety === 'adventurous') pool = pool.filter(function(song) { return !history.liked.has(trackId(song)) && !history.played.has(trackId(song)); });
     if (!pool.length && unfilteredForVariety.length) pool = unfilteredForVariety;
-    const songs = rankSongs(pool, context, history, songLimit);
+    const candidateLimit = dailyKey ? Math.min(pool.length, Math.max(songLimit * 3, 30)) : songLimit;
+    let songs = rankSongs(pool, context, history, candidateLimit);
+    if (dailyKey) {
+      function dailyHash(value) {
+        let result = 2166136261;
+        String(value).split('').forEach(function(character) { result ^= character.charCodeAt(0); result = Math.imul(result, 16777619); });
+        return result >>> 0;
+      }
+      songs = songs.slice().sort(function(a, b) {
+        return dailyHash(dailyKey + ':' + context.mood + ':' + trackIdentity(a)) - dailyHash(dailyKey + ':' + context.mood + ':' + trackIdentity(b));
+      }).slice(0, songLimit);
+    }
     const learning = user ? {
       personalized: history.liked.size + history.disliked.size + history.played.size + history.skipped.size + history.completed.size > 0,
       ratings: history.liked.size + history.disliked.size,
@@ -378,7 +390,7 @@ router.get('/recommend', async function(req, res) {
       familiarTracks: history.played.size,
       variety,
     } : { personalized: false, loggedOut: true, ratings: 0, completed: 0, skipped: 0, familiarTracks: 0, variety };
-    res.json({ mood: mood, context, profile: MOOD_PROFILES[context.mood], learning, count: songs.length, songs: songs });
+    res.json({ mood: mood, context, profile: MOOD_PROFILES[context.mood], learning, daily: dailyKey || undefined, count: songs.length, songs: songs });
   } catch (err) {
     console.error('Spotify error:', err.message);
     const rateLimited = /rate limit|429/i.test(err.message || '');

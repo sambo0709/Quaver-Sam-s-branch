@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Discover Moods - Quaver</title><link rel="icon" type="image/svg+xml" href="quaver-logo-cyan.svg"/><link rel="stylesheet" href="styles.css"/></head>
+<body class="profile-page discover-moods-page">
+  <header class="discover-standalone-header"><a href="Index.html" aria-label="Quaver home"><img src="quaver-logo-cyan.svg" alt=""/>Quaver</a><nav aria-label="Primary"><a href="Index.html">Home</a><a href="search.html">Search</a><a href="playlists.html">Playlists</a></nav></header>
+  <main class="discover-moods-main">
+    <header class="settings-header discover-moods-header"><span>Daily discovery</span><h1>Explore every mood</h1><p>Each collection gets a fresh set of tracks every day. Choose one to hear today's mix.</p></header>
+    <section id="discover-mood-grid" class="discover-mood-grid" aria-label="All mood collections"></section>
+    <section id="discover-mood-detail" class="discover-mood-detail" hidden aria-live="polite"></section>
+  </main>
+  <nav class="mobile-bottom-nav discover-mobile-nav" aria-label="Mobile navigation"><a href="Index.html">Home</a><a href="search.html">Search</a><a href="playlists.html">Playlists</a><a class="active" href="discover.html">Discover</a></nav>
+  <script src="mood-collections.js"></script><script src="discover.js"></script><script src="spotify-player.js"></script>
+</body>
+</html>

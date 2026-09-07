@@ -18,14 +18,8 @@
   let listeners = null;
   const playlistSuggestions = {};
   const playlistArtistImages = {};
-  const moodCollections = [
-    { id: 'calm-focus', name: 'Calm Focus', mood: 'focused', description: 'Low-key tracks for uninterrupted concentration.', activity: 'studying', direction: 'focus' },
-    { id: 'energy-boost', name: 'Energy Boost', mood: 'energetic', description: 'High-energy picks for movement and momentum.', activity: 'working out', direction: 'energize' },
-    { id: 'late-night', name: 'Late Night', mood: 'calm', description: 'Unhurried songs for winding down after dark.', activity: 'relaxing', direction: 'stay' },
-    { id: 'feel-good', name: 'Feel Good', mood: 'happy', description: 'Bright, easy listening for a lighter mood.', activity: 'socializing', direction: 'stay' },
-    { id: 'deep-rest', name: 'Deep Rest', mood: 'sleepy', description: 'Soft selections for a quiet end to the day.', activity: 'sleeping', direction: 'calm down' },
-    { id: 'throwback', name: 'Throwback', mood: 'nostalgic', description: 'Familiar sounds with a nostalgic pull.', activity: 'none', direction: 'stay' }
-  ];
+  const collectionLibrary = window.QuaverMoodCollections;
+  const moodCollections = collectionLibrary ? collectionLibrary.all : [];
   try { createDraft = JSON.parse(localStorage.getItem('quaver_playlist_draft') || '[]'); } catch (_) { createDraft = []; }
 
   function byId(id) { return document.getElementById(id); }
@@ -113,8 +107,9 @@
 
   function collectionById(id) { return moodCollections.find(function (collection) { return collection.id === id; }); }
   function renderMoodCollections() {
-    byId('mood-collection-grid').innerHTML = moodCollections.map(function (collection, index) {
-      return '<button class="mood-collection-card mood-collection-' + (index + 1) + '" type="button" data-action="open-collection" data-collection-id="' + escapeHTML(collection.id) + '"><span>' + escapeHTML(collection.mood) + '</span><strong>' + escapeHTML(collection.name) + '</strong><small>' + escapeHTML(collection.description) + '</small><b>Explore collection</b></button>';
+    const featured = collectionLibrary ? collectionLibrary.daily(6) : moodCollections.slice(0, 6);
+    byId('mood-collection-grid').innerHTML = featured.map(function (collection) {
+      return '<button class="mood-collection-card mood-' + escapeHTML(collection.mood) + '" type="button" data-action="open-collection" data-collection-id="' + escapeHTML(collection.id) + '"><span>' + escapeHTML(collection.mood) + '</span><strong>' + escapeHTML(collection.name) + '</strong><small>' + escapeHTML(collection.description) + '</small><b>Explore today\'s collection</b></button>';
     }).join('');
   }
   function renderCollectionDetail(status, message) {
@@ -141,7 +136,7 @@
     byId('mood-collection-detail').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     try {
       const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
-      const params = new URLSearchParams({ mood: activeCollection.mood, limit: '8', activity: activeCollection.activity, direction: activeCollection.direction, variety: 'balanced', explicit: String(preferences.explicitContent !== false) });
+      const params = new URLSearchParams({ mood: activeCollection.mood, limit: '8', activity: activeCollection.activity, direction: activeCollection.direction, variety: 'balanced', explicit: String(preferences.explicitContent !== false), daily: collectionLibrary ? collectionLibrary.todayKey() : '' });
       const response = await fetch(API + '/api/music/recommend?' + params.toString(), { credentials: 'include' });
       const data = await response.json();
       if (!response.ok) throw new Error(QuaverShell.requestMessage(response, data, 'Could not load this collection.'));
