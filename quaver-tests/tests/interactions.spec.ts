@@ -67,7 +67,7 @@ test.describe('Quaver Homepage Interactions', () => {
     });
     await page.locator('#mood-select').selectOption('happy');
     await page.locator('#count-select').selectOption('10');
-    await page.getByRole('button', { name: 'Create mix', exact: true }).click();
+    await page.getByRole('button', { name: 'Create my mix', exact: true }).click();
 
     const playButton = page.locator('.play-btn[data-result-index="0"]');
     await expect(page.locator('.song-title')).toHaveText(`Listener's <img src=x onerror="window.__quaverXss=true"> Song`);
@@ -92,7 +92,7 @@ test.describe('Quaver Homepage Interactions', () => {
     await page.goto('/');
     await page.locator('#mood-select').selectOption('calm');
     await page.locator('#count-select').selectOption('10');
-    await page.getByRole('button', { name: 'Create mix', exact: true }).click();
+    await page.getByRole('button', { name: 'Create my mix', exact: true }).click();
 
     const shuffle = page.getByRole('button', { name: 'Shuffle', exact: true });
     await expect(shuffle).toBeVisible();
@@ -113,7 +113,7 @@ test.describe('Quaver Homepage Interactions', () => {
       await route.fulfill({ json: { context: { activity: 'studying' }, learning: { personalized: true, completed: 4, skipped: 1, ratings: 2, familiarTracks: 3, variety: 'balanced' }, songs: [{ title: 'Focus Song', artist: 'SZA', duration: '3:00', album_art: '', spotify_url: 'https://open.spotify.com/track/focus123', recommendation_reasons: ['Chosen for studying', 'Designed to help you focus'] }] } });
     });
     await page.goto('/');
-    await page.getByText('Fine-tune', { exact: true }).click();
+    await page.locator('#mood-context > summary').click();
     await page.getByRole('button', { name: 'Blend moods' }).click();
     await page.locator('[data-choice-target="secondary-mood"]').getByRole('button', { name: 'Calm' }).click();
     await page.locator('[data-choice-target="mood-activity"]').getByRole('button', { name: 'Studying' }).click();
@@ -121,7 +121,7 @@ test.describe('Quaver Homepage Interactions', () => {
     await page.locator('#preferred-artist').fill('SZA');
     await page.locator('#mood-select').selectOption('focused');
     await page.locator('#count-select').selectOption('10');
-    await page.locator('.fine-tune-create').click();
+    await page.locator('.recommendation-go-btn').click();
 
     await expect(page.getByText('Chosen for studying · Designed to help you focus')).toBeVisible();
     await expect(page.getByText('Tuned for you')).toBeVisible();

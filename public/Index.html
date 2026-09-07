@@ -75,7 +75,7 @@
       <option value="happy">Happy</option>
       <option value="sad">Sad</option>
       <option value="energetic">Energetic</option>
-      <option value="calm">Chill</option>
+      <option value="calm">Calm</option>
       <option value="focused">Focused</option>
       <option value="angry">Angry</option>
       <option value="romantic">Romantic</option>
@@ -85,16 +85,16 @@
       <option value="anxious">Anxious</option>
     </select>
     <div class="choice-chips main-mood-chips" data-choice-target="mood-select" role="group" aria-label="Choose your mood">
-      <button type="button" data-value="happy">Happy</button><button type="button" data-value="sad">Sad</button><button type="button" data-value="energetic">Energetic</button><button type="button" data-value="calm">Chill</button><button type="button" data-value="focused">Focused</button><button type="button" data-value="angry">Angry</button><button type="button" data-value="romantic">Romantic</button><button type="button" data-value="nostalgic">Nostalgic</button><button type="button" data-value="party">Party</button><button type="button" data-value="sleepy">Sleepy</button><button type="button" data-value="anxious">Anxious</button>
+      <button type="button" data-value="happy">Happy</button><button type="button" data-value="calm">Calm</button><button type="button" data-value="energetic">Energetic</button><button type="button" data-value="sad">Sad</button><button type="button" data-value="focused">Focused</button><button class="extra-main-mood" type="button" data-value="angry" hidden>Angry</button><button class="extra-main-mood" type="button" data-value="romantic" hidden>Romantic</button><button class="extra-main-mood" type="button" data-value="nostalgic" hidden>Nostalgic</button><button class="extra-main-mood" type="button" data-value="party" hidden>Party</button><button class="extra-main-mood" type="button" data-value="sleepy" hidden>Sleepy</button><button class="extra-main-mood" type="button" data-value="anxious" hidden>Anxious</button><button class="more-moods-btn" type="button" aria-expanded="false" onclick="toggleMainMoods(this)"><span>More moods</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button>
     </div></div>
     <div class="recommendation-controls">
-      <div class="recommendation-secondary"><button class="random-btn" type="button" onclick="randomMood()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h2.2c4.8 0 5.6 10 10.4 10H20m-3-3 3 3-3 3M4 17h2.2c1.5 0 2.6-1 3.5-2.4M14.3 9.4c.7-1.4 1.4-2.4 2.3-2.4H20m-3-3 3 3-3 3"/></svg><span>Surprise me</span></button></div>
       <label class="recommendation-count"><span class="sr-only">Mix length</span><select class="mood-select" id="count-select" aria-label="Mix length" onchange="onCountSelect(this.value)" required><option value="10" selected>10 songs</option><option value="15">15 songs</option><option value="20">20 songs</option></select></label>
-      <button class="mood-select recommendation-go-btn" type="submit" disabled><span>Create mix</span></button>
+      <button class="mood-select recommendation-go-btn" type="submit" disabled><span>Create my mix</span></button>
+      <div class="recommendation-secondary"><button class="random-btn" type="button" onclick="randomMood()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h2.2c4.8 0 5.6 10 10.4 10H20m-3-3 3 3-3 3M4 17h2.2c1.5 0 2.6-1 3.5-2.4M14.3 9.4c.7-1.4 1.4-2.4 2.3-2.4H20m-3-3 3 3-3 3"/></svg><span>Surprise me</span></button></div>
     </div>
   </form>
   <details class="mood-context" id="mood-context">
-    <summary><span>Fine-tune</span></summary>
+    <summary><span><strong>Want more control?</strong> Customize your mix</span></summary>
     <div class="mood-context-grid">
       <section class="fine-tune-group fine-tune-mood" aria-labelledby="fine-tune-mood-title">
         <div class="fine-tune-heading"><span>Mood</span><h3 id="fine-tune-mood-title">Shape the feeling</h3></div>
@@ -120,9 +120,6 @@
         <div class="preference-fields"><label>Artist<input id="preferred-artist" maxlength="80" placeholder="e.g. SZA" list="artist-suggestions" autocomplete="off"/><datalist id="artist-suggestions"></datalist></label><label>Genre<input id="preferred-genre" maxlength="40" placeholder="e.g. R&amp;B" list="genre-suggestions"/><datalist id="genre-suggestions"><option value="Pop"></option><option value="R&amp;B"></option><option value="Hip-hop"></option><option value="Rock"></option><option value="Indie"></option><option value="Electronic"></option><option value="Jazz"></option><option value="Classical"></option><option value="Country"></option><option value="Afrobeats"></option><option value="Latin"></option><option value="Metal"></option><option value="Folk"></option><option value="Soul"></option><option value="Ambient"></option></datalist></label></div>
         <small class="artist-suggestion-status" id="artist-suggestion-status" aria-live="polite"></small>
       </section>
-      <div class="fine-tune-actions">
-        <button type="submit" form="recommendation-form" class="fine-tune-create" disabled>Create mix <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
-      </div>
     </div>
   </details>
   </div>

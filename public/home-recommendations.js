@@ -66,6 +66,7 @@ function randomMood() {
   currentLimit = randomCount;
   document.getElementById('mood-select').value = random;
   document.getElementById('count-select').value = String(randomCount);
+  revealSelectedMainMood(random);
   setMood(random);
   updateRecommendationState();
 }
@@ -73,6 +74,7 @@ function randomMood() {
 function onMoodSelect(value) {
   if (!value) return;
   clearRecommendationError();
+  revealSelectedMainMood(value);
   document.querySelectorAll('[data-trending-mood]').forEach(function(button) {
     button.classList.remove('is-active');
     button.setAttribute('aria-pressed', 'false');
@@ -102,13 +104,32 @@ function updateRecommendationState() {
   if (!moodControl) return;
   const mood = moodControl.value;
   const count = Number(countControl && countControl.value) || 10;
-  document.querySelectorAll('.recommendation-go-btn,.fine-tune-create').forEach(function(button) {
+  document.querySelectorAll('.recommendation-go-btn').forEach(function(button) {
     button.disabled = !mood;
     button.setAttribute('aria-disabled', String(!mood));
   });
   if (summary) summary.textContent = mood
     ? mood.charAt(0).toUpperCase() + mood.slice(1) + ' · ' + count + ' songs'
     : 'Choose a mood to begin';
+}
+
+function toggleMainMoods(button, forceExpanded) {
+  const expanded = typeof forceExpanded === 'boolean'
+    ? forceExpanded
+    : button.getAttribute('aria-expanded') !== 'true';
+  document.querySelectorAll('.extra-main-mood').forEach(function(moodButton) {
+    moodButton.hidden = !expanded;
+  });
+  button.setAttribute('aria-expanded', String(expanded));
+  const label = button.querySelector('span');
+  if (label) label.textContent = expanded ? 'Fewer moods' : 'More moods';
+  updateMoodChipOverflow();
+}
+
+function revealSelectedMainMood(value) {
+  const selected = document.querySelector('.extra-main-mood[data-value="' + value + '"]');
+  const toggle = document.querySelector('.more-moods-btn');
+  if (selected && toggle && toggle.getAttribute('aria-expanded') !== 'true') toggleMainMoods(toggle, true);
 }
 
 function updateMoodChipOverflow() {
@@ -236,7 +257,7 @@ async function submitRecommendation(event) {
   if (!mood || !count) return;
   currentLimit = count;
   clearRecommendationError();
-  const buttons = Array.from(document.querySelectorAll('.recommendation-go-btn,.fine-tune-create'));
+  const buttons = Array.from(document.querySelectorAll('.recommendation-go-btn'));
   buttons.forEach(function(button) {
     button.disabled = true;
     button.dataset.previousLabel = button.textContent.trim();
@@ -246,7 +267,7 @@ async function submitRecommendation(event) {
     await setMood(mood);
   } finally {
     buttons.forEach(function(button) {
-      button.textContent = button.dataset.previousLabel || 'Create mix';
+      button.textContent = button.dataset.previousLabel || 'Create my mix';
       delete button.dataset.previousLabel;
     });
     updateRecommendationState();
