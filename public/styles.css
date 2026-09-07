@@ -848,35 +848,6 @@ h1 span {
   letter-spacing: 0.05em;
 }
 
-/* Music notes loader */
-.music-notes-loader {
-  display: flex;
-  align-items: flex-end;
-  gap: 5px;
-  height: 36px;
-}
-
-.music-note {
-  font-size: 22px;
-  display: inline-block;
-  animation: noteBounce 0.9s ease-in-out infinite;
-  background: var(--gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  opacity: 0.8;
-}
-
-.music-note:nth-child(1) { animation-delay: 0s; }
-.music-note:nth-child(2) { animation-delay: 0.18s; }
-.music-note:nth-child(3) { animation-delay: 0.36s; }
-.music-note:nth-child(4) { animation-delay: 0.54s; }
-
-@keyframes noteBounce {
-  0%, 100% { transform: translateY(0) scale(1); opacity: 0.4; }
-  50% { transform: translateY(-12px) scale(1.25); opacity: 1; }
-}
-
 /* Keep loading-bar for any legacy use */
 .loading-bar {
   width: 48px;
@@ -1631,31 +1602,6 @@ h1 span {
 
 .mood-collections-all:hover { background: var(--surface-hover); }
 
-.discover-standalone-header {
-  min-height: 86px;
-  padding: 18px clamp(24px, 5vw, 72px);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--surface-line);
-  background: var(--surface-base);
-}
-
-.discover-standalone-header > a,
-.discover-standalone-header nav {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-}
-
-.discover-standalone-header a {
-  color: var(--text-main);
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.discover-standalone-header img { width: 34px; height: 34px; }
-
 .discover-moods-main {
   width: min(1240px, calc(100% - 48px));
   min-height: calc(100vh - 86px);
@@ -1741,7 +1687,6 @@ h1 span {
 @media (max-width: 600px) {
   .mood-collections-all { min-height: auto; padding: 0; border: 0; background: transparent; color: var(--accent); }
   .playlist-grid-heading { align-items: flex-start; gap: 12px; }
-  .discover-standalone-header { display: none; }
   .discover-moods-main { width: calc(100% - 32px); padding: 42px 0 130px; }
   .discover-mood-grid { grid-template-columns: 1fr; }
   .discover-mood-card { min-height: 190px; }
@@ -4948,118 +4893,6 @@ html.reduce-motion *::after {
 }
 
 /* ═══════════════════════════════════════
-   MOOD CARDS
-═══════════════════════════════════════ */
-
-.mood-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  width: 100%;
-  max-width: 560px;
-  margin: 0 auto 1.4rem;
-}
-
-.mood-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 18px 8px 14px;
-  border-radius: 18px;
-  border: 1.5px solid var(--glass-border);
-  cursor: pointer;
-  background: linear-gradient(135deg, var(--mc1, rgba(255,255,255,0.04)), var(--mc2, rgba(255,255,255,0.08)));
-  background-size: 200% 200%;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  gap: 6px;
-  min-height: 80px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-  animation: moodFlow 5s ease-in-out infinite;
-}
-
-.mood-card:nth-child(2n) { animation-delay: -1.2s; }
-.mood-card:nth-child(3n) { animation-delay: -2.5s; }
-.mood-card:nth-child(4n) { animation-delay: -3.7s; }
-
-@keyframes moodFlow {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.mood-card:hover {
-  transform: translateY(-4px) scale(1.06);
-  border-color: var(--mborder);
-  box-shadow: 0 8px 28px var(--mglow);
-  z-index: 1;
-}
-
-.mood-card.active {
-  border-color: var(--mborder);
-  box-shadow: 0 4px 22px var(--mglow);
-  background: linear-gradient(135deg, var(--mc1), var(--mc2));
-}
-
-.mood-card-emoji {
-  font-size: 1.75rem;
-  line-height: 1;
-  transition: transform 0.2s ease;
-}
-
-.mood-card:hover .mood-card-emoji,
-.mood-card.active .mood-card-emoji {
-  transform: scale(1.2);
-}
-
-.mood-card-label {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  text-transform: capitalize;
-  color: var(--text);
-}
-
-.mood-card--happy    { --mc1: rgba(255,213,79,0.2);  --mc2: rgba(255,165,0,0.28);   --mborder: rgba(255,213,79,0.65); --mglow: rgba(255,213,79,0.35); }
-.mood-card--sad      { --mc1: rgba(100,149,237,0.2); --mc2: rgba(70,130,180,0.28);  --mborder: rgba(100,149,237,0.65);--mglow: rgba(100,149,237,0.35); }
-.mood-card--energetic{ --mc1: rgba(0,255,136,0.2);   --mc2: rgba(0,212,255,0.28);   --mborder: rgba(0,255,136,0.65);  --mglow: rgba(0,255,136,0.35); }
-.mood-card--calm     { --mc1: rgba(72,209,204,0.2);  --mc2: rgba(32,178,170,0.28);  --mborder: rgba(72,209,204,0.65); --mglow: rgba(72,209,204,0.35); }
-.mood-card--focused  { --mc1: rgba(123,97,255,0.2);  --mc2: rgba(88,86,214,0.28);   --mborder: rgba(123,97,255,0.65); --mglow: rgba(123,97,255,0.35); }
-.mood-card--angry    { --mc1: rgba(255,82,82,0.2);   --mc2: rgba(220,53,69,0.28);   --mborder: rgba(255,82,82,0.65);  --mglow: rgba(255,82,82,0.35); }
-.mood-card--romantic { --mc1: rgba(255,105,180,0.2); --mc2: rgba(220,20,60,0.28);   --mborder: rgba(255,105,180,0.65);--mglow: rgba(255,105,180,0.35); }
-.mood-card--nostalgic{ --mc1: rgba(255,183,107,0.2); --mc2: rgba(210,105,30,0.28);  --mborder: rgba(255,183,107,0.65);--mglow: rgba(255,183,107,0.35); }
-.mood-card--party    { --mc1: rgba(255,0,128,0.2);   --mc2: rgba(150,0,255,0.28);   --mborder: rgba(255,0,128,0.65);  --mglow: rgba(255,0,128,0.35); }
-.mood-card--sleepy   { --mc1: rgba(100,100,180,0.2); --mc2: rgba(50,50,120,0.28);   --mborder: rgba(100,100,180,0.55);--mglow: rgba(100,100,180,0.3); }
-.mood-card--anxious  { --mc1: rgba(150,200,200,0.16);--mc2: rgba(100,150,150,0.22); --mborder: rgba(150,200,200,0.55);--mglow: rgba(150,200,200,0.3); }
-
-.mood-controls-row {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 1.2rem;
-  flex-wrap: wrap;
-}
-
-.mood-controls-row .mood-select {
-  width: auto;
-  min-width: 160px;
-  max-width: 200px;
-}
-
-@media (max-width: 600px) {
-  .mood-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-}
-
-@media (max-width: 480px) {
-  .mood-card { padding: 14px 4px 12px; border-radius: 14px; min-height: 70px; }
-  .mood-card-emoji { font-size: 1.5rem; }
-  .mood-card-label { font-size: 0.62rem; }
-  .mood-controls-row .mood-select { min-width: 140px; }
-}
-
-/* ═══════════════════════════════════════
    QUAVER WRAPPED
 ═══════════════════════════════════════ */
 
@@ -5783,9 +5616,7 @@ body > nav:not(.mobile-bottom-nav),
 .retry-btn:hover,
 .add-btn:hover,
 .auth-tab.active,
-.trending-pill.is-active,
-.mood-card:hover,
-.mood-card.active {
+.trending-pill.is-active {
   box-shadow: none;
 }
 
@@ -5795,8 +5626,6 @@ body > nav:not(.mobile-bottom-nav),
 
 .trending-pill:hover,
 .trending-pill.is-active,
-.mood-card:hover,
-.mood-card.active,
 .feedback-actions button.selected,
 .add-btn.added,
 .sotd-add-btn.added {
@@ -6366,9 +6195,12 @@ main:has(.mood-context[open]) .recommendation-panel .recommendation-go-btn {
     grid-template-columns: 1fr;
     padding: 20px;
   }
+}
 
 /* Mood Discover uses the same solid, left-aligned track language as Quaver's
-   recommendation, archive, and playlist views. This renderer serves all moods. */
+   recommendation, archive, and playlist views. This renderer serves all moods.
+   These rules are unconditional: the polished treatment must apply on every
+   viewport, not only below 768px. */
 .discover-moods-page .discover-moods-main {
   width: min(1280px, calc(100% - 48px));
 }
@@ -6513,6 +6345,7 @@ main:has(.mood-context[open]) .recommendation-panel .recommendation-go-btn {
   }
 }
 
+@media (max-width: 768px) {
   .mood-context-grid .fine-tune-mood {
     padding-right: 0;
     padding-bottom: 22px;
