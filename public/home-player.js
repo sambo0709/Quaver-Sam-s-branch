@@ -34,6 +34,17 @@ window.addEventListener('quaver:playback-outcome', function(event) {
 });
 
 function addToQueue(song) {
+  const identity = function(candidate) {
+    if (!candidate) return '';
+    return candidate.trackId || candidate.spotify_url || [candidate.title, candidate.artist].map(function(value) {
+      return String(value || '').trim().toLowerCase();
+    }).join('|');
+  };
+  const songIdentity = identity(song);
+  if (songIdentity && songQueue.some(function(queuedSong) { return identity(queuedSong) === songIdentity; })) {
+    showToast('“' + song.title + '” is already in your queue.', 'success');
+    return false;
+  }
   songQueue.push(song);
   if (window.QuaverPlayer) QuaverPlayer.setQueue(songQueue, Math.max(queueIndex, 0));
   if (queueIndex === -1) {
@@ -51,6 +62,7 @@ function addToQueue(song) {
     }
   }
   updateQueueCounter();
+  return true;
 }
 
 function playFromQueue(direction) {

@@ -99,6 +99,14 @@
     window.setTimeout(function () { toast.classList.remove('show'); }, 3000);
   }
 
+  function requestMessage(response, data, fallback) {
+    if (!navigator.onLine) return 'You appear to be offline. Reconnect and try again.';
+    if (response && response.status === 401) return 'Your session has expired. Log in again to continue.';
+    if (response && response.status === 429) return 'Spotify is busy right now. Wait a moment, then try again.';
+    if (response && response.status >= 500) return 'Spotify is temporarily unavailable. Your choices are still here—try again shortly.';
+    return data && data.error ? String(data.error) : (fallback || 'Something went wrong. Please try again.');
+  }
+
   function registerView(route, definition) {
     if (!routePaths[route]) throw new Error('Unknown Quaver route: ' + route);
     views.set(route, definition || {});
@@ -360,6 +368,7 @@
     setUser: setUser,
     setTheme: setTheme,
     showToast: showToast,
+    requestMessage: requestMessage,
     navigate: navigate,
     registerView: registerView,
     routeFromUrl: routeFromUrl,

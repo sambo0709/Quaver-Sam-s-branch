@@ -99,6 +99,20 @@ function rankSongs(pool, context, history, limit) {
     artistCounts.set(artist, (artistCounts.get(artist) || 0) + 1);
     if (selected.length >= limit) break;
   }
+  // Favor variety first, but do not silently return a short mix when the
+  // candidate pool happens to contain several tracks by the same artist.
+  if (selected.length < limit) {
+    const selectedIds = new Set(selected.map(function(song) {
+      return song.trackId || song.spotify_url || [song.title, song.artist].join('|');
+    }));
+    for (const item of ranked) {
+      const id = item.song.trackId || item.song.spotify_url || [item.song.title, item.song.artist].join('|');
+      if (selectedIds.has(id)) continue;
+      selected.push({ ...item.song, recommendation_reasons: item.reasons });
+      selectedIds.add(id);
+      if (selected.length >= limit) break;
+    }
+  }
   return selected;
 }
 

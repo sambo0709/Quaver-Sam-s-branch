@@ -1614,9 +1614,15 @@ h1 span {
 /* Error state with retry */
 .error-state {
   text-align: center;
-  padding: 40px 0;
+  width: min(100%, 680px);
+  margin: 16px auto;
+  padding: 28px 22px;
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--card-solid) 88%, transparent);
   color: var(--text-muted);
 }
+.error-state p { max-width: 520px; margin-inline: auto; line-height: 1.5; }
 
 .retry-btn {
   margin-top: 12px;
@@ -1634,9 +1640,9 @@ h1 span {
 }
 
 .retry-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  box-shadow: 0 0 16px var(--accent-glow);
+  border-color: color-mix(in srgb, var(--text-muted) 55%, var(--glass-border));
+  color: var(--text);
+  box-shadow: none;
 }
 
 /* Onboarding overlay */
@@ -5700,4 +5706,49 @@ body > nav:not(.mobile-bottom-nav),
   background: transparent;
   color: var(--accent);
   box-shadow: none;
+}
+
+/* Final interaction pass: shared feedback should feel deliberate on every page. */
+:where(button, input, select, textarea):disabled {
+  cursor: not-allowed;
+  opacity: .56;
+  filter: none;
+  transform: none;
+  box-shadow: none;
+}
+
+.search-result-card,
+.playlist-create-song,
+.playlist-detail-track,
+.expanded-queue-item,
+.expanded-suggestion-item {
+  transition: background-color .16s ease, border-color .16s ease;
+}
+
+.search-result-card:hover,
+.playlist-create-song:hover,
+.playlist-detail-track:hover {
+  background: var(--card-solid-hover);
+}
+
+.expanded-suggestion-item button:hover {
+  border-color: rgba(255, 255, 255, .3);
+  background: rgba(255, 255, 255, .08);
+  color: #fff;
+}
+
+:root[data-theme="light"] .expanded-suggestion-item button:hover {
+  border-color: color-mix(in srgb, var(--text-muted) 50%, var(--glass-border));
+  background: var(--card-solid-hover);
+  color: var(--text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-result-card,
+  .playlist-create-song,
+  .playlist-detail-track,
+  .expanded-queue-item,
+  .expanded-suggestion-item {
+    transition: none;
+  }
 }

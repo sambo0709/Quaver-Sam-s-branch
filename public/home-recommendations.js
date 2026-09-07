@@ -366,7 +366,9 @@ async function fetchSongs() {
     const url = API + '/api/music/recommend?' + params.toString();
     const res = await fetch(url, { credentials: 'include', signal: controller.signal });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Recommendation request failed');
+    if (!res.ok) throw new Error(window.QuaverShell
+      ? QuaverShell.requestMessage(res, data, 'Could not create this mix.')
+      : (data.error || 'Could not create this mix.'));
     if (controller !== recommendationRequestController) return;
     if (data.songs && data.songs.length > 0) {
       renderRecommendationSongs(data.songs, data.learning);
@@ -380,7 +382,7 @@ async function fetchSongs() {
     else document.getElementById('results').innerHTML = '<div class="error-state"><p>No matches for that exact combination.</p><button class="retry-btn" onclick="document.getElementById(\'preferred-artist\').value=\'\';fetchSongs()">Try without the artist</button></div>';
   } catch (error) {
     if (controller !== recommendationRequestController) return;
-    const message = controller.signal.aborted ? 'This mix is taking longer than expected.' : 'Could not load songs.';
+    const message = controller.signal.aborted ? 'This mix is taking longer than expected. Your choices are still selected.' : (error.message || 'Could not load songs.');
     document.getElementById('results').innerHTML = '<div class="error-state"><p>' + message + '</p><button class="retry-btn" onclick="fetchSongs()">Try again</button></div>';
   } finally {
     clearTimeout(timeout);

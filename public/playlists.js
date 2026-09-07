@@ -144,7 +144,7 @@
       const params = new URLSearchParams({ mood: activeCollection.mood, limit: '8', activity: activeCollection.activity, direction: activeCollection.direction, variety: 'balanced', explicit: String(preferences.explicitContent !== false) });
       const response = await fetch(API + '/api/music/recommend?' + params.toString(), { credentials: 'include' });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Could not load this collection.');
+      if (!response.ok) throw new Error(QuaverShell.requestMessage(response, data, 'Could not load this collection.'));
       collectionSongs = Array.isArray(data.songs) ? data.songs : [];
       if (!collectionSongs.length) throw new Error('No tracks are available for this collection right now.');
       renderCollectionDetail('ready');
@@ -157,7 +157,7 @@
     try {
       const response = await fetch(API + '/api/playlist', { method: 'POST', headers: authHeaders(true), body: JSON.stringify({ name: name, mood: activeCollection.mood, songs: collectionSongs }) });
       const data = await response.json();
-      if (!response.ok || !data.playlist) throw new Error(data.error || 'Could not save this collection.');
+      if (!response.ok || !data.playlist) throw new Error(QuaverShell.requestMessage(response, data, 'Could not save this collection.'));
       playlists.push(data.playlist);
       renderAll();
       showToast(name + ' was added to your library.', 'success');
@@ -221,7 +221,7 @@
       const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
       const response = await fetch(API + '/api/music/search?q=' + encodeURIComponent(query) + '&explicit=' + (preferences.explicitContent !== false));
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Search failed.');
+      if (!response.ok) throw new Error(QuaverShell.requestMessage(response, data, 'Search failed.'));
       createSearchResults = Array.isArray(data.songs) ? data.songs : [];
       renderCreateResults();
     } catch (error) {
@@ -401,7 +401,7 @@
       const url = API + '/api/music/recommend?mood=' + encodeURIComponent(recommendationMood(playlist)) + '&limit=10&variety=adventurous&explicit=' + (preferences.explicitContent !== false) + artistQuery;
       const response = await fetch(url, { credentials: 'include' });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Could not load suggestions.');
+      if (!response.ok) throw new Error(QuaverShell.requestMessage(response, data, 'Could not load suggestions.'));
       const existing = new Set(playlistSongs(playlist).map(trackId).filter(Boolean));
       const songs = (Array.isArray(data.songs) ? data.songs : []).filter(function (song) { return !existing.has(trackId(song)); }).slice(0, 5);
       playlistSuggestions[key] = { status: 'ready', songs: songs };
@@ -434,7 +434,7 @@
     try {
       const response = await fetch(API + '/api/playlist/' + encodeURIComponent(playlist.id) + '/songs', { method: 'POST', headers: authHeaders(true), body: JSON.stringify({ song: song }) });
       const data = await response.json().catch(function () { return {}; });
-      if (!response.ok) throw new Error(data.error || 'Could not add song.');
+      if (!response.ok) throw new Error(QuaverShell.requestMessage(response, data, 'Could not add song.'));
       playlist.songs.push(data.song || song);
       state.songs.splice(index, 1);
       renderAll();

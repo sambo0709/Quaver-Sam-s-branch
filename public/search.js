@@ -109,7 +109,7 @@
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ song: song })
       });
       const data = await response.json().catch(function () { return {}; });
-      if (!response.ok) throw new Error(data.error || 'Could not add song.');
+      if (!response.ok) throw new Error(QuaverShell.requestMessage(response, data, 'Could not add song.'));
       playlist.songs = playlist.songs || [];
       playlist.songs.push(data.song || song);
       localStorage.setItem('quaver_playlists', JSON.stringify(savedPlaylists));
@@ -193,7 +193,7 @@
         body: JSON.stringify({ name: name, mood: generatedMixMood, songs: generatedMixSongs })
       });
       const data = await response.json().catch(function() { return {}; });
-      if (!response.ok) throw new Error(data.error || 'Could not save this mix.');
+      if (!response.ok) throw new Error(QuaverShell.requestMessage(response, data, 'Could not save this mix.'));
       if (data.playlist) {
         savedPlaylists.unshift(data.playlist);
         localStorage.setItem('quaver_playlists', JSON.stringify(savedPlaylists));
@@ -351,7 +351,7 @@
       const params = new URLSearchParams({ mood: mood, secondaryMood: secondaryMood, artist: preferredArtist, limit: '10', minutes: '40', variety: preferences.variety || 'balanced', explicit: String(preferences.explicitContent !== false) });
       const response = await fetch(API + '/api/music/recommend?' + params.toString(), { credentials: 'include' });
       const data = await response.json().catch(function() { return {}; });
-      if (!response.ok) throw new Error(data.error || 'Could not create this mix.');
+      if (!response.ok) throw new Error(QuaverShell.requestMessage(response, data, 'Could not create this mix.'));
       const searchTrackIds = new Set((window.searchSongs || []).map(spotifyTrackId).filter(Boolean));
       const searchSongKeys = new Set((window.searchSongs || []).map(function(song) { return [song.title, song.artist].map(function(value) { return String(value || '').trim().toLowerCase(); }).join('|'); }));
       const separateSongs = (data.songs || []).filter(function(song) {
@@ -395,7 +395,7 @@
       const preferences = JSON.parse(localStorage.getItem('quaver_preferences') || '{}');
       const response = await fetch(API + '/api/music/search?q=' + encodeURIComponent(q) + '&explicit=' + (preferences.explicitContent !== false));
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Search failed.');
+      if (!response.ok) throw new Error(QuaverShell.requestMessage(response, data, 'Search failed.'));
       renderSearchResults(data, q);
     } catch (error) {
       status.innerHTML = '<span>' + escapeHTML(error.message || 'Search failed. Please try again.') + '</span><button class="inline-retry-button" type="button" data-retry-search>Try again</button>';

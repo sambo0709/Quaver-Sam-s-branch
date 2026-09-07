@@ -40,3 +40,15 @@ test('ranking learns from skips, completions, and artist completion patterns', f
   assert.equal(ranked[2].trackId, 'skipped');
   assert.ok(ranked[0].recommendation_reasons.some(function(reason) { return reason.includes('listened to this through'); }));
 });
+
+test('ranking fills the requested mix after applying artist diversity first', function() {
+  const pool = Array.from({ length: 10 }, function(_, index) {
+    return { trackId: 'track-' + index, title: 'Track ' + index, artist: index < 8 ? 'Main Artist' : 'Guest ' + index };
+  });
+  const context = { mood: 'focused', secondaryMood: '', intensity: 3, activity: 'none', direction: 'stay', preferredArtist: '', preferredGenre: '', variety: 'balanced' };
+  const history = { liked: new Set(), disliked: new Set(), played: new Set(), likedArtists: new Set() };
+  const ranked = rankSongs(pool, context, history, 8);
+  assert.equal(ranked.length, 8);
+  assert.equal(new Set(ranked.map(function(song) { return song.trackId; })).size, 8);
+  assert.ok(ranked.filter(function(song) { return song.artist === 'Main Artist'; }).length > 2);
+});

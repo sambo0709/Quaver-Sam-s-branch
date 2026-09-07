@@ -381,7 +381,10 @@ router.get('/recommend', async function(req, res) {
     res.json({ mood: mood, context, profile: MOOD_PROFILES[context.mood], learning, count: songs.length, songs: songs });
   } catch (err) {
     console.error('Spotify error:', err.message);
-    res.status(500).json({ error: err.message });
+    const rateLimited = /rate limit|429/i.test(err.message || '');
+    res.status(rateLimited ? 429 : 503).json({ error: rateLimited
+      ? 'Spotify is receiving too many requests. Please wait a moment and try again.'
+      : 'Spotify recommendations are temporarily unavailable. Please try again shortly.' });
   }
 });
 
