@@ -213,9 +213,10 @@ async function saveSearchCache(query, songs) {
 }
 
 async function cachedSpotifySearch(query, token) {
-  // Version the cache because older entries contain only the previous
-  // ten-track Spotify result page.
-  const cacheKey = 'search-v2:' + query;
+  // Spotify's current Search API accepts at most 10 tracks for this app.
+  // Quaver still builds 15- and 20-song mixes by combining several distinct
+  // searches in searchTracks(), rather than requesting an invalid page size.
+  const cacheKey = 'search-v3:' + query;
   const cached = await loadSearchCache(cacheKey);
   if (cached && Date.now() < cached.expiresAt) return cached.songs;
   if (searchRequests.has(cacheKey)) return searchRequests.get(cacheKey);
@@ -223,7 +224,7 @@ async function cachedSpotifySearch(query, token) {
   const request = (async function() {
     try {
       await waitForSpotifySearchSlot();
-      const url = 'https://api.spotify.com/v1/search?q=' + encodeURIComponent(query) + '&type=track&limit=20';
+      const url = 'https://api.spotify.com/v1/search?q=' + encodeURIComponent(query) + '&type=track&limit=10';
       let res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
     if (res.status === 429) {
       const retryAfter = parseInt(res.headers.get('Retry-After') || '60', 10);
