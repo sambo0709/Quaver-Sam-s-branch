@@ -29,7 +29,7 @@
     <form class="global-search" action="search.html" method="get" role="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg><input name="q" type="search" placeholder="What do you want to play?" aria-label="Search songs, artists, or albums"/></form>
     <a class="nav-link" data-route="playlists" href="playlists.html" aria-label="Playlists">Playlists</a>
     <div id="spotify-login-btn" style="display:none">
-      <button onclick="connectSpotifyAccount()" class="nav-link spotify-nav-link">Spotify</button>
+      <button onclick="connectSpotifyAccount()" class="nav-link spotify-nav-link">Connect Spotify</button>
     </div>
     <div id="spotify-user-info" style="display:none">
       <span class="nav-link spotify-connected-link" id="spotify-user-name"></span>
@@ -66,8 +66,8 @@
   <p class="subtitle">Pick your mood. We’ll shape a mix around your moment.</p>
   <div class="recommendation-panel">
   <form class="dropdown-row" id="recommendation-form" onsubmit="submitRecommendation(event)">
-    <label class="recommendation-field" for="mood-select"><span>Your mood</span>
-    <select class="mood-select" id="mood-select" onchange="onMoodSelect(this.value)" required>
+    <div class="recommendation-field recommendation-mood-field">
+    <select class="visually-hidden-select" id="mood-select" aria-label="Your mood" onchange="onMoodSelect(this.value);syncChoiceChips('mood-select')" required>
       <option disabled selected value="">Choose a mood</option>
       <option value="happy">Happy</option>
       <option value="sad">Sad</option>
@@ -80,30 +80,49 @@
       <option value="party">Party</option>
       <option value="sleepy">Sleepy</option>
       <option value="anxious">Anxious</option>
-    </select></label>
-    <label class="recommendation-field recommendation-count" for="count-select"><span>Mix length</span>
-    <select class="mood-select" id="count-select" onchange="onCountSelect(this.value)" required>
-      <option disabled selected value="">Choose length</option>
-      <option value="5">5 songs</option>
-      <option value="8">8 songs</option>
-      <option value="10">10 songs</option>
-    </select></label>
-    <button class="mood-select recommendation-go-btn" type="submit"><span>Go</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
+    </select>
+    <div class="choice-chips main-mood-chips" data-choice-target="mood-select" role="group" aria-label="Choose your mood">
+      <button type="button" data-value="happy">Happy</button><button type="button" data-value="sad">Sad</button><button type="button" data-value="energetic">Energetic</button><button type="button" data-value="calm">Chill</button><button type="button" data-value="focused">Focused</button><button type="button" data-value="angry">Angry</button><button type="button" data-value="romantic">Romantic</button><button type="button" data-value="nostalgic">Nostalgic</button><button type="button" data-value="party">Party</button><button type="button" data-value="sleepy">Sleepy</button><button type="button" data-value="anxious">Anxious</button>
+    </div></div>
+    <div class="recommendation-controls">
+      <div class="recommendation-secondary"><button class="random-btn" type="button" onclick="randomMood()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h2.2c4.8 0 5.6 10 10.4 10H20m-3-3 3 3-3 3M4 17h2.2c1.5 0 2.6-1 3.5-2.4M14.3 9.4c.7-1.4 1.4-2.4 2.3-2.4H20m-3-3 3 3-3 3"/></svg><span>Surprise me</span></button></div>
+      <label class="recommendation-count"><span class="sr-only">Mix length</span><select class="mood-select" id="count-select" aria-label="Mix length" onchange="onCountSelect(this.value)" required><option value="10" selected>10 songs</option><option value="15">15 songs</option><option value="20">20 songs</option></select></label>
+      <button class="mood-select recommendation-go-btn" type="submit" disabled><span>Create mix</span></button>
+    </div>
   </form>
-  <div class="recommendation-secondary"><span>Not sure what fits?</span><button class="random-btn" onclick="randomMood()">Surprise Me</button></div>
-  </div>
   <details class="mood-context" id="mood-context">
-    <summary><span>Fine-tune your mix</span></summary>
+    <summary><span>Fine-tune</span></summary>
     <div class="mood-context-grid">
-      <label>Also feeling<select id="secondary-mood"><option value="">One clear mood</option><option value="happy">Happy</option><option value="sad">Sad</option><option value="energetic">Energetic</option><option value="calm">Calm</option><option value="focused">Focused</option><option value="angry">Angry</option><option value="romantic">Romantic</option><option value="nostalgic">Nostalgic</option><option value="party">Party</option><option value="sleepy">Sleepy</option><option value="anxious">Anxious</option></select></label>
-      <label>Intensity <output id="intensity-output">3</output><input id="mood-intensity" type="range" min="1" max="5" value="3" oninput="document.getElementById('intensity-output').value=this.value"/></label>
-      <label>What are you doing?<select id="mood-activity"><option value="none">Nothing specific</option><option value="studying">Studying</option><option value="working out">Working out</option><option value="commuting">Commuting</option><option value="relaxing">Relaxing</option><option value="sleeping">Sleeping</option><option value="socializing">Socializing</option></select></label>
-      <label>Where should the music take you?<select id="mood-direction"><option value="stay">Stay with this feeling</option><option value="uplift">Gently uplift me</option><option value="calm down">Calm me down</option><option value="energize">Energize me</option><option value="focus">Help me focus</option></select></label>
-      <label>Artist preference<input id="preferred-artist" maxlength="80" placeholder="Optional artist"/></label>
-      <label>Genre preference<input id="preferred-genre" maxlength="40" placeholder="Optional genre"/></label>
-      <label>Time available<select id="session-minutes"><option value="15">15 minutes</option><option value="30" selected>30 minutes</option><option value="60">1 hour</option><option value="90">90 minutes</option></select></label>
+      <section class="fine-tune-group fine-tune-mood" aria-labelledby="fine-tune-mood-title">
+        <div class="fine-tune-heading"><span>Mood</span><h3 id="fine-tune-mood-title">Shape the feeling</h3></div>
+        <div class="mood-mode-toggle" role="group" aria-label="Mood mode"><button type="button" data-mood-mode="single" aria-pressed="true">Single mood</button><button type="button" data-mood-mode="blend" aria-pressed="false">Blend moods</button></div>
+        <div class="blend-mood-options" hidden>
+        <label class="fine-tune-label">Blend with</label>
+        <select class="visually-hidden-select" id="secondary-mood" aria-label="Also feeling" onchange="syncChoiceChips('secondary-mood')"><option value="">One clear mood</option><option value="happy">Happy</option><option value="sad">Sad</option><option value="energetic">Energetic</option><option value="calm">Calm</option><option value="focused">Focused</option><option value="angry">Angry</option><option value="romantic">Romantic</option><option value="nostalgic">Nostalgic</option><option value="party">Party</option><option value="sleepy">Sleepy</option><option value="anxious">Anxious</option></select>
+        <div class="choice-chips" data-choice-target="secondary-mood"><button type="button" data-value="happy">Happy</button><button type="button" data-value="sad">Sad</button><button type="button" data-value="energetic">Energetic</button><button type="button" data-value="calm">Calm</button><button type="button" data-value="focused">Focused</button><button type="button" data-value="angry">Angry</button><button type="button" data-value="romantic">Romantic</button><button type="button" data-value="nostalgic">Nostalgic</button><button type="button" data-value="party">Party</button><button type="button" data-value="sleepy">Sleepy</button><button type="button" data-value="anxious">Anxious</button></div>
+        </div>
+        <label class="intensity-control" for="mood-intensity"><span>Intensity <output id="intensity-output">Balanced</output></span><input id="mood-intensity" type="range" min="1" max="5" value="3" oninput="updateIntensityLabel(this.value)"/><span class="intensity-ends"><small>Mellow</small><small>Intense</small></span></label>
+      </section>
+      <section class="fine-tune-group" aria-labelledby="fine-tune-context-title">
+        <div class="fine-tune-heading"><span>Context</span><h3 id="fine-tune-context-title">Match your moment</h3></div>
+        <label class="fine-tune-label">What are you doing?</label>
+        <select class="visually-hidden-select" id="mood-activity" aria-label="What are you doing?" onchange="syncChoiceChips('mood-activity')"><option value="none">Anything</option><option value="studying">Studying</option><option value="working out">Working out</option><option value="commuting">Commuting</option><option value="relaxing">Relaxing</option><option value="sleeping">Sleeping</option><option value="socializing">Socializing</option></select>
+        <div class="choice-chips" data-choice-target="mood-activity"><button type="button" data-value="none" aria-pressed="true">Anything</button><button type="button" data-value="studying">Studying</button><button type="button" data-value="working out">Working out</button><button type="button" data-value="commuting">Commuting</button><button type="button" data-value="relaxing">Relaxing</button><button type="button" data-value="sleeping">Sleeping</button><button type="button" data-value="socializing">Socializing</button></div>
+        <label class="fine-tune-label">Where should it take you?</label>
+        <select class="visually-hidden-select" id="mood-direction" aria-label="Where should the music take you?" onchange="syncChoiceChips('mood-direction')"><option value="stay">Stay here</option><option value="uplift">Lift me up</option><option value="calm down">Calm me down</option><option value="energize">Energize me</option><option value="focus">Help me focus</option></select>
+        <div class="choice-chips" data-choice-target="mood-direction"><button type="button" data-value="stay" aria-pressed="true">Stay here</button><button type="button" data-value="uplift">Lift me up</button><button type="button" data-value="calm down">Calm me down</button><button type="button" data-value="energize">Energize me</button><button type="button" data-value="focus">Help me focus</button></div>
+      </section>
+      <section class="fine-tune-group fine-tune-preferences" aria-labelledby="fine-tune-preferences-title">
+        <div class="fine-tune-heading"><span>Optional</span><h3 id="fine-tune-preferences-title">Add a preference</h3></div>
+        <div class="preference-fields"><label>Artist<input id="preferred-artist" maxlength="80" placeholder="e.g. SZA" list="artist-suggestions" autocomplete="off"/><datalist id="artist-suggestions"></datalist></label><label>Genre<input id="preferred-genre" maxlength="40" placeholder="e.g. R&amp;B" list="genre-suggestions"/><datalist id="genre-suggestions"><option value="Pop"></option><option value="R&amp;B"></option><option value="Hip-hop"></option><option value="Rock"></option><option value="Indie"></option><option value="Electronic"></option><option value="Jazz"></option><option value="Classical"></option><option value="Country"></option><option value="Afrobeats"></option><option value="Latin"></option><option value="Metal"></option><option value="Folk"></option><option value="Soul"></option><option value="Ambient"></option></datalist></label></div>
+        <small class="artist-suggestion-status" id="artist-suggestion-status" aria-live="polite"></small>
+      </section>
+      <div class="fine-tune-actions">
+        <button type="submit" form="recommendation-form" class="fine-tune-create" disabled>Create mix <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
+      </div>
     </div>
   </details>
+  </div>
   <div id="streak-banner" class="streak-banner" style="display:none"></div>
   <div id="loading" class="loading" style="display:none">
     <div class="loading-bar" aria-hidden="true"></div>

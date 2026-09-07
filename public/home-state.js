@@ -1,5 +1,5 @@
 let currentMood = null;
-let currentLimit = 5;
+let currentLimit = 10;
 let meaningfulPlayTimer = null;
 let playlistSongs = [];
 try { playlistSongs = JSON.parse(localStorage.getItem('quaver_playlist_draft') || '[]'); } catch (_) { playlistSongs = []; }

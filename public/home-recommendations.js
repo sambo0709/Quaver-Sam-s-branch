@@ -1,4 +1,6 @@
 let recommendationRequestController = null;
+let artistSuggestionTimer = null;
+let artistSuggestionController = null;
 
 function spotifyTrackId(url) {
   const match = String(url || '').match(/^https:\/\/open\.spotify\.com\/track\/([A-Za-z0-9]+)(?:\?.*)?$/);
@@ -59,35 +61,196 @@ function songMenuAction(action, index, button) {
 
 function randomMood() {
   const random = moods[Math.floor(Math.random() * moods.length)];
-  const counts = [5, 8, 10];
+  const counts = [10, 15, 20];
   const randomCount = counts[Math.floor(Math.random() * counts.length)];
   currentLimit = randomCount;
   document.getElementById('mood-select').value = random;
   document.getElementById('count-select').value = String(randomCount);
   setMood(random);
+  updateRecommendationState();
 }
 
 function onMoodSelect(value) {
   if (!value) return;
+  clearRecommendationError();
   document.querySelectorAll('[data-trending-mood]').forEach(function(button) {
     button.classList.remove('is-active');
     button.setAttribute('aria-pressed', 'false');
   });
   currentMood = value;
   applyMoodColors(value);
+  syncChoiceChips('mood-select');
+  updateRecommendationState();
+}
+
+function syncChoiceChips(targetId) {
+  const control = document.getElementById(targetId);
+  const group = document.querySelector('[data-choice-target="' + targetId + '"]');
+  if (!control || !group) return;
+  group.querySelectorAll('button[data-value]').forEach(function(button) {
+    const selected = button.dataset.value === control.value;
+    button.classList.toggle('selected', selected);
+    button.setAttribute('aria-pressed', String(selected));
+  });
+  if (targetId === 'mood-select') updateRecommendationState();
+}
+
+function updateRecommendationState() {
+  const moodControl = document.getElementById('mood-select');
+  const countControl = document.getElementById('count-select');
+  const summary = document.getElementById('recommendation-summary');
+  if (!moodControl) return;
+  const mood = moodControl.value;
+  const count = Number(countControl && countControl.value) || 10;
+  document.querySelectorAll('.recommendation-go-btn,.fine-tune-create').forEach(function(button) {
+    button.disabled = !mood;
+    button.setAttribute('aria-disabled', String(!mood));
+  });
+  if (summary) summary.textContent = mood
+    ? mood.charAt(0).toUpperCase() + mood.slice(1) + ' · ' + count + ' songs'
+    : 'Choose a mood to begin';
+}
+
+function updateMoodChipOverflow() {
+  const rail = document.querySelector('.main-mood-chips');
+  const field = rail && rail.closest('.recommendation-mood-field');
+  if (!rail || !field) return;
+  const overflow = rail.scrollWidth > rail.clientWidth + 2;
+  field.classList.toggle('has-overflow', overflow);
+  field.classList.toggle('is-scrolled', overflow && rail.scrollLeft > 4);
+  field.classList.toggle('is-at-end', !overflow || rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 4);
+}
+
+function initializeMoodChipRail() {
+  const rail = document.querySelector('.main-mood-chips');
+  if (!rail || rail.dataset.dragReady) return;
+  rail.dataset.dragReady = 'true';
+  let startX = 0;
+  let startScroll = 0;
+  let dragged = false;
+  rail.addEventListener('scroll', updateMoodChipOverflow, { passive: true });
+  rail.addEventListener('pointerdown', function(event) {
+    if (event.pointerType !== 'mouse' || event.button !== 0 || event.target.closest('button')) return;
+    startX = event.clientX;
+    startScroll = rail.scrollLeft;
+    dragged = false;
+    rail.setPointerCapture(event.pointerId);
+  });
+  rail.addEventListener('pointermove', function(event) {
+    if (!rail.hasPointerCapture(event.pointerId)) return;
+    if (Math.abs(event.clientX - startX) > 5) dragged = true;
+    if (!dragged) return;
+    rail.classList.add('is-dragging');
+    rail.scrollLeft = startScroll - (event.clientX - startX);
+  });
+  rail.addEventListener('pointerup', function(event) {
+    if (rail.hasPointerCapture(event.pointerId)) rail.releasePointerCapture(event.pointerId);
+    rail.classList.remove('is-dragging');
+    window.setTimeout(function() { dragged = false; }, 0);
+  });
+  rail.addEventListener('pointercancel', function() {
+    rail.classList.remove('is-dragging');
+    dragged = false;
+  });
+  rail.addEventListener('click', function(event) {
+    if (!dragged) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }, true);
+  window.addEventListener('resize', updateMoodChipOverflow, { passive: true });
+  requestAnimationFrame(updateMoodChipOverflow);
+}
+
+function selectChoiceChip(button) {
+  const group = button.closest('[data-choice-target]');
+  const control = group && document.getElementById(group.dataset.choiceTarget);
+  if (!control) return;
+  control.value = button.dataset.value || '';
+  control.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function setMoodBlendMode(mode) {
+  const blending = mode === 'blend';
+  document.querySelectorAll('[data-mood-mode]').forEach(function(button) {
+    button.setAttribute('aria-pressed', String(button.dataset.moodMode === mode));
+  });
+  const options = document.querySelector('.blend-mood-options');
+  if (options) options.hidden = !blending;
+  if (!blending) {
+    const secondary = document.getElementById('secondary-mood');
+    if (secondary) secondary.value = '';
+    syncChoiceChips('secondary-mood');
+  }
+}
+
+function updateArtistSuggestions(query) {
+  clearTimeout(artistSuggestionTimer);
+  if (artistSuggestionController) artistSuggestionController.abort();
+  const list = document.getElementById('artist-suggestions');
+  const status = document.getElementById('artist-suggestion-status');
+  if (!list || String(query).trim().length < 2) {
+    if (list) list.replaceChildren();
+    if (status) status.textContent = '';
+    return;
+  }
+  artistSuggestionTimer = setTimeout(async function() {
+    artistSuggestionController = new AbortController();
+    try {
+      const response = await fetch(API + '/api/music/search?q=' + encodeURIComponent(String(query).trim()), { credentials: 'include', signal: artistSuggestionController.signal });
+      const data = await response.json();
+      if (!response.ok) throw new Error('Artist lookup failed');
+      const names = Array.from(new Set((data.artists || []).map(function(artist) { return artist.name; }).filter(Boolean))).slice(0, 6);
+      list.replaceChildren.apply(list, names.map(function(name) {
+        const option = document.createElement('option');
+        option.value = name;
+        return option;
+      }));
+      if (status) status.textContent = names.length ? names.length + ' artist suggestions available' : '';
+    } catch (error) {
+      if (error.name !== 'AbortError' && status) status.textContent = '';
+    }
+  }, 250);
+}
+
+function updateIntensityLabel(value) {
+  const labels = { 1: 'Mellow', 2: 'Gentle', 3: 'Balanced', 4: 'Strong', 5: 'Intense' };
+  const output = document.getElementById('intensity-output');
+  if (output) output.value = labels[Number(value)] || 'Balanced';
 }
 
 function onCountSelect(value) {
+  clearRecommendationError();
   currentLimit = parseInt(value, 10);
+  updateRecommendationState();
 }
 
-function submitRecommendation(event) {
+function clearRecommendationError() {
+  const results = document.getElementById('results');
+  if (results && results.querySelector('.error-state')) results.replaceChildren();
+}
+
+async function submitRecommendation(event) {
   if (event) event.preventDefault();
   const mood = document.getElementById('mood-select').value;
   const count = parseInt(document.getElementById('count-select').value, 10);
   if (!mood || !count) return;
   currentLimit = count;
-  setMood(mood);
+  clearRecommendationError();
+  const buttons = Array.from(document.querySelectorAll('.recommendation-go-btn,.fine-tune-create'));
+  buttons.forEach(function(button) {
+    button.disabled = true;
+    button.dataset.previousLabel = button.textContent.trim();
+    button.textContent = 'Creating…';
+  });
+  try {
+    await setMood(mood);
+  } finally {
+    buttons.forEach(function(button) {
+      button.textContent = button.dataset.previousLabel || 'Create mix';
+      delete button.dataset.previousLabel;
+    });
+    updateRecommendationState();
+  }
 }
 
 function checkMoodStreak(mood) {
@@ -120,7 +283,7 @@ function setMood(mood) {
       method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mood: mood })
     }).catch(function() {});
   }
-  fetchSongs();
+  return fetchSongs();
 }
 
 function showSkeletons(count) {
@@ -198,7 +361,6 @@ async function fetchSongs() {
       direction: document.getElementById('mood-direction').value,
       artist: document.getElementById('preferred-artist').value.trim(),
       genre: document.getElementById('preferred-genre').value.trim(),
-      minutes: document.getElementById('session-minutes').value,
     };
     const params = new URLSearchParams({ mood: currentMood, limit: currentLimit, explicit: String(preferences.explicitContent !== false), variety: preferences.recommendationVariety || 'balanced', ...context });
     const url = API + '/api/music/recommend?' + params.toString();
@@ -208,7 +370,11 @@ async function fetchSongs() {
     if (controller !== recommendationRequestController) return;
     if (data.songs && data.songs.length > 0) {
       renderRecommendationSongs(data.songs, data.learning);
-      focusMobileResults();
+      if (document.documentElement.classList.contains('reduce-motion')) {
+        document.getElementById('results').scrollIntoView({ block: 'start' });
+      } else {
+        document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
       trackRecommendationEvent('impression', '', { count: data.songs.length, context: data.context });
     }
     else document.getElementById('results').innerHTML = '<div class="error-state"><p>No matches for that exact combination.</p><button class="retry-btn" onclick="document.getElementById(\'preferred-artist\').value=\'\';fetchSongs()">Try without the artist</button></div>';
@@ -248,6 +414,16 @@ function moreLikeThis(title, artist) {
 }
 
 document.addEventListener('click', function(event) {
+  const modeButton = event.target.closest('[data-mood-mode]');
+  if (modeButton) {
+    setMoodBlendMode(modeButton.dataset.moodMode);
+    return;
+  }
+  const choiceButton = event.target.closest('.choice-chips button[data-value]');
+  if (choiceButton) {
+    selectChoiceChip(choiceButton);
+    return;
+  }
   const playButton = event.target.closest('.play-btn[data-result-index]');
   if (playButton) {
     const song = (window._lastResults || [])[Number(playButton.dataset.resultIndex)];
@@ -256,6 +432,15 @@ document.addEventListener('click', function(event) {
     return;
   }
   closeSongMenus();
+});
+
+document.addEventListener('input', function(event) {
+  if (event.target && event.target.id === 'preferred-artist') updateArtistSuggestions(event.target.value);
+});
+
+window.addEventListener('DOMContentLoaded', function() {
+  initializeMoodChipRail();
+  updateRecommendationState();
 });
 
 document.addEventListener('keydown', function(event) {

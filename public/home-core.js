@@ -48,7 +48,7 @@ async function syncAccountPreferences() {
       document.getElementById('mood-select').value = currentMood;
       applyMoodColors(currentMood);
     }
-    if ([5, 8, 10].includes(Number(preferences.songCount))) {
+    if ([10, 15, 20].includes(Number(preferences.songCount))) {
       currentLimit = Number(preferences.songCount);
       document.getElementById('count-select').value = String(currentLimit);
     }
@@ -80,11 +80,14 @@ function applyMoodColors(mood) {
   ['--accent', '--accent2', '--gradient', '--accent-glow', '--accent2-glow'].forEach(function(property) {
     root.style.removeProperty(property);
   });
-  document.querySelectorAll('.hero-eyebrow, main > h1, .recommendation-panel, .mood-context').forEach(function(element) {
+  document.querySelectorAll('.hero-eyebrow, main > h1, .recommendation-panel').forEach(function(element) {
     element.style.setProperty('--accent', colors.accent);
     element.style.setProperty('--accent2', colors.accent2);
     element.style.setProperty('--gradient', 'linear-gradient(135deg, ' + colors.accent + ', ' + colors.accent2 + ')');
     element.style.setProperty('--accent-glow', colors.accent + '40');
     element.style.setProperty('--accent2-glow', colors.accent2 + '40');
   });
+  if (typeof syncChoiceChips === 'function') syncChoiceChips('mood-select');
+  if (typeof initializeMoodChipRail === 'function') initializeMoodChipRail();
+  if (typeof updateRecommendationState === 'function') updateRecommendationState();
 }

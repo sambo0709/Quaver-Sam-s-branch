@@ -123,7 +123,7 @@ test('Settings runs inside the SPA shell and saves shared preferences', async ({
       savedSettings = route.request().postDataJSON();
       return route.fulfill({ json: { username: savedSettings.displayName, preferences: savedSettings } });
     }
-    return route.fulfill({ json: { username: 'Settings Listener', profileImage: '', defaultTheme: 'dark', preferences: { songCount: 5, recommendationVariety: 'balanced', explicitContent: true } } });
+    return route.fulfill({ json: { username: 'Settings Listener', profileImage: '', defaultTheme: 'dark', preferences: { songCount: 10, recommendationVariety: 'balanced', explicitContent: true } } });
   });
   await page.route('**/spotify/status', route => route.fulfill({ json: { connected: false } }));
   await page.goto('/');
@@ -136,10 +136,10 @@ test('Settings runs inside the SPA shell and saves shared preferences', async ({
   await expect(page.getByRole('heading', { name: 'Settings', exact: true })).toBeVisible();
   await page.locator('#settings-name').fill('Updated Listener');
   await page.locator('#settings-mood').selectOption('calm');
-  await page.locator('#settings-count').selectOption('8');
+  await page.locator('#settings-count').selectOption('15');
   await page.getByRole('button', { name: 'Save preferences' }).click();
   await expect.poll(() => savedSettings && savedSettings.displayName).toBe('Updated Listener');
-  expect(savedSettings).toMatchObject({ defaultMood: 'calm', songCount: 8 });
+  expect(savedSettings).toMatchObject({ defaultMood: 'calm', songCount: 15 });
   await expect(page.locator('[data-shell="player"]')).toHaveAttribute('data-test-identity', 'persistent-player');
 
   await page.locator('[data-shell="top-nav"] [data-route="home"]').click();
@@ -421,6 +421,22 @@ test('homepage keeps the primary mood flow focused and leaves theme controls in 
   await page.goto('/');
   await expect(page.getByPlaceholder('Add an optional note about how you feel')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Toggle color theme' })).toHaveCount(0);
+});
+
+test('mood recommendation panel remains centered across responsive widths', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('quaver_onboarded', 'true');
+    sessionStorage.setItem('quaver_launched', '1');
+  });
+  await page.goto('/');
+  for (const width of [414, 600, 768, 1024]) {
+    await page.setViewportSize({ width, height: 896 });
+    const offset = await page.locator('.recommendation-panel').evaluate(element => {
+      const rect = element.getBoundingClientRect();
+      return Math.abs(rect.left - (window.innerWidth - rect.right));
+    });
+    expect(offset).toBeLessThanOrEqual(1);
+  }
 });
 
 test('homepage renders personalized rails and contextual song actions', async ({ page }) => {

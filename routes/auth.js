@@ -143,7 +143,7 @@ router.patch('/settings', async function(req, res) {
   const defaultTheme = ['light', 'dark', 'system'].includes(req.body.defaultTheme) ? req.body.defaultTheme : 'dark';
   const allowedMoods = ['happy', 'sad', 'angry', 'calm', 'energetic', 'romantic', 'focused', 'nostalgic', 'party', 'sleepy', 'anxious'];
   const defaultMood = allowedMoods.includes(req.body.defaultMood) ? req.body.defaultMood : '';
-  const songCount = [5, 8, 10].includes(Number(req.body.songCount)) ? Number(req.body.songCount) : 5;
+  const songCount = [10, 15, 20].includes(Number(req.body.songCount)) ? Number(req.body.songCount) : 10;
   const reducedMotion = !!req.body.reducedMotion;
   const explicitContent = req.body.explicitContent !== false;
   const recommendationVariety = ['familiar', 'balanced', 'adventurous'].includes(req.body.recommendationVariety) ? req.body.recommendationVariety : 'balanced';

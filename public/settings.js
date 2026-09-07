@@ -149,7 +149,7 @@
       updateUserIdentity(data.username, data.profileImage);
       document.getElementById('settings-theme').value = selectedTheme;
       document.getElementById('settings-mood').value = preferences.defaultMood || '';
-      document.getElementById('settings-count').value = String(preferences.songCount || 5);
+      document.getElementById('settings-count').value = String([10, 15, 20].includes(Number(preferences.songCount)) ? preferences.songCount : 10);
       document.getElementById('settings-motion').checked = !!preferences.reducedMotion;
       document.getElementById('settings-explicit').checked = preferences.explicitContent !== false;
       document.getElementById('settings-variety').value = preferences.recommendationVariety || 'balanced';
@@ -196,7 +196,7 @@
     updateUserIdentity(user.username, user.profileImage);
     document.getElementById('settings-theme').value = saved;
     document.getElementById('settings-mood').value = preferences.defaultMood || '';
-    document.getElementById('settings-count').value = String(preferences.songCount || 5);
+    document.getElementById('settings-count').value = String([10, 15, 20].includes(Number(preferences.songCount)) ? preferences.songCount : 10);
     document.getElementById('settings-motion').checked = !!preferences.reducedMotion;
     document.getElementById('settings-explicit').checked = preferences.explicitContent !== false;
     document.getElementById('settings-variety').value = preferences.recommendationVariety || 'balanced';

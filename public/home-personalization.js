@@ -19,7 +19,7 @@ function renderJumpBack(plays) {
   }).slice(0, 8);
   window._jumpBackSongs = songs;
   if (!songs.length) {
-    rail.innerHTML = '<div class="rail-empty"><span class="rail-empty-icon" aria-hidden="true">♪</span><div><strong>Your recent favorites will live here</strong><span>Play a song to start building your listening history.</span></div><a href="#recommendation-form">Find your first mix</a></div>';
+    rail.innerHTML = '<div class="rail-empty"><span class="rail-empty-icon" aria-hidden="true">♪</span><div><strong>Start with a mood</strong><span>Create a mix, then your recent favorites will appear here.</span></div><a href="#recommendation-form">Create your first mix</a></div>';
     return;
   }
   rail.innerHTML = songs.map(function(song, index) {

@@ -19,7 +19,7 @@ export class HomePage {
     this.headline = page.getByText('How are you feeling?');
     this.selectMoodButton = page.locator('#mood-select');
     this.howManySongsButton = page.locator('#count-select');
-    this.surpriseMeButton = page.getByText('Surprise Me');
+    this.surpriseMeButton = page.getByRole('button', { name: 'Surprise me' });
     this.searchInput = page.getByPlaceholder('What do you want to play?');
     this.searchButton = page.locator('.global-search');
     this.letsGoButton = page.getByRole('button', { name: "Let's go" });

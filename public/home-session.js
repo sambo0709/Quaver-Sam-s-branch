@@ -145,12 +145,14 @@ async function disconnectSpotify() {
 
 function updateSpotifyUI() {
   const name = localStorage.getItem('quaver_spotify_name');
+  const connectButton = document.getElementById('spotify-login-btn');
   if (spotifyToken && name) {
-    document.getElementById('spotify-login-btn').style.display = 'none';
+    connectButton.style.display = 'none';
     document.getElementById('spotify-user-info').style.display = 'flex';
     document.getElementById('spotify-user-name').textContent = '✓ ' + name;
   } else {
-    document.getElementById('spotify-login-btn').style.display = 'flex';
+    connectButton.textContent = 'Connect Spotify';
+    connectButton.style.display = 'flex';
     document.getElementById('spotify-user-info').style.display = 'none';
   }
 }
@@ -185,7 +187,7 @@ function initializeHome() {
     applyMoodColors(currentMood);
   }
   applyRequestedMoodFromNavigation();
-  if ([5, 8, 10].includes(Number(preferences.songCount))) {
+  if ([10, 15, 20].includes(Number(preferences.songCount))) {
     currentLimit = Number(preferences.songCount);
     document.getElementById('count-select').value = String(currentLimit);
   }

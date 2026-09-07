@@ -181,7 +181,8 @@ async function searchTracks(queries, token, limit) {
     } catch (error) {
       lastError = error;
     }
-    if (merged.length >= limit) break;
+    const distinctArtists = new Set(merged.map(function(song) { return String(song.artist || '').toLowerCase(); })).size;
+    if (merged.length >= limit && distinctArtists >= Math.ceil(limit / 2)) break;
   }
   if (!merged.length && lastError) throw lastError;
   return merged.slice(0, limit);
@@ -212,14 +213,17 @@ async function saveSearchCache(query, songs) {
 }
 
 async function cachedSpotifySearch(query, token) {
-  const cached = await loadSearchCache(query);
+  // Version the cache because older entries contain only the previous
+  // ten-track Spotify result page.
+  const cacheKey = 'search-v2:' + query;
+  const cached = await loadSearchCache(cacheKey);
   if (cached && Date.now() < cached.expiresAt) return cached.songs;
-  if (searchRequests.has(query)) return searchRequests.get(query);
+  if (searchRequests.has(cacheKey)) return searchRequests.get(cacheKey);
 
   const request = (async function() {
     try {
       await waitForSpotifySearchSlot();
-      const url = 'https://api.spotify.com/v1/search?q=' + encodeURIComponent(query) + '&type=track&limit=10';
+      const url = 'https://api.spotify.com/v1/search?q=' + encodeURIComponent(query) + '&type=track&limit=20';
       let res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
     if (res.status === 429) {
       const retryAfter = parseInt(res.headers.get('Retry-After') || '60', 10);
@@ -243,15 +247,15 @@ async function cachedSpotifySearch(query, token) {
         album_art: track.album.images[1] ? track.album.images[1].url : null,
       };
       });
-      return saveSearchCache(query, songs);
+      return saveSearchCache(cacheKey, songs);
     } catch (error) {
       if (cached && Date.now() < cached.staleUntil) return cached.songs;
       throw error;
     } finally {
-      searchRequests.delete(query);
+      searchRequests.delete(cacheKey);
     }
   })();
-  searchRequests.set(query, request);
+  searchRequests.set(cacheKey, request);
   return request;
 }
 
@@ -316,11 +320,14 @@ router.get('/similar', async function(req, res) {
 router.get('/recommend', async function(req, res) {
   const mood = req.query.mood;
   const limit = req.query.limit;
-  let songLimit = Math.min(Math.max(parseInt(limit) || 5, 1), 10);
+  let songLimit = Math.min(Math.max(parseInt(limit) || 10, 1), 20);
   const allowExplicit = req.query.explicit !== 'false';
   const variety = ['familiar', 'balanced', 'adventurous'].includes(req.query.variety) ? req.query.variety : 'balanced';
   const context = { ...parseRecommendationContext(req.query), variety };
-  songLimit = Math.min(songLimit, Math.max(1, Math.floor(context.minutes / 3.5)));
+  // Only apply a time budget when the caller explicitly supplies one. The
+  // main mix builder is count-based and should not be silently capped by the
+  // context parser's legacy 30-minute default.
+  if (req.query.minutes) songLimit = Math.min(songLimit, Math.max(1, Math.floor(context.minutes / 3.5)));
 
   if (!mood || !moodToSearch[mood.toLowerCase()]) {
     return res.status(400).json({ error: 'Invalid mood', available: Object.keys(moodToSearch) });
