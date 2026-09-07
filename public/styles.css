@@ -6166,7 +6166,7 @@ main:has(.mood-context[open]) .recommendation-panel .recommendation-go-btn {
 .search-starters,
 .search-generated-mix,
 .playlist-library-summary article,
-.playlist-library-toolbar,
+.playlist-library-toolbar:not(.is-simple),
 .playlist-create,
 .playlist-detail,
 .mood-collection-detail,
@@ -6236,8 +6236,95 @@ main:has(.mood-context[open]) .recommendation-panel .recommendation-go-btn {
   }
 
   .search-page-form,
-  .playlist-library-toolbar,
+  .playlist-library-toolbar:not(.is-simple),
   .settings-jump-nav {
     box-shadow: none;
   }
+}
+
+/* Final composition layer: resolves theme and responsive overrides above. */
+.mood-context-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas:
+    "mood context"
+    "preferences preferences";
+  align-items: start;
+  gap: 28px clamp(28px, 4vw, 52px);
+  padding: clamp(24px, 3vw, 34px);
+}
+
+.mood-context-grid .fine-tune-mood { grid-area: mood; }
+.mood-context-grid .fine-tune-context { grid-area: context; }
+.mood-context-grid .fine-tune-preferences { grid-area: preferences; }
+
+.mood-context-grid .fine-tune-group,
+:root[data-theme="dark"] .mood-context-grid .fine-tune-group,
+:root[data-theme="light"] .mood-context-grid .fine-tune-group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mood-context-grid .fine-tune-mood {
+  padding-right: 0;
+  border-right: 0;
+}
+
+.mood-context-grid .fine-tune-preferences {
+  margin-top: 0;
+  padding-top: 26px;
+  border-top: 1px solid var(--surface-line);
+}
+
+.results:not(:empty) { margin-top: 34px; }
+
+/* A simple library needs one action, not an empty full-width toolbar shell. */
+.playlist-library-toolbar.is-simple {
+  display: inline-flex;
+  justify-content: flex-start;
+  width: fit-content;
+  max-width: 100%;
+  margin: 4px 0 28px;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.playlist-library-toolbar.is-simple .playlist-build-button {
+  grid-column: auto;
+  min-width: 0;
+  width: auto;
+  padding-inline: 22px;
+}
+
+@media (max-width: 768px) {
+  .mood-context-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "mood"
+      "context"
+      "preferences";
+    gap: 22px;
+    padding: 20px;
+  }
+
+  .mood-context-grid .fine-tune-mood,
+  .mood-context-grid .fine-tune-context {
+    padding: 0 0 22px;
+    border: 0;
+    border-bottom: 1px solid var(--surface-line);
+  }
+
+  .mood-context-grid .fine-tune-preferences {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .playlist-library-toolbar.is-simple { margin-top: 0; }
+  .playlist-library-toolbar.is-simple .playlist-build-button { width: 100%; }
 }
