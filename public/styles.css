@@ -6367,6 +6367,152 @@ main:has(.mood-context[open]) .recommendation-panel .recommendation-go-btn {
     padding: 20px;
   }
 
+/* Mood Discover uses the same solid, left-aligned track language as Quaver's
+   recommendation, archive, and playlist views. This renderer serves all moods. */
+.discover-moods-page .discover-moods-main {
+  width: min(1280px, calc(100% - 48px));
+}
+
+.discover-moods-page .discover-moods-header,
+.discover-moods-page .discover-mood-detail,
+.discover-moods-page .discover-mood-detail > header,
+.discover-moods-page .discover-track-copy {
+  text-align: left;
+}
+
+.discover-moods-page .discover-mood-detail {
+  width: 100%;
+  max-width: none;
+  padding: clamp(22px, 3vw, 34px);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--surface-radius);
+  background: var(--surface-panel);
+  box-shadow: var(--surface-shadow);
+}
+
+.discover-moods-page .discover-mood-detail > header {
+  align-items: center;
+}
+
+.discover-moods-page .discover-mood-detail > header span {
+  color: var(--accent);
+  font-size: .75rem;
+  font-weight: 850;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.discover-moods-page .discover-mood-detail > header p {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+}
+
+.discover-moods-page .discover-play-all {
+  min-height: 44px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--primary-button-text, #071019);
+  background: var(--accent);
+  font: 800 .9rem/1 var(--font-family);
+  cursor: pointer;
+}
+
+.discover-moods-page .discover-daily-tracks {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.discover-moods-page .discover-daily-tracks .discover-track {
+  display: grid;
+  grid-template-columns: 32px 54px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 74px;
+  padding: 9px 14px;
+  border: 1px solid var(--surface-line);
+  border-radius: var(--surface-inner-radius);
+  color: var(--text);
+  background: var(--surface-raised);
+  box-shadow: none;
+}
+
+.discover-moods-page .discover-daily-tracks img,
+.discover-moods-page .discover-track-art {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 10px;
+  object-fit: cover;
+  color: var(--accent);
+  background: var(--surface-soft);
+  font-weight: 900;
+}
+
+.discover-moods-page .discover-track-number {
+  color: var(--text-muted);
+  font-size: .8rem;
+  text-align: center;
+}
+
+.discover-moods-page .discover-track-copy {
+  min-width: 0;
+}
+
+.discover-moods-page .discover-track-copy strong {
+  color: var(--text);
+  font-size: .98rem;
+}
+
+.discover-moods-page .discover-track-copy small {
+  color: var(--text-muted);
+  font-size: .84rem;
+}
+
+.discover-moods-page .discover-track-play {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--surface-line);
+  border-radius: 50%;
+  color: var(--text);
+  background: var(--surface-soft);
+  cursor: pointer;
+}
+
+.discover-moods-page .discover-track:hover {
+  border-color: color-mix(in srgb, var(--text-muted) 40%, var(--surface-line));
+  background: color-mix(in srgb, var(--surface-raised) 94%, var(--text) 6%);
+}
+
+@media (max-width: 600px) {
+  .discover-moods-page .discover-moods-main {
+    width: calc(100% - 28px);
+  }
+
+  .discover-moods-page .discover-mood-detail > header {
+    align-items: stretch;
+  }
+
+  .discover-moods-page .discover-daily-tracks .discover-track {
+    grid-template-columns: 22px 48px minmax(0, 1fr) 40px;
+    gap: 10px;
+    padding: 8px;
+  }
+
+  .discover-moods-page .discover-daily-tracks img,
+  .discover-moods-page .discover-track-art {
+    width: 48px;
+    height: 48px;
+  }
+}
+
   .mood-context-grid .fine-tune-mood {
     padding-right: 0;
     padding-bottom: 22px;

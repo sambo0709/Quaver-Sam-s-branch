@@ -17,8 +17,9 @@
   function renderSongs(item, songs) {
     const detail = root.querySelector('#discover-mood-detail');
     detail.hidden = false;
-    detail.innerHTML = '<header><div><span>TODAY · ' + escapeHTML(item.mood) + '</span><h2>' + escapeHTML(item.name) + '</h2><p>' + escapeHTML(item.description) + '</p></div><button type="button" data-play-all>Play all</button></header><div class="discover-daily-tracks">' + songs.map(function (song, index) {
-      return '<article><span>' + String(index + 1).padStart(2, '0') + '</span>' + (song.album_art ? '<img src="' + escapeHTML(song.album_art) + '" alt="" loading="lazy">' : '') + '<div><strong>' + escapeHTML(song.title || 'Untitled') + '</strong><small>' + escapeHTML(song.artist || 'Unknown artist') + '</small></div><button type="button" data-play="' + index + '" aria-label="Play ' + escapeHTML(song.title || 'song') + '">▶</button></article>';
+    detail.innerHTML = '<header><div><span>TODAY · ' + escapeHTML(item.mood) + '</span><h2>' + escapeHTML(item.name) + '</h2><p>' + escapeHTML(item.description) + '</p></div><button class="discover-play-all" type="button" data-play-all>Play all</button></header><div class="discover-daily-tracks">' + songs.map(function (song, index) {
+      const artwork = song.album_art ? '<img src="' + escapeHTML(song.album_art) + '" alt="" loading="lazy">' : '<span class="discover-track-art" aria-hidden="true">Q</span>';
+      return '<article class="discover-track"><span class="discover-track-number">' + String(index + 1).padStart(2, '0') + '</span>' + artwork + '<div class="discover-track-copy"><strong>' + escapeHTML(song.title || 'Untitled') + '</strong><small>' + escapeHTML(song.artist || 'Unknown artist') + '</small></div><button class="discover-track-play" type="button" data-play="' + index + '" aria-label="Play ' + escapeHTML(song.title || 'song') + '">▶</button></article>';
     }).join('') + '</div>';
     detail._songs = songs;
     detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
