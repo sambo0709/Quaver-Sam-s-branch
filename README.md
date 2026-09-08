@@ -1,2 +1,2 @@
 # Quaver
-Mood for music app
+Mood to music app
