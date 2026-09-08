@@ -1,6 +1,40 @@
 (function () {
   'use strict';
 
+  // Report uncaught front-end errors to the server sink (which forwards to
+  // Sentry when configured). Deduped and capped so a render loop can't flood.
+  (function installErrorReporter() {
+    const seen = new Set();
+    let sent = 0;
+    function report(message, source, stack) {
+      if (!message || sent >= 20) return;
+      const key = String(message).slice(0, 200);
+      if (seen.has(key)) return;
+      seen.add(key);
+      sent += 1;
+      try {
+        navigator.sendBeacon(
+          '/api/client-errors',
+          new Blob(
+            [JSON.stringify({ message: String(message).slice(0, 500), url: source || location.href, stack: String(stack || '').slice(0, 4000) })],
+            { type: 'application/json' },
+          ),
+        );
+      } catch (_) { /* best effort */ }
+    }
+    window.addEventListener('error', function (event) {
+      report(event.message || (event.error && event.error.message), event.filename, event.error && event.error.stack);
+    });
+    window.addEventListener('unhandledrejection', function (event) {
+      const reason = event.reason;
+      report(
+        reason && reason.message ? reason.message : 'Unhandled promise rejection: ' + String(reason),
+        location.href,
+        reason && reason.stack,
+      );
+    });
+  })();
+
   const routeAliases = {
     '/': 'home',
     '/Index.html': 'home',

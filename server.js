@@ -1,3 +1,6 @@
+// Must be first: lets Sentry instrument http/express before they load.
+const Sentry = require('./instrument');
+
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -107,6 +110,35 @@ app.use('/spotify', require('./routes/spotify_auth'));
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Mood Music API is running!' });
+});
+
+// Sink for front-end errors (window.onerror / unhandledrejection). Rate-limited
+// hard so a broken client can't flood it; forwarded to Sentry when configured.
+const clientErrorLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false });
+app.post('/api/client-errors', clientErrorLimiter, (req, res) => {
+  const b = req.body || {};
+  const message = String(b.message || '').slice(0, 500);
+  if (!message) return res.status(400).json({ error: 'message required' });
+  const context = {
+    url: String(b.url || '').slice(0, 500),
+    stack: String(b.stack || '').slice(0, 4000),
+    userAgent: req.get('user-agent'),
+  };
+  if (Sentry.enabled) {
+    Sentry.captureException(new Error(message), { extra: context, tags: { source: 'browser' } });
+  } else {
+    console.error('[client-error]', message, context.url);
+  }
+  res.status(204).end();
+});
+
+// Turn unhandled route errors into JSON, not an Express HTML stack page.
+if (Sentry.enabled) Sentry.setupExpressErrorHandler(app);
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error('[unhandled]', err && err.stack ? err.stack : err);
+  if (res.headersSent) return next(err);
+  res.status(err && err.status ? err.status : 500).json({ error: 'Server error' });
 });
 
 app.listen(PORT, () => {
