@@ -63,5 +63,5 @@
   }
   function unmount() { if (root && listener) root.removeEventListener('click', listener); root = null; listener = null; }
   window.QuaverDiscover = { mount: mount, unmount: unmount };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { mount(document); }); else mount(document);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { mount(document); }, { once: true }); else mount(document);
 }());

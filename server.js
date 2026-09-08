@@ -68,7 +68,7 @@ app.use(['/api/auth', '/spotify'], (req, res, next) => {
   next();
 });
 
-const spaRoutes = ['/Index.html', '/index.html', '/search.html', '/playlists.html', '/profile.html', '/settings.html', '/archive.html', '/discover.html'];
+const spaRoutes = ['/', '/Index.html', '/index.html', '/search.html', '/playlists.html', '/profile.html', '/settings.html', '/archive.html', '/discover.html'];
 app.get(spaRoutes, (req, res, next) => {
   // The client router reuses the existing page documents as view templates.
   if (req.get('X-Quaver-View') === '1') return next();
@@ -91,8 +91,4 @@ app.get('/api/health', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
-});
-
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'Index.html'));
 });

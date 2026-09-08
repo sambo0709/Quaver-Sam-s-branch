@@ -1,8 +1,10 @@
-const CACHE = 'quaver-v6';
+const CACHE = 'quaver-v7';
 // Only cache images — HTML and CSS are always served fresh from the network
 const ASSETS = [
   '/quaver-logo-cyan.svg',
   '/quaver-logo-orange.svg',
+  '/quaver-q-192.png',
+  '/quaver-q-dark.png',
   '/manifest.json',
 ];
 
