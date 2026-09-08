@@ -144,3 +144,19 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+
+// One-time data migration (embedded user-doc arrays -> own collections).
+// Guarded by a marker in `_migrations`, so this is a no-op on every boot after
+// the first and can never clobber data written through the API afterwards.
+if (!config.isTest) {
+  (async () => {
+    try {
+      const { getDB } = require('./routes/db');
+      const { runOnce } = require('./lib/migrate');
+      await runOnce(await getDB(), { log: console.log });
+    } catch (err) {
+      console.error('[migrate] startup migration failed (will retry next boot):', err.message);
+      if (Sentry.enabled) Sentry.captureException(err);
+    }
+  })();
+}
