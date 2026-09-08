@@ -4416,7 +4416,7 @@ html.reduce-motion *::after {
     inset: auto 0 0;
     z-index: 640;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     padding: 7px;
     border: 1px solid var(--glass-border);
     border-radius: 0;
@@ -6079,6 +6079,98 @@ button.archive-calendar-day.is-selected {
   background: var(--surface-soft);
   border-color: var(--surface-line);
 }
+
+/* ─── 2D mood pad (energy × positivity) ─── */
+.mood-pad-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 10px auto 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: transparent;
+  color: var(--text-muted);
+  font: 650 0.78rem var(--font-family);
+  cursor: pointer;
+}
+.recommendation-mood-field { text-align: center; }
+.mood-pad-toggle svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.7; }
+.mood-pad-toggle[aria-pressed="true"] { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 60%, var(--glass-border)); }
+
+.mood-pad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 4px auto 0;
+}
+.mood-pad[hidden],
+.main-mood-chips[hidden] { display: none; }
+.mood-pad-surface {
+  position: relative;
+  width: min(340px, 78vw);
+  aspect-ratio: 1;
+  border-radius: 20px;
+  border: 1px solid var(--glass-border);
+  background:
+    radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 60%),
+    radial-gradient(120% 120% at 0% 100%, color-mix(in srgb, #6b7cff 22%, transparent), transparent 60%),
+    var(--bg2, rgba(255, 255, 255, 0.04));
+  touch-action: none;
+  cursor: crosshair;
+  overflow: hidden;
+}
+.mood-pad-surface:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.mood-pad-axis {
+  position: absolute;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.mood-pad-axis-y-top { top: 8px; left: 50%; transform: translateX(-50%); }
+.mood-pad-axis-y-bottom { bottom: 8px; left: 50%; transform: translateX(-50%); }
+.mood-pad-axis-x-left { left: 8px; top: 50%; transform: translateY(-50%) rotate(-90deg); transform-origin: left center; }
+.mood-pad-axis-x-right { right: 8px; top: 50%; transform: translateY(-50%) rotate(90deg); transform-origin: right center; }
+.mood-pad-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 650;
+  text-transform: capitalize;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--card-solid) 70%, transparent);
+  pointer-events: none;
+  white-space: nowrap;
+  transition: color 0.15s, background 0.15s;
+}
+.mood-pad-label.is-active {
+  color: var(--primary-action-text, #06202a);
+  background: var(--accent);
+}
+.mood-pad-thumb {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid var(--bg, #0b0f17);
+  box-shadow: 0 4px 14px var(--accent-glow, rgba(34, 211, 238, 0.4));
+  transform: translate(-50%, -50%);
+  transition: left 0.12s ease, top 0.12s ease;
+  pointer-events: none;
+}
+.mood-pad-readout {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+.mood-pad-readout strong { color: var(--text); text-transform: capitalize; }
 
 .more-moods-btn svg {
   width: 15px;

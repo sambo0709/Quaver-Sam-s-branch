@@ -27,6 +27,7 @@
   <div class="nav-center">
     <a class="nav-link home-nav-link active" data-route="home" href="Index.html" aria-label="Home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 10 8-6 8 6v9H5v-9Z"/><path d="M9 19v-6h6v6"/></svg><span>Home</span></a>
     <form class="global-search" action="search.html" method="get" role="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg><input name="q" type="search" placeholder="What do you want to play?" aria-label="Search songs, artists, or albums"/></form>
+    <a class="nav-link" data-route="discover" href="discover.html" aria-label="Daily discovery">Discover</a>
     <a class="nav-link" data-route="playlists" href="playlists.html" aria-label="Playlists">Playlists</a>
     <div id="spotify-login-btn" style="display:none">
       <button type="button" onclick="connectSpotifyAccount()" class="nav-link spotify-nav-link" aria-label="Connect with Spotify">
@@ -41,7 +42,7 @@
   </div>
   <div class="nav-right">
     <a id="nav-login-link" href="login.html" class="login-nav-btn" style="display:none">Login</a>
-    <div id="user-menu" class="user-menu" style="display:none"><button id="user-menu-button" class="user-menu-button" onclick="toggleUserMenu(event)" aria-label="Open account menu" aria-expanded="false"><span id="user-avatar">U</span></button><div id="user-menu-dropdown" class="user-menu-dropdown" hidden><div class="user-menu-header"><strong id="nav-username"></strong><small>Quaver account</small></div><a href="profile.html">Profile</a><a href="settings.html">Settings</a><button onclick="logout()">Log out</button></div></div>
+    <div id="user-menu" class="user-menu" style="display:none"><button id="user-menu-button" class="user-menu-button" onclick="toggleUserMenu(event)" aria-label="Open account menu" aria-expanded="false"><span id="user-avatar">U</span></button><div id="user-menu-dropdown" class="user-menu-dropdown" hidden><div class="user-menu-header"><strong id="nav-username"></strong><small>Quaver account</small></div><a href="profile.html" data-route="profile">Profile</a><a href="archive.html" data-route="archive">Mood archive</a><a href="settings.html" data-route="settings">Settings</a><button onclick="logout()">Log out</button></div></div>
   </div>
 </nav>
 
@@ -96,7 +97,9 @@
     </select>
     <div class="choice-chips main-mood-chips" data-choice-target="mood-select" role="group" aria-label="Choose your mood">
       <button type="button" data-value="happy">Happy</button><button type="button" data-value="calm">Calm</button><button type="button" data-value="energetic">Energetic</button><button type="button" data-value="sad">Sad</button><button type="button" data-value="focused">Focused</button><button class="extra-main-mood" type="button" data-value="angry" hidden>Angry</button><button class="extra-main-mood" type="button" data-value="romantic" hidden>Romantic</button><button class="extra-main-mood" type="button" data-value="nostalgic" hidden>Nostalgic</button><button class="extra-main-mood" type="button" data-value="party" hidden>Party</button><button class="extra-main-mood" type="button" data-value="sleepy" hidden>Sleepy</button><button class="extra-main-mood" type="button" data-value="anxious" hidden>Anxious</button><button class="more-moods-btn" type="button" aria-expanded="false" onclick="toggleMainMoods(this)"><span>More moods</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button>
-    </div></div>
+    </div>
+    <div class="mood-pad" id="mood-pad" hidden></div>
+    <button class="mood-pad-toggle" type="button" onclick="toggleMoodPad()" aria-pressed="false" title="Switch between mood chips and the mood pad"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="15.5" cy="8.5" r="2.4"/></svg><span>Pad</span></button></div>
     <div class="recommendation-controls">
       <label class="recommendation-count"><span class="sr-only">Mix length</span><select class="mood-select" id="count-select" aria-label="Mix length" onchange="onCountSelect(this.value)" required><option value="10" selected>10 songs</option><option value="15">15 songs</option><option value="20">20 songs</option></select></label>
       <button class="mood-select recommendation-go-btn" type="submit" disabled><span>Create my mix</span></button>
@@ -218,6 +221,7 @@
 <nav class="mobile-bottom-nav" data-shell="mobile-nav" aria-label="Mobile navigation">
   <a class="active" data-route="home" href="Index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 10 8-6 8 6v9H5v-9Z"/><path d="M9 19v-6h6v6"/></svg>Home</a>
   <a data-route="search" href="search.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>Search</a>
+  <a data-route="discover" href="discover.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z"/></svg>Discover</a>
   <a data-route="playlists" href="playlists.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 11h11M9 16h7"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="11" r="1"/><circle cx="4.5" cy="16" r="1"/></svg>Playlists</a>
   <a data-route="profile" href="profile.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.6-4 3-6 7-6s6.4 2 7 6"/></svg>Account</a>
 </nav>
@@ -263,6 +267,7 @@
 <script src="home-player.js"></script>
 <script src="home-playlists.js"></script>
 <script src="home-search-ui.js"></script>
+<script src="mood-pad.js"></script>
 <script src="spotify-player.js"></script>
 </body>
 </html>
