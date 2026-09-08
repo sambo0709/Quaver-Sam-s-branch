@@ -151,7 +151,7 @@ body::after {
 .choice-chips button { min-height:34px;padding:8px 12px;border:1px solid var(--glass-border);border-radius:999px;background:transparent;color:var(--text-muted);font:700 .68rem/1 var(--font-family);cursor:pointer;white-space:nowrap; }
 .choice-chips button:hover { background:var(--glass-hover);color:var(--text); }
 .mood-context .choice-chips button.selected,.mood-context .choice-chips button[aria-pressed="true"] { border-color:color-mix(in srgb,var(--text) 22%,var(--glass-border));background:color-mix(in srgb,var(--text) 8%,var(--card-solid));color:var(--text); }
-.main-mood-chips button.selected,.main-mood-chips button[aria-pressed="true"] { border-color:transparent;background:var(--accent);color:#fff;font-weight:850;box-shadow:none; }
+.main-mood-chips button.selected,.main-mood-chips button[aria-pressed="true"] { border-color:transparent;background:var(--accent);color:var(--mood-action-text,var(--primary-action-text));font-weight:850;box-shadow:none; }
 .intensity-control { display:grid;gap:8px;margin-top:18px;color:var(--text-muted);font-size:.68rem;font-weight:750; }
 .intensity-control > span:first-child,.intensity-ends { display:flex;align-items:center;justify-content:space-between; }
 .intensity-control output { color:var(--text);font-weight:800; }
@@ -171,8 +171,8 @@ body::after {
 .fine-tune-create { display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:42px;padding:0 18px;border:0;border-radius:999px;background:var(--text);color:var(--bg);font:800 .74rem/1 var(--font-family);cursor:pointer; }
 .fine-tune-create svg { width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2; }
 .fine-tune-create:hover { transform:translateY(-1px);filter:brightness(.96); }
-.recommendation-go-btn { cursor:pointer; font-weight:800; color:#fff; border-color:transparent; background:var(--gradient); }
-.recommendation-go-btn:hover,.recommendation-go-btn:focus { color:#fff; transform:translateY(-2px); box-shadow:0 10px 24px var(--accent-glow); }
+.recommendation-go-btn { cursor:pointer; font-weight:800; color:var(--mood-action-text,var(--primary-action-text)); border-color:transparent; background:var(--gradient); }
+.recommendation-go-btn:hover,.recommendation-go-btn:focus { color:var(--mood-action-text,var(--primary-action-text)); transform:translateY(-2px); box-shadow:0 10px 24px var(--accent-glow); }
 @media (max-width:600px){.mood-context-grid{grid-template-columns:1fr;}.fine-tune-preferences{grid-column:auto;}.preference-fields{grid-template-columns:1fr;}.fine-tune-actions{grid-column:auto;align-items:stretch;flex-direction:column;gap:8px}.fine-tune-create{width:100%}}
 
 /* ═══════════════════════════════════════
@@ -5257,14 +5257,14 @@ main > .subtitle { max-width:560px; margin-bottom:1.7rem; font-size:1rem; line-h
 .main-mood-chips::-webkit-scrollbar { display:none; }
 .main-mood-chips.is-dragging { cursor:grabbing;user-select:none;scroll-snap-type:none; }
 .main-mood-chips button { flex:0 0 auto;min-height:48px;padding-inline:11px;background:var(--bg3);scroll-snap-align:start; }
-:root[data-theme="dark"] .main-mood-chips button:not(.active) { color:rgba(232,244,255,.7); }
+:root[data-theme="dark"] .main-mood-chips button:not(.selected):not([aria-pressed="true"]) { color:rgba(232,244,255,.7); }
 .recommendation-summary { grid-area:summary;margin:0;text-align:center;color:var(--text-muted);font-size:.7rem;font-weight:750; }
 .recommendation-controls { grid-area:controls; display:flex; align-items:center; justify-content:center; gap:10px; min-width:0; }
 .recommendation-count { display:grid;flex:0 1 170px;min-width:150px;color:var(--text-muted);font-size:.68rem;font-weight:800;text-align:left; }
 .recommendation-count .mood-select { min-height:48px; }
-.recommendation-panel .recommendation-go-btn { flex:0 1 220px;width:220px;min-width:0;margin-top:0;padding:0 20px;display:flex;align-items:center;justify-content:center;gap:9px;border-color:transparent;background:var(--ui-accent);color:var(--primary-action-text);text-align:center;white-space:nowrap; }
+.recommendation-panel .recommendation-go-btn { flex:0 1 220px;width:220px;min-width:0;margin-top:0;padding:0 20px;display:flex;align-items:center;justify-content:center;gap:9px;border-color:transparent;background:var(--accent);color:var(--mood-action-text,var(--primary-action-text));text-align:center;white-space:nowrap; }
 .recommendation-panel .recommendation-go-btn:hover,
-.recommendation-panel .recommendation-go-btn:focus-visible { border-color:transparent;background:color-mix(in srgb,var(--ui-accent) 88%,var(--text));color:var(--primary-action-text);box-shadow:0 8px 20px var(--accent-glow); }
+.recommendation-panel .recommendation-go-btn:focus-visible { border-color:transparent;background:color-mix(in srgb,var(--accent) 88%,var(--text));color:var(--mood-action-text,var(--primary-action-text));box-shadow:0 8px 20px var(--accent-glow); }
 .recommendation-panel .recommendation-go-btn:disabled,.fine-tune-create:disabled { cursor:not-allowed;opacity:.48;transform:none;filter:none;box-shadow:none; }
 .recommendation-go-btn svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; }
 .recommendation-secondary { display:flex;flex:0 1 190px;justify-content:center;align-items:center;margin-top:0;color:var(--text-muted);font-size:.75rem; }
