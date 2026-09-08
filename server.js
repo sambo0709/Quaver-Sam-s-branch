@@ -56,9 +56,12 @@ app.use((req, res, next) => {
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  // A single active session fires 15-25 API calls on load plus one per mix, so
+  // 100/15min locked real users out. Overridable via env.
+  max: Number(process.env.API_RATE_LIMIT_MAX) || 300,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => process.env.NODE_ENV === 'test',
   message: { error: 'Too many requests, please try again later.' },
 });
 const spotifyLimiter = rateLimit({

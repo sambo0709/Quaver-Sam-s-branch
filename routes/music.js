@@ -37,6 +37,11 @@ const SEARCH_STALE_TTL = 7 * 24 * 60 * 60 * 1000;
 const searchCache = new Map();
 const searchRequests = new Map();
 const artistImageCache = new Map();
+// Per-user collaborative-picks cache (co-listening is a costly cross-user scan).
+const collabCache = new Map();
+const COLLAB_TTL = 60 * 60 * 1000;
+const COLLAB_MIN_HISTORY = 8;   // below this, overlap is noise
+const COLLAB_MIN_OVERLAP = 3;   // shared tracks needed to count as a co-listener
 let lastSpotifySearchAt = 0;
 let spotifySearchGate = Promise.resolve();
 const SPOTIFY_SEARCH_INTERVAL = 250;
@@ -85,6 +90,51 @@ async function getMoodPool(context, token) {
     if (entry && Date.now() < entry.staleUntil) return entry.songs;
     throw error;
   }
+}
+
+// "Listeners with taste like yours play this": find users who overlap on several
+// of the caller's played tracks, then surface tracks they play that the caller
+// hasn't. Returns [] on a small user base — no-op, not an error.
+async function collaborativePicks(db, oid, playedTrackIds) {
+  if (playedTrackIds.length < COLLAB_MIN_HISTORY) return [];
+  const key = String(oid);
+  const cached = collabCache.get(key);
+  if (cached && Date.now() < cached.expiresAt) return cached.songs;
+
+  const listening = db.collection('listening_history');
+  const coListeners = await listening.aggregate([
+    { $match: { trackId: { $in: playedTrackIds }, userId: { $ne: oid } } },
+    { $group: { _id: '$userId', overlap: { $sum: 1 } } },
+    { $match: { overlap: { $gte: COLLAB_MIN_OVERLAP } } },
+    { $sort: { overlap: -1 } },
+    { $limit: 30 },
+  ]).toArray();
+
+  let songs = [];
+  if (coListeners.length) {
+    const heard = new Set(playedTrackIds);
+    const rows = await listening.aggregate([
+      { $match: { userId: { $in: coListeners.map(function(row) { return row._id; }) }, trackId: { $nin: playedTrackIds } } },
+      { $group: { _id: '$trackId', listeners: { $addToSet: '$userId' }, title: { $first: '$title' }, artist: { $first: '$artist' } } },
+      { $match: { $expr: { $gte: [{ $size: '$listeners' }, 2] } } },
+      { $limit: 40 },
+    ]).toArray();
+    songs = rows
+      .sort(function(a, b) { return b.listeners.length - a.listeners.length; })
+      .filter(function(row) { return /^[A-Za-z0-9]{22}$/.test(String(row._id)) && !heard.has(row._id); })
+      .slice(0, 15)
+      .map(function(row) {
+        return {
+          trackId: row._id,
+          title: row.title || 'Untitled',
+          artist: row.artist || 'Unknown artist',
+          spotify_url: 'https://open.spotify.com/track/' + row._id,
+          album_art: null,
+        };
+      });
+  }
+  collabCache.set(key, { songs: songs, expiresAt: Date.now() + COLLAB_TTL });
+  return songs;
 }
 
 function pickUnseenSongs(pool, mood, limit) {
@@ -439,6 +489,23 @@ router.get('/recommend', async function(req, res) {
       } catch (_) {}
     }
 
+    // Collaborative filtering: pull in tracks that listeners with overlapping
+    // history play. Gracefully empty on a small user base.
+    if (user && history.played.size >= COLLAB_MIN_HISTORY && !dailyKey) {
+      try {
+        const db = await getDB();
+        const oid = new (require('mongodb').ObjectId)(user.userId);
+        const picks = await collaborativePicks(db, oid, Array.from(history.played));
+        if (picks.length) {
+          history.collaborative = new Set(picks.map(function(song) { return song.trackId; }));
+          const have = new Set(pool.map(function(song) { return song.trackId; }));
+          picks.forEach(function(song) {
+            if (!have.has(song.trackId)) { have.add(song.trackId); pool.push(song); }
+          });
+        }
+      } catch (_) {}
+    }
+
     function trackId(song) { return song.spotify_url ? song.spotify_url.split('/track/')[1]?.split('?')[0] : ''; }
     if (variety === 'adventurous') pool = pool.filter(function(song) { return !history.liked.has(trackId(song)) && !history.played.has(trackId(song)); });
     if (!pool.length && unfilteredForVariety.length) pool = unfilteredForVariety;
@@ -462,8 +529,9 @@ router.get('/recommend', async function(req, res) {
       familiarTracks: history.played.size,
       seedArtists: history.seedArtists.size,
       blockedArtists: history.blockedArtists.size,
+      collaborative: history.collaborative ? history.collaborative.size : 0,
       variety,
-    } : { personalized: false, loggedOut: true, ratings: 0, completed: 0, skipped: 0, familiarTracks: 0, seedArtists: 0, blockedArtists: 0, variety };
+    } : { personalized: false, loggedOut: true, ratings: 0, completed: 0, skipped: 0, familiarTracks: 0, seedArtists: 0, blockedArtists: 0, collaborative: 0, variety };
     res.json({ mood: mood, context, profile: MOOD_PROFILES[context.mood], learning, daily: dailyKey || undefined, seededFrom: seededFrom || undefined, count: songs.length, songs: songs });
   } catch (err) {
     console.error('Spotify error:', err.message);
@@ -666,3 +734,5 @@ router.get('/sotd', async function(_req, res) {
 });
 
 module.exports = router;
+module.exports.collaborativePicks = collaborativePicks;
+module.exports._resetCollabCache = function () { collabCache.clear(); };

@@ -90,6 +90,7 @@ function scoreAndExplain(song, context, history) {
   if (context._sessionSet.has(id) && context.variety !== 'familiar') score -= 1.6;
   if (history.liked.has(id)) { score += context.direction === 'stay' ? 1.5 : 0.55; reasons.push('Because you liked this track'); }
   if (history.seedArtists && history.seedArtists.has(artistKey)) { score += 0.9; reasons.push('One of your go-to artists'); }
+  if (history.collaborative && history.collaborative.has(id)) { score += 0.7; reasons.push('Listeners with taste like yours play this'); }
   if (history.played.has(id)) { score += context.variety === 'familiar' ? 1.1 : -0.2; reasons.push('A familiar pick from your history'); }
   if (history.likedArtists.has(artistKey)) { score += 0.8; reasons.push('Because you respond well to ' + song.artist); }
   const skipCount = history.skipped?.get(id) || 0;

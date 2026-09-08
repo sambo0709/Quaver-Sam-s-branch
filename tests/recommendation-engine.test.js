@@ -92,6 +92,18 @@ test('search queries fold in a time-of-day term at night', function() {
   assert.ok(day.every(function(q) { return !/late night|morning/.test(q); }));
 });
 
+test('ranking lifts collaborative picks with an explanation', function() {
+  const pool = [
+    { trackId: 'collab', title: 'Crowd pick', artist: 'A' },
+    { trackId: 'plain', title: 'Plain', artist: 'B' },
+  ];
+  const context = { mood: 'happy', secondaryMood: '', intensity: 3, activity: 'none', direction: 'stay', preferredArtist: '', preferredGenre: '', variety: 'balanced' };
+  const history = { liked: new Set(), disliked: new Set(), played: new Set(), likedArtists: new Set(), collaborative: new Set(['collab']) };
+  const ranked = rankSongs(pool, context, history, 2);
+  assert.equal(ranked[0].trackId, 'collab');
+  assert.ok(ranked[0].recommendation_reasons.some(function(r) { return /taste like yours/.test(r); }));
+});
+
 test('ranking demotes tracks already heard this session (unless variety is familiar)', function() {
   const pool = [
     { trackId: 'fresh', title: 'Fresh', artist: 'A' },

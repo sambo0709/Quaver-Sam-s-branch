@@ -231,7 +231,7 @@
 
     tasteEditors = { loved: loved, blocked: blocked };
     window.QuaverTaste.load().then(function (taste) {
-      if (!taste) { flash('Sign in to set your taste', true); return; }
+      if (!taste) { flash('Sign in to set your taste'); return; }
       current = taste;
       loved.set(taste.seedArtists);
       blocked.set(taste.blockedArtists);

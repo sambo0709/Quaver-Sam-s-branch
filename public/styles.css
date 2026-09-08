@@ -1930,8 +1930,9 @@ h1 span {
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
-.taste-status { min-height: 18px; margin: 12px 0 0; font-size: 0.8rem; color: var(--text-muted); }
-.taste-status.is-error { color: #e0556e; }
+.taste-status { min-height: 18px; margin: 12px 0 0; font-size: 0.8rem; color: var(--text); }
+.taste-status:empty { min-height: 0; }
+.taste-status.is-error { color: #ff8095; }
 
 .add-btn {
   padding: 6px 14px;
