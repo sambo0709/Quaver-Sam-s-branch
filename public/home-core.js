@@ -75,12 +75,11 @@ function applyMoodColors(mood) {
   ['--accent', '--accent2', '--gradient', '--hero-gradient', '--accent-glow', '--accent2-glow', '--mood-action-text'].forEach(function(property) {
     root.style.removeProperty(property);
   });
-  document.querySelectorAll('.hero-eyebrow, main > h1, .sotd-section, .recommendation-panel').forEach(function(element) {
+  document.querySelectorAll('.hero-eyebrow, main > h1, .recommendation-panel').forEach(function(element) {
     element.style.setProperty('--accent', colors.accent);
     element.style.setProperty('--accent2', colors.accent2);
     element.style.setProperty('--gradient', 'linear-gradient(135deg, ' + colors.accent + ', ' + colors.accent2 + ')');
     element.style.setProperty('--hero-gradient', 'linear-gradient(135deg, ' + colors.accent + ', ' + colors.accent2 + ')');
-    element.style.setProperty('--sotd-gradient', 'linear-gradient(135deg, ' + colors.accent + ', ' + colors.accent2 + ')');
     element.style.setProperty('--accent-glow', colors.accent + '40');
     element.style.setProperty('--accent2-glow', colors.accent2 + '40');
     element.style.setProperty('--mood-action-text', colors.text);
