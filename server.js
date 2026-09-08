@@ -1,4 +1,5 @@
 const express = require('express');
+const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -6,8 +7,18 @@ const rateLimit = require('express-rate-limit');
 
 dotenv.config();
 
+// Validate the environment before anything else touches it (exits on failure).
+const config = require('./config');
+
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = config.port;
+
+// Serve the built, content-hashed assets from dist/ when `npm run build` has
+// run; fall back to the raw sources in public/ otherwise (dev, or an un-built
+// deploy). Everything downstream uses STATIC_DIR / STATIC_ROOT.
+const STATIC_DIR = fs.existsSync(path.join(__dirname, 'dist', 'Index.html')) ? 'dist' : 'public';
+const STATIC_ROOT = path.join(__dirname, STATIC_DIR);
+console.log(`Serving static assets from ${STATIC_DIR}/`);
 
 // Middleware
 // Render terminates HTTPS at its proxy and forwards the original client IP.
@@ -72,9 +83,18 @@ const spaRoutes = ['/', '/Index.html', '/index.html', '/search.html', '/playlist
 app.get(spaRoutes, (req, res, next) => {
   // The client router reuses the existing page documents as view templates.
   if (req.get('X-Quaver-View') === '1') return next();
-  return res.sendFile(path.join(__dirname, 'public', 'Index.html'));
+  return res.sendFile(path.join(STATIC_ROOT, 'Index.html'));
 });
-app.use(express.static('public'));
+app.use(express.static(STATIC_DIR, {
+  // Hashed filenames are safe to cache hard; HTML must stay fresh.
+  setHeaders(res, filePath) {
+    if (/\.[0-9a-f]{10}\.(?:js|css)$/.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    } else if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  },
+}));
 
 // Routes
 app.use('/api/mood', require('./routes/mood'));
