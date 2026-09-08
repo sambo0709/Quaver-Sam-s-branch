@@ -6510,10 +6510,11 @@ main:has(.mood-context[open]) .recommendation-panel .recommendation-go-btn {
   border-radius: 22px;
   background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 14%, var(--surface-raised)), var(--surface-raised));
 }
+.mix-story > div { min-width:0;text-align:left;justify-self:start; }
 .mix-story > div > span { color:var(--accent);font-size:.62rem;font-weight:850;letter-spacing:.14em; }
 .mix-story h2 { margin:6px 0;color:var(--text);font-size:clamp(1.3rem,3vw,1.85rem);text-align:left;text-transform:none; }
 .mix-story p { max-width:520px;color:var(--text-muted);font-size:.86rem;line-height:1.55; }
-.mix-story-play { min-height:48px;padding:0 20px;border:0;border-radius:999px;background:var(--accent);color:var(--primary-action-text);font:850 .85rem/1 var(--font-family);cursor:pointer;white-space:nowrap; }
+.mix-story-play { min-height:48px;padding:0 20px;border:0;border-radius:999px;background:var(--accent);color:var(--primary-action-text);font:850 .85rem/1 var(--font-family);cursor:pointer;white-space:nowrap;justify-self:end; }
 .mix-story-play:hover { transform:translateY(-2px);box-shadow:0 10px 24px var(--accent-glow); }
 .mix-spotify-handoff { display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:16px;padding:15px 17px;border:1px solid var(--surface-line);border-radius:14px;background:var(--surface-soft); }
 .mix-spotify-handoff div { display:grid;gap:3px; }
@@ -6523,7 +6524,7 @@ main:has(.mood-context[open]) .recommendation-panel .recommendation-go-btn {
 
 @media (max-width: 600px) {
   .mix-story { grid-template-columns:1fr;gap:16px; }
-  .mix-story-play { width:100%; }
+  .mix-story-play { width:100%;justify-self:stretch; }
   .mix-spotify-handoff { align-items:stretch;flex-direction:column; }
   .mix-spotify-handoff button { width:100%; }
 }
