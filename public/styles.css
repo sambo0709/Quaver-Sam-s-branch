@@ -12,9 +12,38 @@
   --app-reading-max: 1180px;
   --app-gutter: clamp(20px, 3vw, 48px);
   --desktop-player-space: 118px;
+
+  /* Canonical mood palette. Every mood surface maps to these three tokens. */
+  --mood-happy-a:#d7a300;--mood-happy-b:#e8b923;--mood-happy-text:#211800;
+  --mood-sad-a:#2878d0;--mood-sad-b:#3157a4;--mood-sad-text:#fff;
+  --mood-energetic-a:#e85d04;--mood-energetic-b:#f48c06;--mood-energetic-text:#211000;
+  --mood-calm-a:#168c8c;--mood-calm-b:#2aa7a1;--mood-calm-text:#061b1b;
+  --mood-focused-a:#4f46e5;--mood-focused-b:#7c3aed;--mood-focused-text:#fff;
+  --mood-angry-a:#c1121f;--mood-angry-b:#780000;--mood-angry-text:#fff;
+  --mood-romantic-a:#d63384;--mood-romantic-b:#f06595;--mood-romantic-text:#fff;
+  --mood-nostalgic-a:#9c6644;--mood-nostalgic-b:#c08457;--mood-nostalgic-text:#fff;
+  --mood-party-a:#9d00c6;--mood-party-b:#e0008a;--mood-party-text:#fff;
+  --mood-sleepy-a:#40577a;--mood-sleepy-b:#68769b;--mood-sleepy-text:#fff;
+  --mood-anxious-a:#3a8d44;--mood-anxious-b:#78a641;--mood-anxious-text:#071a09;
 }
 
+.mood-happy{--mood-a:var(--mood-happy-a);--mood-b:var(--mood-happy-b);--mood-text:var(--mood-happy-text)}
+.mood-sad{--mood-a:var(--mood-sad-a);--mood-b:var(--mood-sad-b);--mood-text:var(--mood-sad-text)}
+.mood-energetic{--mood-a:var(--mood-energetic-a);--mood-b:var(--mood-energetic-b);--mood-text:var(--mood-energetic-text)}
+.mood-calm{--mood-a:var(--mood-calm-a);--mood-b:var(--mood-calm-b);--mood-text:var(--mood-calm-text)}
+.mood-focused{--mood-a:var(--mood-focused-a);--mood-b:var(--mood-focused-b);--mood-text:var(--mood-focused-text)}
+.mood-angry{--mood-a:var(--mood-angry-a);--mood-b:var(--mood-angry-b);--mood-text:var(--mood-angry-text)}
+.mood-romantic{--mood-a:var(--mood-romantic-a);--mood-b:var(--mood-romantic-b);--mood-text:var(--mood-romantic-text)}
+.mood-nostalgic{--mood-a:var(--mood-nostalgic-a);--mood-b:var(--mood-nostalgic-b);--mood-text:var(--mood-nostalgic-text)}
+.mood-party{--mood-a:var(--mood-party-a);--mood-b:var(--mood-party-b);--mood-text:var(--mood-party-text)}
+.mood-sleepy{--mood-a:var(--mood-sleepy-a);--mood-b:var(--mood-sleepy-b);--mood-text:var(--mood-sleepy-text)}
+.mood-anxious{--mood-a:var(--mood-anxious-a);--mood-b:var(--mood-anxious-b);--mood-text:var(--mood-anxious-text)}
+
 :root[data-theme="dark"] {
+  --brand-highlight: #a5f3fc;
+  --brand-primary: #22d3ee;
+  --brand-shadow: #0891b2;
+  --brand-gradient: linear-gradient(135deg, #a5f3fc, #22d3ee 55%, #0891b2);
   --ui-accent: #22d3ee;
   --primary-action-text: #06202a;
   --bg: #080c14;
@@ -40,6 +69,10 @@
 }
 
 :root[data-theme="light"] {
+  --brand-highlight: #fed7aa;
+  --brand-primary: #f97316;
+  --brand-shadow: #c2410c;
+  --brand-gradient: linear-gradient(135deg, #fed7aa, #f97316 55%, #c2410c);
   --ui-accent: #c2410c;
   --primary-action-text: #ffffff;
   --bg: #f0f4ff;
@@ -1642,8 +1675,8 @@ h1 span {
   text-align: left;
   border: 1px solid color-mix(in srgb, white 18%, transparent);
   border-radius: 22px;
-  color: white;
-  background: linear-gradient(135deg, var(--collection-a), var(--collection-b));
+  color: var(--mood-text);
+  background: linear-gradient(135deg, var(--mood-a), var(--mood-b));
   box-shadow: none;
   cursor: pointer;
 }
@@ -3651,23 +3684,12 @@ button.archive-calendar-day.is-selected { border-color:var(--accent);background:
 .mood-collections { width:100%; margin:36px 0 0; padding-top:28px; border-top:1px solid var(--glass-border); }
 .mood-collections .playlist-grid-heading p { margin-top:5px; color:var(--text-muted); font-size:11px; }
 .mood-collection-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:12px; }
-.mood-collection-card { --collection-a:#3157a4; --collection-b:#4f46e5; position:relative; min-height:176px; padding:22px; overflow:hidden; border:1px solid rgba(255,255,255,.13); border-radius:15px; background:linear-gradient(135deg,var(--collection-a),var(--collection-b)); color:#fff; text-align:left; cursor:pointer; transition:transform .2s ease,filter .2s ease; }
+.mood-collection-card { position:relative; min-height:176px; padding:22px; overflow:hidden; border:1px solid rgba(255,255,255,.13); border-radius:15px; background:linear-gradient(135deg,var(--mood-a),var(--mood-b)); color:var(--mood-text); text-align:left; cursor:pointer; transition:transform .2s ease,filter .2s ease; }
 .mood-collection-card:hover { transform:translateY(-3px); filter:saturate(1.08); }
 .mood-collection-card span { display:block; font-size:9px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; opacity:.74; }
 .mood-collection-card strong { display:block; margin-top:24px; font-size:1.25rem; letter-spacing:-.025em; }
 .mood-collection-card small { display:block; max-width:250px; margin-top:7px; font-size:10px; line-height:1.45; opacity:.78; }
 .mood-collection-card b { display:block; margin-top:18px; font-size:9px; letter-spacing:.04em; }
-.mood-collection-card.mood-focused,.discover-mood-card.mood-focused { --collection-a:#3157a4;--collection-b:#4f46e5; }
-.mood-collection-card.mood-energetic,.discover-mood-card.mood-energetic { --collection-a:#b45309;--collection-b:#dc2626; }
-.mood-collection-card.mood-calm,.discover-mood-card.mood-calm { --collection-a:#26364f;--collection-b:#674a72; }
-.mood-collection-card.mood-happy,.discover-mood-card.mood-happy { --collection-a:#a16207;--collection-b:#be185d; }
-.mood-collection-card.mood-sleepy,.discover-mood-card.mood-sleepy { --collection-a:#334155;--collection-b:#4338ca; }
-.mood-collection-card.mood-nostalgic,.discover-mood-card.mood-nostalgic { --collection-a:#7c4a32;--collection-b:#9a6b49; }
-.mood-collection-card.mood-sad,.discover-mood-card.mood-sad { --collection-a:#245c8f;--collection-b:#303f78; }
-.mood-collection-card.mood-angry,.discover-mood-card.mood-angry { --collection-a:#8b1e2d;--collection-b:#c2410c; }
-.mood-collection-card.mood-romantic,.discover-mood-card.mood-romantic { --collection-a:#9d3d6b;--collection-b:#c24172; }
-.mood-collection-card.mood-party,.discover-mood-card.mood-party { --collection-a:#7e22ce;--collection-b:#db2777; }
-.mood-collection-card.mood-anxious,.discover-mood-card.mood-anxious { --collection-a:#356b54;--collection-b:#4d8b63; }
 .mood-collection-detail { margin-top:14px; padding:20px; border:1px solid var(--glass-border); border-radius:15px; background:var(--card-solid); scroll-margin-top:90px; }
 .mood-collection-detail-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; margin-bottom:17px; }
 .mood-collection-detail-heading > div:first-child > span { color:var(--accent); font-size:9px; font-weight:800; letter-spacing:.13em; }
@@ -4648,16 +4670,15 @@ html.reduce-motion *::after {
 .rail-skeleton::after, .sotd-skeleton::after { content:''; position:absolute; inset:0; background:linear-gradient(100deg,transparent 25%,rgba(255,255,255,.08) 48%,transparent 72%); transform:translateX(-100%); animation:railShimmer 1.4s infinite; }
 @keyframes railShimmer { to { transform:translateX(100%); } }
 .mood-rail { grid-auto-columns:minmax(190px,1fr); }
-.mood-shortcut-card { position:relative; min-height:150px; padding:20px; overflow:hidden; border:1px solid rgba(255,255,255,.12); border-radius:12px; background:linear-gradient(135deg,var(--mood-a),var(--mood-b)); color:#fff; text-align:left; cursor:pointer; scroll-snap-align:start; transition:transform .2s,filter .2s; }
+.mood-shortcut-card { position:relative; min-height:150px; padding:20px; overflow:hidden; border:1px solid rgba(255,255,255,.12); border-radius:12px; background:linear-gradient(135deg,var(--mood-a),var(--mood-b)); color:#fff; text-align:left; text-shadow:0 1px 2px rgba(0,0,0,.28); cursor:pointer; scroll-snap-align:start; transition:transform .2s,filter .2s; }
 .mood-shortcut-card:hover { transform:translateY(-3px); filter:saturate(1.12); }
 .mood-shortcut-label { display:block; font-size:9px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; opacity:.8; }
 .mood-shortcut-card strong { display:block; max-width:80%; margin-top:28px; font-size:18px; }
 .mood-shortcut-card small { display:block; margin-top:5px; opacity:.76; }
-.mood-shortcut-play { position:absolute; right:15px; bottom:15px; display:grid; place-items:center; width:34px; height:34px; border-radius:50%; background:rgba(8,12,20,.78); font-size:10px; }
-.mood-shortcut-all { --mood-a:#263445;--mood-b:#182333;border-style:dashed; }
+.mood-shortcut-play { position:absolute; right:15px; bottom:15px; display:grid; place-items:center; width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,.18);color:#fff;font-size:10px; }
+.mood-shortcut-all { --mood-a:#263445;--mood-b:#182333;--mood-text:#fff;border-style:dashed; }
 .mood-shortcut-all:hover { border-color:var(--accent);filter:none; }
 .mood-shortcut-all .mood-shortcut-play { background:var(--accent);color:#071018;font-size:18px; }
-.mood-happy{--mood-a:#d7a300;--mood-b:#e8b923}.mood-sad{--mood-a:#2878d0;--mood-b:#3157a4}.mood-energetic{--mood-a:#e85d04;--mood-b:#f48c06}.mood-calm{--mood-a:#168c8c;--mood-b:#2aa7a1}.mood-focused{--mood-a:#4f46e5;--mood-b:#7c3aed}.mood-angry{--mood-a:#c1121f;--mood-b:#780000}.mood-romantic{--mood-a:#d63384;--mood-b:#f06595}.mood-nostalgic{--mood-a:#9c6644;--mood-b:#c08457}.mood-party{--mood-a:#9d00c6;--mood-b:#e0008a}.mood-sleepy{--mood-a:#40577a;--mood-b:#68769b}.mood-anxious{--mood-a:#3a8d44;--mood-b:#78a641}
 .sotd-skeleton { position:relative; display:flex; gap:14px; align-items:center; height:72px; padding:10px 16px; overflow:hidden; border:1px solid var(--glass-border); border-radius:14px; background:var(--card-solid); }
 .sotd-skeleton > span { width:48px; height:48px; border-radius:8px; background:var(--bg3); }
 .sotd-skeleton > div { flex:1; display:grid; gap:8px; }
@@ -5216,6 +5237,8 @@ html.reduce-motion *::after {
 .hero-eyebrow::before,
 .hero-eyebrow::after { content:''; width:24px; height:1px; background:currentColor; }
 main > h1 { max-width:900px; font-size:clamp(3.8rem,7.2vw,6.4rem); letter-spacing:-.055em; }
+main > h1,
+main > h1 span { background-image:var(--hero-gradient,var(--brand-gradient)); }
 main > .subtitle { max-width:560px; margin-bottom:1.7rem; font-size:1rem; line-height:1.6; }
 .recommendation-panel {
   width:min(1180px,calc(100% - (2 * var(--app-gutter))));

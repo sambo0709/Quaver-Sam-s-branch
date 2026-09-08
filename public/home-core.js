@@ -57,19 +57,14 @@ async function syncAccountPreferences() {
 
 const moods = ['happy', 'sad', 'energetic', 'calm', 'focused', 'angry', 'romantic', 'nostalgic', 'party', 'sleepy', 'anxious'];
 
-const moodColors = {
-  happy:     { accent: '#D7A300', accent2: '#E8B923', text: '#211800' },
-  sad:       { accent: '#2878D0', accent2: '#3157A4', text: '#FFFFFF' },
-  energetic: { accent: '#E85D04', accent2: '#F48C06', text: '#211000' },
-  calm:      { accent: '#168C8C', accent2: '#2AA7A1', text: '#061B1B' },
-  focused:   { accent: '#4F46E5', accent2: '#7C3AED', text: '#FFFFFF' },
-  angry:     { accent: '#C1121F', accent2: '#780000', text: '#FFFFFF' },
-  romantic:  { accent: '#D63384', accent2: '#F06595', text: '#FFFFFF' },
-  nostalgic: { accent: '#9C6644', accent2: '#C08457', text: '#FFFFFF' },
-  party:     { accent: '#9D00C6', accent2: '#E0008A', text: '#FFFFFF' },
-  sleepy:    { accent: '#40577A', accent2: '#68769B', text: '#FFFFFF' },
-  anxious:   { accent: '#3A8D44', accent2: '#78A641', text: '#071A09' },
-};
+const moodTokens = getComputedStyle(document.documentElement);
+const moodColors = Object.fromEntries(moods.map(function(mood) {
+  return [mood, {
+    accent: moodTokens.getPropertyValue('--mood-' + mood + '-a').trim(),
+    accent2: moodTokens.getPropertyValue('--mood-' + mood + '-b').trim(),
+    text: moodTokens.getPropertyValue('--mood-' + mood + '-text').trim(),
+  }];
+}));
 
 function applyMoodColors(mood) {
   const colors = moodColors[mood];
@@ -77,13 +72,14 @@ function applyMoodColors(mood) {
   const moodSelect = document.getElementById('mood-select');
   if (moodSelect) moodSelect.dataset.mood = mood;
   const root = document.documentElement;
-  ['--accent', '--accent2', '--gradient', '--accent-glow', '--accent2-glow', '--mood-action-text'].forEach(function(property) {
+  ['--accent', '--accent2', '--gradient', '--hero-gradient', '--accent-glow', '--accent2-glow', '--mood-action-text'].forEach(function(property) {
     root.style.removeProperty(property);
   });
   document.querySelectorAll('.hero-eyebrow, main > h1, .recommendation-panel').forEach(function(element) {
     element.style.setProperty('--accent', colors.accent);
     element.style.setProperty('--accent2', colors.accent2);
     element.style.setProperty('--gradient', 'linear-gradient(135deg, ' + colors.accent + ', ' + colors.accent2 + ')');
+    element.style.setProperty('--hero-gradient', 'linear-gradient(135deg, ' + colors.accent + ', ' + colors.accent2 + ')');
     element.style.setProperty('--accent-glow', colors.accent + '40');
     element.style.setProperty('--accent2-glow', colors.accent2 + '40');
     element.style.setProperty('--mood-action-text', colors.text);
