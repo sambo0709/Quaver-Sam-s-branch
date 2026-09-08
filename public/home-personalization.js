@@ -11,6 +11,7 @@ function chooseMoodShortcut(mood) {
 
 function renderJumpBack(plays) {
   const rail = document.getElementById('jump-back-rail');
+  if (!rail) return;
   const seen = new Set();
   const songs = (plays || []).filter(function(song) {
     if (!song.trackId || seen.has(song.trackId)) return false;
@@ -54,7 +55,8 @@ function renderMoodShortcuts(entries, preserveHistory) {
   const toggleLabel = moodShortcutsExpanded ? 'Show less' : 'All moods';
   const cards = visible.map(function(mood, index) { return moodShortcutCard(mood, counts, preferred, index); });
   cards.push('<button class="mood-shortcut-card mood-shortcut-all" data-mood-shortcuts-toggle type="button" aria-expanded="' + moodShortcutsExpanded + '" onclick="toggleMoodShortcuts()"><span class="mood-shortcut-label">EXPLORE</span><strong>' + toggleLabel + '</strong><small>' + (moodShortcutsExpanded ? 'Return to your top five' : 'See every mood') + '</small><span class="mood-shortcut-play" aria-hidden="true">' + (moodShortcutsExpanded ? '−' : '+') + '</span></button>');
-  document.getElementById('mood-shortcut-rail').innerHTML = cards.join('');
+  const rail = document.getElementById('mood-shortcut-rail');
+  if (rail) rail.innerHTML = cards.join('');
 }
 
 async function loadPersonalizedHome() {
@@ -74,14 +76,9 @@ async function loadPersonalizedHome() {
 }
 
 function renderMotd(data, grid) {
+  if (!grid || !document.getElementById('sotd-mood-subtitle')) return;
   const mood = data.mood;
   const songs = data.songs;
-  const section = document.getElementById('sotd');
-  const colors = moodColors[mood];
-  if (section && colors) {
-    section.style.setProperty('--accent', colors.accent);
-    section.style.setProperty('--sotd-gradient', 'linear-gradient(135deg, ' + colors.accent + ', ' + colors.accent2 + ')');
-  }
   document.getElementById('sotd-mood-subtitle').textContent = mood.charAt(0).toUpperCase() + mood.slice(1) + ' — ' + songs.length + ' picks for today';
   let html = '';
   songs.forEach(function(song, index) {
@@ -103,24 +100,28 @@ function trendingButton(mood, index) {
 }
 
 function renderTrendingPills() {
-  document.getElementById('trending-pills').innerHTML = '<span class="trending-pill-skeleton"></span>'.repeat(5);
+  const pills = document.getElementById('trending-pills');
+  if (pills) pills.innerHTML = '<span class="trending-pill-skeleton"></span>'.repeat(5);
 }
 
 async function loadTrendingMoods() {
+  const pills = document.getElementById('trending-pills');
+  if (!pills) return;
   try {
     const data = await fetch(API + '/api/mood/trending').then(function(res) { return res.json(); });
     if (!data.trending || !data.trending.length) {
-      document.getElementById('trending-pills').innerHTML = '<span class="trending-empty">No community check-ins yet today.</span>';
+      if (pills.isConnected) pills.innerHTML = '<span class="trending-empty">No community check-ins yet today.</span>';
       return;
     }
-    document.getElementById('trending-pills').innerHTML = data.trending.map(function(item, index) { return trendingButton(item.mood, index); }).join('');
+    if (pills.isConnected) pills.innerHTML = data.trending.map(function(item, index) { return trendingButton(item.mood, index); }).join('');
   } catch (_) {
-    document.getElementById('trending-pills').innerHTML = '<span class="trending-empty">Community trends are unavailable right now.</span>';
+    if (pills.isConnected) pills.innerHTML = '<span class="trending-empty">Community trends are unavailable right now.</span>';
   }
 }
 
 async function loadSongsOfTheDay() {
   const grid = document.getElementById('sotd-grid');
+  if (!grid) return;
   const cacheKey = 'quaver_motd';
   try {
     const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
@@ -128,11 +129,12 @@ async function loadSongsOfTheDay() {
   } catch (_) {}
   try {
     const data = await fetch(API + '/api/music/sotd').then(function(res) { return res.json(); });
+    if (!grid.isConnected) return;
     if (!data.songs || !data.songs.length) return void (grid.innerHTML = '<p class="no-results">Could not load today\'s mood.</p>');
     try { localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: data })); } catch (_) {}
     renderMotd(data, grid);
   } catch (_) {
-    grid.innerHTML = '<div class="error-state"><p>Could not load today\'s mood.</p><button class="retry-btn" onclick="loadSongsOfTheDay()">Try again</button></div>';
+    if (grid.isConnected) grid.innerHTML = '<div class="error-state"><p>Could not load today\'s mood.</p><button class="retry-btn" onclick="loadSongsOfTheDay()">Try again</button></div>';
   }
 }
 

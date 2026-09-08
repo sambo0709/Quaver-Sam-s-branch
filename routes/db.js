@@ -26,8 +26,8 @@ async function ensureIndexes(database) {
         { name: 'playlists_user_created' }
       ),
       database.collection('playlists').createIndex(
-        { id: 1 },
-        { name: 'playlists_public_id', partialFilterExpression: { isPublic: true } }
+        { userId: 1, id: 1 },
+        { unique: true, name: 'playlists_user_id_unique' }
       ),
       database.collection('listening_history').createIndex(
         { userId: 1, playedAt: -1 },
@@ -40,6 +40,14 @@ async function ensureIndexes(database) {
       database.collection('mood_history').createIndex(
         { ts: -1 },
         { name: 'mood_ts' }
+      ),
+      database.collection('password_resets').createIndex(
+        { expiresAt: 1 },
+        { expireAfterSeconds: 0, name: 'password_resets_expiry' }
+      ),
+      database.collection('email_verifications').createIndex(
+        { expiresAt: 1 },
+        { expireAfterSeconds: 0, name: 'email_verifications_expiry' }
       ),
     ]);
   } catch (error) {

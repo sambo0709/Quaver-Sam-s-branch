@@ -53,6 +53,7 @@
           <label>Password</label>
           <input type="password" id="reg-password" minlength="10" maxlength="128" autocomplete="new-password" placeholder="10 characters minimum"/>
         </div>
+        <label class="auth-consent"><input type="checkbox" id="reg-consent" required/> I agree to Quaver's <a href="terms.html" target="_blank">Terms</a> and acknowledge the <a href="privacy.html" target="_blank">Privacy Policy</a>.</label>
         <button class="auth-submit" onclick="register()">Create Account</button>
       </div>
     </div>
@@ -125,7 +126,9 @@
       const username = document.getElementById('reg-username').value.trim();
       const email = document.getElementById('reg-email').value.trim();
       const password = document.getElementById('reg-password').value;
+      const consent = document.getElementById('reg-consent').checked;
       if (!username || !email || !password) { showError('Please fill in all fields.'); return; }
+      if (!consent) { showError('Agree to the Terms and Privacy Policy to create an account.'); return; }
       try {
         const res = await fetch(API + '/api/auth/register', {
           method: 'POST',

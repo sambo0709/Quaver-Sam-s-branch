@@ -3015,6 +3015,7 @@ body.expanded-player-open { overflow:hidden; }
 .site-footer-links a { color:var(--text-muted);font-size:.72rem;text-decoration:none;transition:color .18s ease; }
 .site-footer-links a:hover,.site-footer-links a:focus-visible,.site-footer-bottom a:hover { color:var(--text); }
 .site-footer-bottom { display:flex;justify-content:space-between;gap:24px;margin-top:32px;padding-top:18px;border-top:1px solid var(--glass-border);font-size:.65rem; }
+.site-footer-legal { display:flex;align-items:center;flex-wrap:wrap;gap:16px; }
 .site-footer-bottom a { color:inherit;font-weight:700;text-decoration:none; }
 @media (min-width:769px) {
   body.player-active:not(.share-page) { padding-bottom:0; }
@@ -6718,6 +6719,17 @@ body :is(.connection-status strong.connected,.taste-status.is-success) { color:v
 
 /* Menus and forms use the same hierarchy as their parent page. */
 body :is(.user-menu-dropdown,.profile-editor,.playlist-picker,.queue-panel,.rename-modal) { color:var(--text-primary); }
+
+.auth-consent { display:flex;align-items:flex-start;gap:9px;margin:14px 0;color:var(--text-secondary);font-size:.76rem;line-height:1.45; }
+.auth-consent input { flex:0 0 auto;margin-top:3px;accent-color:var(--accent); }
+.auth-consent a,.legal-page a { color:var(--text-accent); }
+.legal-page { min-height:100vh;padding:clamp(28px,6vw,72px) var(--app-gutter);background:var(--bg);color:var(--text-primary); }
+.legal-document { width:min(760px,100%);margin:0 auto;padding:clamp(24px,5vw,52px);border:1px solid var(--surface-line);border-radius:var(--surface-radius);background:var(--surface-panel);box-shadow:var(--surface-shadow); }
+.legal-document > a { display:inline-block;margin-bottom:30px;text-decoration:none;font-weight:800; }
+.legal-document h1 { margin:0 0 8px;font-size:clamp(2.2rem,7vw,4.2rem);letter-spacing:-.05em; }
+.legal-document h2 { margin:30px 0 8px;font-size:1.1rem; }
+.legal-document p,.legal-document li { color:var(--text-secondary);font-size:.92rem;line-height:1.7; }
+.legal-document ul { padding-left:20px; }
 body :is(.user-menu-header small,.auth-field label,.fine-tune-label,.preference-fields label) { color:var(--text-tertiary);font-size:var(--type-small); }
 body :is(.auth-tab,.choice-chips button,.settings-jump-nav a) { color:var(--text-secondary); }
 body :is(.auth-tab.active,.auth-submit,.play-all-btn,.retry-btn,.add-btn) { color:var(--text-on-color); }

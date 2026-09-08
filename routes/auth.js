@@ -194,9 +194,13 @@ router.get('/export', async function(req, res) {
 router.delete('/account', async function(req, res) {
   const user = getUser(req);
   if (!user) return res.status(401).json({ error: 'Not logged in' });
+  const password = typeof req.body.password === 'string' ? req.body.password : '';
+  if (!password) return res.status(400).json({ error: 'Password required' });
   try {
     const db = await getDB();
     const oid = new ObjectId(user.userId);
+    const found = await db.collection('users').findOne({ _id: oid }, { projection: { password: 1 } });
+    if (!found || !(await bcrypt.compare(password, found.password))) return res.status(401).json({ error: 'Password is incorrect' });
     await Promise.all([
       db.collection('users').deleteOne({ _id: oid }),
       db.collection('playlists').deleteMany({ userId: oid }),

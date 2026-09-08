@@ -50,6 +50,32 @@ app.use((req, res, next) => {
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Content-Security-Policy', [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "frame-ancestors 'none'",
+    "form-action 'self' https://accounts.spotify.com",
+    "script-src 'self' 'unsafe-inline' https://sdk.scdn.co",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https:",
+    "media-src 'self' data: https:",
+    "connect-src 'self' https://api.spotify.com https://accounts.spotify.com wss://dealer.spotify.com",
+    "frame-src https://sdk.scdn.co https://open.spotify.com",
+  ].join('; '));
+  if (config.isProd) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  next();
+});
+
+// Browser mutations must come from this application. SameSite cookies provide
+// the first layer; Origin and Fetch Metadata checks protect older/edge clients.
+app.use(['/api', '/spotify'], (req, res, next) => {
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
+  const fetchSite = req.get('sec-fetch-site');
+  if (fetchSite === 'cross-site') return res.status(403).json({ error: 'Cross-site request blocked' });
+  const origin = req.get('origin');
+  if (origin && !allowedOrigins.has(origin)) return res.status(403).json({ error: 'Origin not allowed' });
+  if (config.isProd && !origin) return res.status(403).json({ error: 'Origin required' });
   next();
 });
 
@@ -114,6 +140,19 @@ app.use('/spotify', require('./routes/spotify_auth'));
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Mood Music API is running!' });
+});
+
+app.get('/api/ready', async (req, res) => {
+  try {
+    const { getDB } = require('./routes/db');
+    await Promise.race([
+      getDB().then((database) => database.command({ ping: 1 })),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Database readiness timed out')), 3000)),
+    ]);
+    res.json({ status: 'ready', database: 'connected' });
+  } catch (error) {
+    res.status(503).json({ status: 'not_ready', database: 'unavailable' });
+  }
 });
 
 // Sink for front-end errors (window.onerror / unhandledrejection). Rate-limited

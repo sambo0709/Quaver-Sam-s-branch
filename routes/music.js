@@ -574,13 +574,16 @@ router.get('/artists', async function(req, res) {
 router.post('/feedback', async function(req, res) {
   const user = getUser(req);
   if (!user) return res.status(401).json({ error: 'Not logged in' });
-  const { trackId, mood, helpful } = req.body;
-  if (!trackId || typeof helpful !== 'boolean') return res.status(400).json({ error: 'trackId and helpful required' });
+  const trackId = String(req.body.trackId || '').trim();
+  const mood = String(req.body.mood || '').trim().toLowerCase();
+  const helpful = req.body.helpful;
+  const allowedMoods = new Set([...Object.keys(MOOD_PROFILES), 'mixed', '']);
+  if (!/^[A-Za-z0-9]+$/.test(trackId) || trackId.length > 80 || !allowedMoods.has(mood) || typeof helpful !== 'boolean') return res.status(400).json({ error: 'Valid trackId, mood and helpful value required' });
   try {
     const db = await getDB();
     await db.collection('users').updateOne(
       { _id: new (require('mongodb').ObjectId)(user.userId) },
-      { $push: { recommendationFeedback: { $each: [{ trackId, mood: mood || '', helpful, createdAt: Date.now() }], $slice: -500 } } }
+      { $push: { recommendationFeedback: { $each: [{ trackId, mood, helpful, createdAt: Date.now() }], $slice: -500 } } }
     );
     res.status(201).json({ message: 'Feedback saved' });
   } catch (_) { res.status(500).json({ error: 'Server error' }); }

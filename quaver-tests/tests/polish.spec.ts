@@ -1059,10 +1059,7 @@ test('saved playlists can be exported to Spotify from the library', async ({ pag
   await expect.poll(() => page.evaluate(() => (window as any).__openedSpotifyUrl)).toBe('https://open.spotify.com/playlist/new123');
 });
 
-// Pre-existing failure: the "Calm Focus" mood-collection button never becomes
-// clickable on a 390px viewport (the add-to-playlist flow can't be reached).
-// Predates the Tier 0-2 work; tracked separately.
-test.fixme('mood collections stay contained on mobile and add tracks to a saved playlist', async ({ page }) => {
+test('mood collections stay contained on mobile and add tracks to a saved playlist', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => {
     localStorage.setItem('quaver_user', JSON.stringify({ username: 'Listener' }));
@@ -1083,7 +1080,9 @@ test.fixme('mood collections stay contained on mobile and add tracks to a saved 
   expect(collectionsY).toBeGreaterThan(createdY);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 
-  await page.getByRole('button', { name: /Calm Focus/ }).click();
+  // The six featured collections rotate daily, so exercise whichever card is
+  // currently first instead of coupling this mobile flow to a particular date.
+  await page.locator('.mood-collection-card').first().click();
   await page.getByRole('button', { name: 'Add Curated Song to a playlist' }).click();
   await page.getByRole('dialog', { name: 'Add to playlist' }).getByRole('button', { name: /My Mix/ }).click();
   await expect(page.getByText('Added “Curated Song” to My Mix.')).toBeVisible();

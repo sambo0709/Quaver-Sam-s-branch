@@ -58,8 +58,8 @@
         <div class="settings-form"><label for="settings-theme">Default theme</label><select id="settings-theme"><option value="dark">Dark</option><option value="light">Light</option><option value="system">Use system setting</option></select><label class="settings-check"><input id="settings-motion" type="checkbox"/> Reduce animations</label></div>
       </section>
       <section class="settings-section">
-        <h2>Security</h2><p>Use at least eight characters for your new password.</p>
-        <form class="settings-form" onsubmit="changePassword(event)"><label for="current-password">Current password</label><input id="current-password" type="password" autocomplete="current-password" required/><label for="new-password">New password</label><input id="new-password" type="password" minlength="8" autocomplete="new-password" required/><button type="submit">Change password</button></form>
+        <h2>Security</h2><p>Use at least ten characters for your new password.</p>
+        <form class="settings-form" onsubmit="changePassword(event)"><label for="current-password">Current password</label><input id="current-password" type="password" autocomplete="current-password" required/><label for="new-password">New password</label><input id="new-password" type="password" minlength="10" maxlength="128" autocomplete="new-password" required/><button type="submit">Change password</button></form>
       </section>
       <section class="settings-section" id="spotify-settings">
         <h2>Spotify</h2><p>Connect a Premium account to play full songs through Quaver's player.</p><div class="connection-status"><span>Connection</span><strong id="settings-spotify-status">Not connected</strong></div><div class="spotify-setting-actions"><button onclick="connectSpotify()">Connect or reconnect</button><button onclick="disconnectSpotify()">Disconnect</button></div>
@@ -67,7 +67,7 @@
       <section class="settings-section settings-section-wide" id="settings-privacy">
         <h2>Privacy and data</h2><p>Your moods and listening history are stored to personalize Quaver. You can remove or download them at any time.</p><div class="settings-danger"><button onclick="clearData('/api/listening/history','listening history')">Clear listening history</button><button onclick="clearData('/api/mood/history','mood history')">Clear mood history</button><button onclick="clearData('/api/music/feedback','recommendation feedback')">Reset recommendations</button><button onclick="exportData()">Download my data</button></div>
       </section>
-      <section class="settings-section danger-zone settings-section-wide"><h2>Danger zone</h2><p>Deleting your account permanently removes all Quaver data.</p><button onclick="deleteAccount()">Delete account</button></section>
+      <section class="settings-section danger-zone settings-section-wide"><h2>Danger zone</h2><p>Deleting your account permanently removes all Quaver data. Enter your password to confirm ownership.</p><div class="settings-form"><label for="delete-account-password">Current password</label><input id="delete-account-password" type="password" autocomplete="current-password"/><button onclick="deleteAccount()">Delete account</button></div></section>
     </div>
   </main>
 

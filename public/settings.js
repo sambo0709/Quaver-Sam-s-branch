@@ -171,9 +171,13 @@
     } catch (_) { showToast('Could not export your data.', 'error'); }
   }
   async function deleteAccount() {
+    const passwordInput = document.getElementById('delete-account-password');
+    const password = passwordInput ? passwordInput.value : '';
+    if (!password) { if (passwordInput) passwordInput.focus(); showToast('Enter your password before deleting your account.', 'error'); return; }
     if (!confirm('Permanently delete your Quaver account and all data?')) return;
-    const res = await fetch(API + '/api/auth/account', { method: 'DELETE', headers: authHeaders(false) });
-    if (res.ok) logout(); else showToast('Could not delete your account.', 'error');
+    const res = await fetch(API + '/api/auth/account', { method: 'DELETE', headers: authHeaders(true), body: JSON.stringify({ password: password }) });
+    const data = await res.json().catch(function() { return {}; });
+    if (res.ok) logout(); else showToast(data.error || 'Could not delete your account.', 'error');
   }
 
   let tasteEditors = null;

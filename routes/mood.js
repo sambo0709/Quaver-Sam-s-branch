@@ -46,9 +46,9 @@ router.get('/history', async (req, res) => {
 router.post('/history', async (req, res) => {
   const user = getUser(req);
   if (!user) return res.status(401).json({ error: 'Not logged in' });
-  const { mood } = req.body;
+  const mood = typeof req.body.mood === 'string' ? req.body.mood.trim().toLowerCase() : '';
   const note = String(req.body.note || '').trim().slice(0, 160);
-  if (!mood) return res.status(400).json({ error: 'mood required' });
+  if (!moodMap[mood]) return res.status(400).json({ error: 'Supported mood required' });
   const entry = {
     userId: new ObjectId(user.userId),
     mood,

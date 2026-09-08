@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const { ObjectId } = require('mongodb');
 const { getDB } = require('./db');
@@ -6,9 +7,7 @@ const { getUser } = require('./session');
 
 // One document per playlist in the `playlists` collection:
 //   { _id, id, userId, name, mood, songs, createdAt, updatedAt, isPublic?, coverImage? }
-// `id` (Date.now string) stays the external identifier so the HTTP contract and
-// the front end are unchanged. `_id` / `userId` are always projected out of
-// responses.
+// `id` is an opaque UUID. `_id` / `userId` are always projected out of responses.
 const PUBLIC_PROJECTION = { _id: 0, userId: 0 };
 
 const ALLOWED_MOODS = new Set(['happy', 'sad', 'angry', 'calm', 'energetic', 'romantic', 'focused', 'nostalgic', 'party', 'sleepy', 'anxious', 'mixed']);
@@ -85,7 +84,7 @@ router.post('/', async (req, res) => {
 
   const now = new Date().toISOString();
   const playlist = {
-    id: Date.now().toString(),
+    id: crypto.randomUUID(),
     name,
     mood,
     songs,
@@ -184,10 +183,11 @@ router.patch('/:id', async (req, res) => {
   if (!name) return res.status(400).json({ error: 'name required' });
   try {
     const db = await getDB();
-    await db.collection('playlists').updateOne(
+    const result = await db.collection('playlists').updateOne(
       { userId: ownerId(user), id: req.params.id },
-      { $set: { name: name } }
+      { $set: { name: name, updatedAt: new Date().toISOString() } }
     );
+    if (!result.matchedCount) return res.status(404).json({ error: 'Playlist not found' });
     res.json({ message: 'Playlist renamed' });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
@@ -201,10 +201,11 @@ router.patch('/:id/share', async (req, res) => {
   const { isPublic } = req.body;
   try {
     const db = await getDB();
-    await db.collection('playlists').updateOne(
+    const result = await db.collection('playlists').updateOne(
       { userId: ownerId(user), id: req.params.id },
-      { $set: { isPublic: !!isPublic } }
+      { $set: { isPublic: !!isPublic, updatedAt: new Date().toISOString() } }
     );
+    if (!result.matchedCount) return res.status(404).json({ error: 'Playlist not found' });
     res.json({ message: 'Updated', isPublic: !!isPublic });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
@@ -240,7 +241,8 @@ router.delete('/:id', async (req, res) => {
 
   try {
     const db = await getDB();
-    await db.collection('playlists').deleteOne({ userId: ownerId(user), id: req.params.id });
+    const result = await db.collection('playlists').deleteOne({ userId: ownerId(user), id: req.params.id });
+    if (!result.deletedCount) return res.status(404).json({ error: 'Playlist not found' });
     res.json({ message: 'Playlist deleted' });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });

@@ -9,6 +9,13 @@ const router = express.Router();
 //   { _id, userId, trackId, title, artist, albumArt, mood, playedAt }
 // Reads return the newest 500, oldest history is no longer discarded on write.
 const READ_LIMIT = 500;
+const ALLOWED_MOODS = new Set(['happy', 'sad', 'angry', 'calm', 'energetic', 'romantic', 'focused', 'nostalgic', 'party', 'sleepy', 'anxious', 'mixed', '']);
+function cleanText(value, max) { return typeof value === 'string' ? value.trim().slice(0, max) : ''; }
+function cleanArtwork(value) {
+  const text = cleanText(value, 500);
+  if (!text) return '';
+  try { return new URL(text).protocol === 'https:' ? text : ''; } catch (_) { return ''; }
+}
 
 router.get('/history', async function(req, res) {
   const user = getUser(req);
@@ -30,15 +37,19 @@ router.get('/history', async function(req, res) {
 router.post('/history', async function(req, res) {
   const user = getUser(req);
   if (!user) return res.status(401).json({ error: 'Not logged in' });
-  const { trackId, title, artist, albumArt, mood } = req.body;
-  if (!trackId || !title) return res.status(400).json({ error: 'trackId and title required' });
+  const trackId = cleanText(req.body.trackId, 80);
+  const title = cleanText(req.body.title, 200);
+  const artist = cleanText(req.body.artist, 300);
+  const albumArt = cleanArtwork(req.body.albumArt);
+  const mood = cleanText(req.body.mood, 20).toLowerCase();
+  if (!/^[A-Za-z0-9]+$/.test(trackId) || !title || !ALLOWED_MOODS.has(mood)) return res.status(400).json({ error: 'Valid track, title and mood required' });
   const entry = {
     userId: new ObjectId(user.userId),
     trackId,
     title,
-    artist: artist || '',
-    albumArt: albumArt || '',
-    mood: mood || '',
+    artist,
+    albumArt,
+    mood,
     playedAt: Date.now(),
   };
   try {
