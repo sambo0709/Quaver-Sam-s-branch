@@ -1,12 +1,14 @@
+import { randomUUID } from 'node:crypto';
 import { test, expect, Page } from '@playwright/test';
 
 // Verifies the Tier 1 UI end to end against a running server:
 // settings taste editor, onboarding artist step, and the "start a mix from
 // this" song-card action.
 
-let seq = 0;
 async function register(page: Page) {
-  const username = `t1_${Date.now()}_${seq++}`;
+  // This file runs in parallel across browser workers, so process-local counters
+  // and timestamps alone can collide against the shared test database.
+  const username = `t1_${randomUUID().replaceAll('-', '').slice(0, 20)}`;
   const res = await page.request.post('/api/auth/register', {
     data: { username, email: `${username}@example.test`, password: 'passw0rd-长-enough' },
   });

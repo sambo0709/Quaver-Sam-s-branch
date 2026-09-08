@@ -77,7 +77,7 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'cd .. && npm start',
+    command: 'node scripts/test-server.cjs',
     url: 'http://127.0.0.1:3000/api/health',
     reuseExistingServer: !process.env.CI,
   },

@@ -327,10 +327,35 @@ function recommendationLearningHTML(learning) {
   return '<div class="recommendation-learning"><strong>Tuned for you</strong><span>Using ' + escapeHTML(signals.slice(0, 3).join(' · ')) + ' · ' + escapeHTML(learning.variety || 'balanced') + ' discovery</span></div>';
 }
 
-function renderRecommendationSongs(songs, learning) {
+function mixStoryHTML(context) {
+  context = context || {};
+  const mood = context.mood || currentMood || 'your mood';
+  const details = [];
+  if (context.secondaryMood) details.push('blended with ' + context.secondaryMood);
+  if (context.activity && context.activity !== 'none') details.push('for ' + context.activity);
+  if (context.direction && context.direction !== 'stay') details.push('to ' + context.direction);
+  const preferredArtist = context.preferredArtist || context.artist;
+  const preferredGenre = context.preferredGenre || context.genre;
+  if (preferredArtist) details.push('led by ' + preferredArtist);
+  else if (preferredGenre) details.push('with a ' + preferredGenre + ' lean');
+  if (context.partOfDay && context.partOfDay !== 'daytime') details.push('for the ' + context.partOfDay);
+  const description = details.length
+    ? 'Built around ' + mood + ', ' + details.join(', ') + '.'
+    : 'Built around your ' + mood + ' mood, with enough variety to keep the flow moving.';
+  return '<section class="mix-story" aria-labelledby="mix-story-title"><div><span>YOUR MIX, EXPLAINED</span><h2 id="mix-story-title">This is your ' + escapeHTML(mood) + ' moment</h2><p>' + escapeHTML(description) + '</p></div><button class="mix-story-play" type="button" onclick="playAll(window._lastResults)"><span aria-hidden="true">▶</span> Play mix</button></section>';
+}
+
+function spotifyHandoffHTML() {
+  if (!localStorage.getItem('quaver_user') || localStorage.getItem('quaver_spotify_name')) return '';
+  return '<aside class="mix-spotify-handoff"><div><strong>Want full playback and Spotify export?</strong><span>Connect Spotify when you’re ready—your mix will stay here.</span></div><button type="button" onclick="connectSpotifyAccount()">Connect Spotify</button></aside>';
+}
+
+function renderRecommendationSongs(songs, learning, context) {
   window._lastResults = songs;
   window._lastResultsLearning = learning;
-  let html = '<div class="results-header"><span>' + songs.length + ' tracks — ' + escapeHTML(currentMood) + '</span><div class="results-actions"><button class="shuffle-mix-btn" type="button" onclick="regenerateMix()" title="Build a different mix"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h2.5c5 0 6 10 11 10H20M17 4l3 3-3 3M4 17h2.5c1.8 0 3-1.3 4.1-3M14 7.8c1-1 2.1-1.8 3.4-1.8H20M17 14l3 3-3 3"/></svg>New mix</button><button class="shuffle-mix-btn" type="button" onclick="shuffleMix()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3c5 0 5 10 10 10h3M17 4l3 3-3 3M4 17h3c2.2 0 3.4-1.8 4.5-4M17 14l3 3-3 3"/></svg>Shuffle</button><button class="play-all-btn" type="button" onclick="saveMixAsPlaylist(this)">Save as playlist</button><button class="play-all-btn" type="button" onclick="playAll(window._lastResults)">Play all</button></div></div>';
+  window._lastResultsContext = context || window._lastResultsContext || { mood: currentMood };
+  let html = mixStoryHTML(window._lastResultsContext);
+  html += '<div class="results-header"><span>' + songs.length + ' tracks</span><div class="results-actions"><button class="shuffle-mix-btn" type="button" onclick="regenerateMix()" title="Build a different mix"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h2.5c5 0 6 10 11 10H20M17 4l3 3-3 3M4 17h2.5c1.8 0 3-1.3 4.1-3M14 7.8c1-1 2.1-1.8 3.4-1.8H20M17 14l3 3-3 3"/></svg>New mix</button><button class="shuffle-mix-btn" type="button" onclick="shuffleMix()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3c5 0 5 10 10 10h3M17 4l3 3-3 3M4 17h3c2.2 0 3.4-1.8 4.5-4M17 14l3 3-3 3"/></svg>Shuffle</button><button class="shuffle-mix-btn" type="button" onclick="saveMixAsPlaylist(this)">Save as playlist</button></div></div>';
   html += recommendationLearningHTML(learning);
   songs.forEach(function(song, index) {
     const trackId = spotifyTrackId(song.spotify_url);
@@ -344,6 +369,7 @@ function renderRecommendationSongs(songs, learning) {
     html += '<span class="song-duration">' + escapeHTML(song.duration) + '</span>';
     html += songActionMenuHTML(song, true) + '</div></div>';
   });
+  html += spotifyHandoffHTML();
   document.getElementById('results').innerHTML = html;
 }
 
@@ -359,7 +385,7 @@ function shuffleMix() {
   queueIndex=-1;
   if (window.QuaverPlayer) QuaverPlayer.setQueue(songQueue,0);
   updateQueueCounter();
-  renderRecommendationSongs(songs,window._lastResultsLearning);
+  renderRecommendationSongs(songs,window._lastResultsLearning,window._lastResultsContext);
   showToast('Mix shuffled.','success');
 }
 
@@ -450,7 +476,7 @@ async function fetchSongs() {
       : (data.error || 'Could not create this mix.'));
     if (controller !== recommendationRequestController) return;
     if (data.songs && data.songs.length > 0) {
-      renderRecommendationSongs(data.songs, data.learning);
+      renderRecommendationSongs(data.songs, data.learning, data.context || context);
       if (document.documentElement.classList.contains('reduce-motion')) {
         document.getElementById('results').scrollIntoView({ block: 'start' });
       } else {
@@ -462,7 +488,7 @@ async function fetchSongs() {
   } catch (error) {
     if (controller !== recommendationRequestController) return;
     const message = controller.signal.aborted ? 'This mix is taking longer than expected. Your choices are still selected.' : (error.message || 'Could not load songs.');
-    document.getElementById('results').innerHTML = '<div class="error-state"><p>' + message + '</p><button class="retry-btn" onclick="fetchSongs()">Try again</button></div>';
+    document.getElementById('results').innerHTML = '<div class="error-state"><p>' + escapeHTML(message) + '</p><button class="retry-btn" onclick="fetchSongs()">Try again</button></div>';
   } finally {
     clearTimeout(timeout);
     pendingSeed = null;

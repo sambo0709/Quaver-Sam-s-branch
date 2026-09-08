@@ -19,23 +19,23 @@ async function searchSongs() {
     const data = await res.json();
     if (data.songs && data.songs.length > 0) {
       window._lastResults = data.songs;
-      let html = '<div class="results-header"><span>' + data.songs.length + ' results for "' + q + '"</span><button class="play-all-btn" onclick="playAll(window._lastResults)">▶ Play All</button></div>';
+      let html = '<div class="results-header"><span>' + data.songs.length + ' results for "' + escapeHTML(q) + '"</span><button class="play-all-btn" onclick="playAll(window._lastResults)">▶ Play All</button></div>';
       data.songs.forEach(function(song, i) {
         const inPlaylist = playlistSongs.some(function(s) { return s.title === song.title; });
         const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
         html += '<div class="song-card" style="animation-delay:' + (i * 0.07) + 's">';
         html += '<span class="song-num">' + String(i + 1).padStart(2, '0') + '</span>';
-        html += song.album_art ? '<img class="album-art" src="' + song.album_art + '" alt="art"/>' : '<div class="album-art"></div>';
+        html += song.album_art ? '<img class="album-art" src="' + escapeHTML(song.album_art) + '" alt=""/>' : '<div class="album-art"></div>';
         html += '<div class="song-info"><div class="song-title">' + escapeHTML(song.title) + '</div><div class="song-artist">' + escapeHTML(song.artist) + '</div></div>';
         html += '<div class="song-actions">';
-        if (trackId) html += '<button class="play-btn" onclick="playInApp(\'' + trackId + '\', \'' + song.title.replace(/'/g, "\\'") + '\', \'' + (song.artist || '').replace(/'/g, "\\'") + '\', \'' + (song.album_art || '') + '\')">&#9654;</button>';
-        html += '<span class="song-duration">' + song.duration + '</span>';
+        if (trackId) html += '<button class="play-btn" data-result-index="' + i + '" aria-label="Play ' + escapeHTML(song.title) + '">&#9654;</button>';
+        html += '<span class="song-duration">' + escapeHTML(song.duration) + '</span>';
         html += songActionMenuHTML(song, false);
         html += '</div></div>';
       });
       document.getElementById('results').innerHTML = html;
     } else {
-      document.getElementById('results').innerHTML = '<p class="no-results">No results for "' + q + '"</p>';
+      document.getElementById('results').innerHTML = '<p class="no-results">No results for "' + escapeHTML(q) + '"</p>';
     }
   } catch(err) {
     document.getElementById('results').innerHTML = '<p class="no-results">Search failed. Try again.</p>';
