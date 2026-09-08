@@ -15,13 +15,31 @@ async function ensureIndexes(database) {
         { username: 1 },
         { unique: true, name: 'users_username_unique', partialFilterExpression: { username: { $type: 'string' } } }
       ),
-      database.collection('users').createIndex(
-        { 'recentMoods.ts': -1 },
-        { name: 'users_recent_moods_ts' }
-      ),
       database.collection('sotd_archive').createIndex(
         { date: -1 },
         { name: 'sotd_archive_date' }
+      ),
+      // Playlists / history / moods live in their own collections (one doc each)
+      // instead of arrays embedded in the user document.
+      database.collection('playlists').createIndex(
+        { userId: 1, createdAt: 1 },
+        { name: 'playlists_user_created' }
+      ),
+      database.collection('playlists').createIndex(
+        { id: 1 },
+        { name: 'playlists_public_id', partialFilterExpression: { isPublic: true } }
+      ),
+      database.collection('listening_history').createIndex(
+        { userId: 1, playedAt: -1 },
+        { name: 'listening_user_played' }
+      ),
+      database.collection('mood_history').createIndex(
+        { userId: 1, ts: 1 },
+        { name: 'mood_user_ts' }
+      ),
+      database.collection('mood_history').createIndex(
+        { ts: -1 },
+        { name: 'mood_ts' }
       ),
     ]);
   } catch (error) {

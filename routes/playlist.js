@@ -4,6 +4,13 @@ const { ObjectId } = require('mongodb');
 const { getDB } = require('./db');
 const { getUser } = require('./session');
 
+// One document per playlist in the `playlists` collection:
+//   { _id, id, userId, name, mood, songs, createdAt, updatedAt, isPublic?, coverImage? }
+// `id` (Date.now string) stays the external identifier so the HTTP contract and
+// the front end are unchanged. `_id` / `userId` are always projected out of
+// responses.
+const PUBLIC_PROJECTION = { _id: 0, userId: 0 };
+
 const ALLOWED_MOODS = new Set(['happy', 'sad', 'angry', 'calm', 'energetic', 'romantic', 'focused', 'nostalgic', 'party', 'sleepy', 'anxious', 'mixed']);
 function cleanText(value, max) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
@@ -44,6 +51,10 @@ function cleanCoverImage(value) {
   return /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(value) ? value : null;
 }
 
+function ownerId(user) {
+  return new ObjectId(user.userId);
+}
+
 // GET /api/playlist
 router.get('/', async (req, res) => {
   const user = getUser(req);
@@ -51,9 +62,12 @@ router.get('/', async (req, res) => {
 
   try {
     const db = await getDB();
-    const users = db.collection('users');
-    const found = await users.findOne({ _id: new ObjectId(user.userId) });
-    res.json({ playlists: found?.playlists || [] });
+    const playlists = await db.collection('playlists')
+      .find({ userId: ownerId(user) })
+      .project(PUBLIC_PROJECTION)
+      .sort({ createdAt: 1, _id: 1 })
+      .toArray();
+    res.json({ playlists });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -69,22 +83,19 @@ router.post('/', async (req, res) => {
   const songs = cleanSongs(req.body.songs);
   if (!name || !ALLOWED_MOODS.has(mood) || !songs) return res.status(400).json({ error: 'Invalid playlist data' });
 
+  const now = new Date().toISOString();
   const playlist = {
     id: Date.now().toString(),
     name,
     mood,
     songs,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: now,
+    updatedAt: now,
   };
 
   try {
     const db = await getDB();
-    const users = db.collection('users');
-    await users.updateOne(
-      { _id: new ObjectId(user.userId) },
-      { $push: { playlists: playlist } }
-    );
+    await db.collection('playlists').insertOne({ ...playlist, userId: ownerId(user) });
     res.status(201).json({ message: 'Playlist saved!', playlist });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
@@ -99,20 +110,16 @@ router.post('/:id/songs', async (req, res) => {
   if (!song || !song.spotify_url) return res.status(400).json({ error: 'Valid Spotify song required' });
   try {
     const db = await getDB();
-    const users = db.collection('users');
-    const found = await users.findOne(
-      { _id: new ObjectId(user.userId), 'playlists.id': req.params.id },
-      { projection: { 'playlists.$': 1 } }
-    );
-    const playlist = found?.playlists?.[0];
+    const playlists = db.collection('playlists');
+    const playlist = await playlists.findOne({ userId: ownerId(user), id: req.params.id });
     if (!playlist) return res.status(404).json({ error: 'Playlist not found' });
     if ((playlist.songs || []).some(function(item) { return item.spotify_url === song.spotify_url; })) {
       return res.status(409).json({ error: 'Song is already in this playlist' });
     }
     if ((playlist.songs || []).length >= 100) return res.status(400).json({ error: 'Playlist is full' });
-    await users.updateOne(
-      { _id: new ObjectId(user.userId), 'playlists.id': req.params.id },
-      { $push: { 'playlists.$.songs': song }, $set: { 'playlists.$.updatedAt': new Date().toISOString() } }
+    await playlists.updateOne(
+      { userId: ownerId(user), id: req.params.id },
+      { $push: { songs: song }, $set: { updatedAt: new Date().toISOString() } }
     );
     res.status(201).json({ message: 'Song added', song });
   } catch (_) { res.status(500).json({ error: 'Server error' }); }
@@ -126,9 +133,9 @@ router.delete('/:id/songs/:trackId', async (req, res) => {
   const spotifyUrl = 'https://open.spotify.com/track/' + req.params.trackId;
   try {
     const db = await getDB();
-    const result = await db.collection('users').updateOne(
-      { _id: new ObjectId(user.userId), 'playlists.id': req.params.id, 'playlists.songs.spotify_url': spotifyUrl },
-      { $pull: { 'playlists.$.songs': { spotify_url: spotifyUrl } }, $set: { 'playlists.$.updatedAt': new Date().toISOString() } }
+    const result = await db.collection('playlists').updateOne(
+      { userId: ownerId(user), id: req.params.id, 'songs.spotify_url': spotifyUrl },
+      { $pull: { songs: { spotify_url: spotifyUrl } }, $set: { updatedAt: new Date().toISOString() } }
     );
     if (!result.modifiedCount) return res.status(404).json({ error: 'Song or playlist not found' });
     res.json({ message: 'Song removed' });
@@ -144,14 +151,14 @@ router.patch('/:id/songs/reorder', async (req, res) => {
   }
   try {
     const db = await getDB();
-    const found = await db.collection('users').findOne({ _id: new ObjectId(user.userId), 'playlists.id': req.params.id }, { projection: { 'playlists.$': 1 } });
-    const playlist = found?.playlists?.[0];
+    const playlists = db.collection('playlists');
+    const playlist = await playlists.findOne({ userId: ownerId(user), id: req.params.id });
     if (!playlist) return res.status(404).json({ error: 'Playlist not found' });
     const songsById = new Map((playlist.songs || []).map(function(song) { return [cleanSpotifyUrl(song.spotify_url).split('/').pop(), song]; }));
     if (trackIds.length !== songsById.size || trackIds.some(function(id) { return !songsById.has(id); })) return res.status(400).json({ error: 'Song order does not match playlist' });
     const songs = trackIds.map(function(id) { return songsById.get(id); });
     const updatedAt = new Date().toISOString();
-    await db.collection('users').updateOne({ _id: new ObjectId(user.userId), 'playlists.id': req.params.id }, { $set: { 'playlists.$.songs': songs, 'playlists.$.updatedAt': updatedAt } });
+    await playlists.updateOne({ userId: ownerId(user), id: req.params.id }, { $set: { songs: songs, updatedAt: updatedAt } });
     res.json({ message: 'Song order updated', updatedAt });
   } catch (_) { res.status(500).json({ error: 'Server error' }); }
 });
@@ -163,7 +170,7 @@ router.patch('/:id/cover', async (req, res) => {
   if (coverImage === null) return res.status(400).json({ error: 'Invalid cover image' });
   try {
     const updatedAt = new Date().toISOString();
-    const result = await (await getDB()).collection('users').updateOne({ _id: new ObjectId(user.userId), 'playlists.id': req.params.id }, { $set: { 'playlists.$.coverImage': coverImage, 'playlists.$.updatedAt': updatedAt } });
+    const result = await (await getDB()).collection('playlists').updateOne({ userId: ownerId(user), id: req.params.id }, { $set: { coverImage: coverImage, updatedAt: updatedAt } });
     if (!result.matchedCount) return res.status(404).json({ error: 'Playlist not found' });
     res.json({ message: 'Cover updated', updatedAt });
   } catch (_) { res.status(500).json({ error: 'Server error' }); }
@@ -177,9 +184,9 @@ router.patch('/:id', async (req, res) => {
   if (!name) return res.status(400).json({ error: 'name required' });
   try {
     const db = await getDB();
-    await db.collection('users').updateOne(
-      { _id: new ObjectId(user.userId), 'playlists.id': req.params.id },
-      { $set: { 'playlists.$.name': name } }
+    await db.collection('playlists').updateOne(
+      { userId: ownerId(user), id: req.params.id },
+      { $set: { name: name } }
     );
     res.json({ message: 'Playlist renamed' });
   } catch (err) {
@@ -194,9 +201,9 @@ router.patch('/:id/share', async (req, res) => {
   const { isPublic } = req.body;
   try {
     const db = await getDB();
-    await db.collection('users').updateOne(
-      { _id: new ObjectId(user.userId), 'playlists.id': req.params.id },
-      { $set: { 'playlists.$.isPublic': !!isPublic } }
+    await db.collection('playlists').updateOne(
+      { userId: ownerId(user), id: req.params.id },
+      { $set: { isPublic: !!isPublic } }
     );
     res.json({ message: 'Updated', isPublic: !!isPublic });
   } catch (err) {
@@ -208,14 +215,19 @@ router.patch('/:id/share', async (req, res) => {
 router.get('/public/:id', async (req, res) => {
   try {
     const db = await getDB();
-    const user = await db.collection('users').findOne(
-      { 'playlists.id': req.params.id, 'playlists.isPublic': true },
-      { projection: { 'playlists.$': 1, username: 1 } }
+    const playlist = await db.collection('playlists').findOne(
+      { id: req.params.id, isPublic: true },
+      { projection: { _id: 0 } }
     );
-    if (!user || !user.playlists || !user.playlists[0]) {
+    if (!playlist) {
       return res.status(404).json({ error: 'Playlist not found or not public' });
     }
-    res.json({ playlist: user.playlists[0], owner: user.username });
+    const owner = await db.collection('users').findOne(
+      { _id: playlist.userId },
+      { projection: { username: 1 } }
+    );
+    delete playlist.userId;
+    res.json({ playlist, owner: owner && owner.username });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -228,11 +240,7 @@ router.delete('/:id', async (req, res) => {
 
   try {
     const db = await getDB();
-    const users = db.collection('users');
-    await users.updateOne(
-      { _id: new ObjectId(user.userId) },
-      { $pull: { playlists: { id: req.params.id } } }
-    );
+    await db.collection('playlists').deleteOne({ userId: ownerId(user), id: req.params.id });
     res.json({ message: 'Playlist deleted' });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });

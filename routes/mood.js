@@ -18,6 +18,9 @@ const moodMap = {
   anxious:   { energy: 'low',    tempo: 'slow',   genre: 'meditation' },
 };
 
+// One document per entry in the `mood_history` collection:
+//   { _id, userId, mood, note, time, ts }
+
 router.get('/', (_, res) => {
   res.json({ moods: Object.keys(moodMap) });
 });
@@ -28,8 +31,12 @@ router.get('/history', async (req, res) => {
   if (!user) return res.status(401).json({ error: 'Not logged in' });
   try {
     const db = await getDB();
-    const found = await db.collection('users').findOne({ _id: new ObjectId(user.userId) });
-    res.json({ moods: found?.recentMoods || [] });
+    const moods = await db.collection('mood_history')
+      .find({ userId: new ObjectId(user.userId) })
+      .project({ _id: 0, userId: 0 })
+      .sort({ ts: 1, _id: 1 })
+      .toArray();
+    res.json({ moods });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -42,13 +49,16 @@ router.post('/history', async (req, res) => {
   const { mood } = req.body;
   const note = String(req.body.note || '').trim().slice(0, 160);
   if (!mood) return res.status(400).json({ error: 'mood required' });
-  const entry = { mood, note, time: new Date().toLocaleString(), ts: Date.now() };
+  const entry = {
+    userId: new ObjectId(user.userId),
+    mood,
+    note,
+    time: new Date().toLocaleString(),
+    ts: Date.now(),
+  };
   try {
     const db = await getDB();
-    await db.collection('users').updateOne(
-      { _id: new ObjectId(user.userId) },
-      { $push: { recentMoods: { $each: [entry], $slice: -365 } } }
-    );
+    await db.collection('mood_history').insertOne(entry);
     res.status(201).json({ message: 'Mood saved' });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
@@ -60,7 +70,7 @@ router.delete('/history', async function(req, res) {
   if (!user) return res.status(401).json({ error: 'Not logged in' });
   try {
     const db = await getDB();
-    await db.collection('users').updateOne({ _id: new ObjectId(user.userId) }, { $set: { recentMoods: [] } });
+    await db.collection('mood_history').deleteMany({ userId: new ObjectId(user.userId) });
     res.json({ message: 'Mood history cleared' });
   } catch (_) { res.status(500).json({ error: 'Server error' }); }
 });
@@ -69,26 +79,15 @@ router.delete('/history', async function(req, res) {
 router.get('/trending', async (req, res) => {
   try {
     const db = await getDB();
-    const users = await db.collection('users').find(
-      { 'recentMoods.0': { $exists: true } },
-      { projection: { recentMoods: 1 } }
-    ).toArray();
-
     const since = Date.now() - 24 * 60 * 60 * 1000;
-    const counts = {};
-    users.forEach(function(user) {
-      (user.recentMoods || []).forEach(function(entry) {
-        if (entry.mood && entry.ts && entry.ts > since) {
-          counts[entry.mood] = (counts[entry.mood] || 0) + 1;
-        }
-      });
-    });
+    const rows = await db.collection('mood_history').aggregate([
+      { $match: { ts: { $gt: since }, mood: { $type: 'string' } } },
+      { $group: { _id: '$mood', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 5 },
+    ]).toArray();
 
-    const trending = Object.entries(counts)
-      .sort(function(a, b) { return b[1] - a[1]; })
-      .slice(0, 5)
-      .map(function([mood, count]) { return { mood, count }; });
-
+    const trending = rows.map(function(row) { return { mood: row._id, count: row.count }; });
     res.json({ trending });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });

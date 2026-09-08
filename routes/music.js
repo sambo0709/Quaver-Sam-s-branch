@@ -344,17 +344,22 @@ router.get('/recommend', async function(req, res) {
     if (user) {
       try {
         const db = await getDB();
+        const oid = new (require('mongodb').ObjectId)(user.userId);
         const found = await db.collection('users').findOne(
-          { _id: new (require('mongodb').ObjectId)(user.userId) },
-          { projection: { recommendationFeedback: 1, recommendationEvents: 1, listeningHistory: 1 } }
+          { _id: oid },
+          { projection: { recommendationFeedback: 1, recommendationEvents: 1 } }
         );
-        const playsById = new Map((found?.listeningHistory || []).map(function(item) { return [item.trackId, item]; }));
+        const plays = await db.collection('listening_history')
+          .find({ userId: oid })
+          .project({ _id: 0, trackId: 1, artist: 1 })
+          .toArray();
+        const playsById = new Map(plays.map(function(item) { return [item.trackId, item]; }));
         (found?.recommendationFeedback || []).forEach(function(item) {
           (item.helpful ? history.liked : history.disliked).add(item.trackId);
           const played = playsById.get(item.trackId);
           if (item.helpful && played?.artist) history.likedArtists.add(String(played.artist).toLowerCase());
         });
-        (found?.listeningHistory || []).forEach(function(item) { if (item.trackId) history.played.add(item.trackId); });
+        plays.forEach(function(item) { if (item.trackId) history.played.add(item.trackId); });
         (found?.recommendationEvents || []).forEach(function(item) {
           if (!item.trackId) return;
           if (item.type === 'skip') history.skipped.set(item.trackId, (history.skipped.get(item.trackId) || 0) + 1);

@@ -31,9 +31,6 @@ router.post('/register', async (req, res) => {
       username,
       email,
       password: hashedPassword,
-      playlists: [],
-      recentMoods: [],
-      listeningHistory: [],
       defaultTheme: 'dark',
       createdAt: new Date(),
     });
@@ -181,10 +178,16 @@ router.get('/export', async function(req, res) {
   if (!user) return res.status(401).json({ error: 'Not logged in' });
   try {
     const db = await getDB();
-    const found = await db.collection('users').findOne({ _id: new ObjectId(user.userId) }, { projection: { password: 0, 'spotifyConnection.refreshToken': 0 } });
+    const oid = new ObjectId(user.userId);
+    const found = await db.collection('users').findOne({ _id: oid }, { projection: { password: 0, 'spotifyConnection.refreshToken': 0 } });
     if (!found) return res.status(404).json({ error: 'Account not found' });
+    const [playlists, moodHistory, listeningHistory] = await Promise.all([
+      db.collection('playlists').find({ userId: oid }).project({ _id: 0, userId: 0 }).sort({ createdAt: 1 }).toArray(),
+      db.collection('mood_history').find({ userId: oid }).project({ _id: 0, userId: 0 }).sort({ ts: 1 }).toArray(),
+      db.collection('listening_history').find({ userId: oid }).project({ _id: 0, userId: 0 }).sort({ playedAt: 1 }).toArray(),
+    ]);
     res.setHeader('Content-Disposition', 'attachment; filename="quaver-account-data.json"');
-    res.json(found);
+    res.json({ ...found, playlists, moodHistory, listeningHistory });
   } catch (_) { res.status(500).json({ error: 'Server error' }); }
 });
 
@@ -193,7 +196,13 @@ router.delete('/account', async function(req, res) {
   if (!user) return res.status(401).json({ error: 'Not logged in' });
   try {
     const db = await getDB();
-    await db.collection('users').deleteOne({ _id: new ObjectId(user.userId) });
+    const oid = new ObjectId(user.userId);
+    await Promise.all([
+      db.collection('users').deleteOne({ _id: oid }),
+      db.collection('playlists').deleteMany({ userId: oid }),
+      db.collection('mood_history').deleteMany({ userId: oid }),
+      db.collection('listening_history').deleteMany({ userId: oid }),
+    ]);
     clearSession(res);
     res.json({ message: 'Account deleted' });
   } catch (_) { res.status(500).json({ error: 'Server error' }); }

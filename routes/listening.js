@@ -5,16 +5,23 @@ const { getUser } = require('./session');
 
 const router = express.Router();
 
+// One document per play in the `listening_history` collection:
+//   { _id, userId, trackId, title, artist, albumArt, mood, playedAt }
+// Reads return the newest 500, oldest history is no longer discarded on write.
+const READ_LIMIT = 500;
+
 router.get('/history', async function(req, res) {
   const user = getUser(req);
   if (!user) return res.status(401).json({ error: 'Not logged in' });
   try {
     const db = await getDB();
-    const found = await db.collection('users').findOne(
-      { _id: new ObjectId(user.userId) },
-      { projection: { listeningHistory: 1 } }
-    );
-    res.json({ plays: (found?.listeningHistory || []).slice().reverse() });
+    const plays = await db.collection('listening_history')
+      .find({ userId: new ObjectId(user.userId) })
+      .project({ _id: 0, userId: 0 })
+      .sort({ playedAt: -1, _id: -1 })
+      .limit(READ_LIMIT)
+      .toArray();
+    res.json({ plays });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -26,6 +33,7 @@ router.post('/history', async function(req, res) {
   const { trackId, title, artist, albumArt, mood } = req.body;
   if (!trackId || !title) return res.status(400).json({ error: 'trackId and title required' });
   const entry = {
+    userId: new ObjectId(user.userId),
     trackId,
     title,
     artist: artist || '',
@@ -35,10 +43,7 @@ router.post('/history', async function(req, res) {
   };
   try {
     const db = await getDB();
-    await db.collection('users').updateOne(
-      { _id: new ObjectId(user.userId) },
-      { $push: { listeningHistory: { $each: [entry], $slice: -500 } } }
-    );
+    await db.collection('listening_history').insertOne(entry);
     res.status(201).json({ message: 'Play recorded' });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
@@ -50,10 +55,7 @@ router.delete('/history', async function(req, res) {
   if (!user) return res.status(401).json({ error: 'Not logged in' });
   try {
     const db = await getDB();
-    await db.collection('users').updateOne(
-      { _id: new ObjectId(user.userId) },
-      { $set: { listeningHistory: [] } }
-    );
+    await db.collection('listening_history').deleteMany({ userId: new ObjectId(user.userId) });
     res.json({ message: 'Listening history cleared' });
   } catch (_) { res.status(500).json({ error: 'Server error' }); }
 });
