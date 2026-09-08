@@ -43,4 +43,12 @@ async function getDB() {
   return db;
 }
 
-module.exports = { getDB };
+// Tear down the pooled connection (used by tests; no-op in normal runtime).
+async function closeDB() {
+  if (client) await client.close();
+  client = undefined;
+  db = undefined;
+  indexesPromise = undefined;
+}
+
+module.exports = { getDB, closeDB };
