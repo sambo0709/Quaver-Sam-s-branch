@@ -1603,10 +1603,12 @@ h1 span {
 .mood-collections-all:hover { background: color-mix(in srgb, var(--surface-raised) 94%, var(--text) 6%); }
 
 .discover-moods-main {
+  display: block;
   width: min(var(--app-content-max), calc(100% - (2 * var(--app-gutter))));
   min-height: 70vh;
   margin: 0 auto;
   padding: 72px 0 120px;
+  text-align: left;
 }
 
 .discover-moods-header { max-width: 720px; margin-bottom: 36px; }
@@ -2860,7 +2862,7 @@ body.expanded-player-open { overflow:hidden; }
 }
 body.player-active .site-footer { margin-bottom:calc(34px + var(--desktop-player-space)); }
 
-.archive-main { width:min(var(--app-content-max),calc(100% - (2 * var(--app-gutter))));min-height:70vh;margin:0 auto;padding:72px 0 40px; }
+.archive-main { display:block;width:min(var(--app-content-max),calc(100% - (2 * var(--app-gutter))));min-height:70vh;margin:0 auto;padding:72px 0 40px;text-align:left; }
 .archive-header { max-width:none;margin-bottom:34px; }
 .archive-toolbar { display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 16px;border:1px solid var(--glass-border);border-radius:14px;background:var(--card-solid); }
 .archive-toolbar label { color:var(--text);font-size:.76rem;font-weight:750; }
