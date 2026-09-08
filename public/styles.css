@@ -555,6 +555,22 @@ main {
   z-index: 1;
 }
 
+/* Utility views (everything except the home hero) share one layout base and
+   opt out of the centered flex `main` above. Each page's own rule then only
+   sets what actually differs: width, padding, min-height. */
+.settings-main,
+.profile-main,
+.playlist-library-main,
+.search-main,
+.archive-main,
+.discover-moods-main {
+  display: block;
+  margin-inline: auto;
+  text-align: left;
+  position: relative;
+  z-index: 1;
+}
+
 h1 {
   font-family: var(--font-family);
   font-size: clamp(3rem, 9vw, 8rem);
@@ -1603,12 +1619,9 @@ h1 span {
 .mood-collections-all:hover { background: color-mix(in srgb, var(--surface-raised) 94%, var(--text) 6%); }
 
 .discover-moods-main {
-  display: block;
   width: min(var(--app-content-max), calc(100% - (2 * var(--app-gutter))));
   min-height: 70vh;
-  margin: 0 auto;
   padding: 72px 0 120px;
-  text-align: left;
 }
 
 .discover-moods-header { max-width: 720px; margin-bottom: 36px; }
@@ -2628,14 +2641,9 @@ body.player-active { padding-bottom: var(--desktop-player-space); }
 ═══════════════════════════════════════ */
 
 .profile-main {
-  display: block;
   width: 100%;
   max-width: calc(var(--app-content-max) + (2 * var(--app-gutter)));
-  margin: 0 auto;
   padding: 52px var(--app-gutter) 100px;
-  text-align: left;
-  position: relative;
-  z-index: 1;
 }
 
 .profile-title,
@@ -2862,7 +2870,7 @@ body.expanded-player-open { overflow:hidden; }
 }
 body.player-active .site-footer { margin-bottom:calc(34px + var(--desktop-player-space)); }
 
-.archive-main { display:block;width:min(var(--app-content-max),calc(100% - (2 * var(--app-gutter))));min-height:70vh;margin:0 auto;padding:72px 0 40px;text-align:left; }
+.archive-main { width:min(var(--app-content-max),calc(100% - (2 * var(--app-gutter))));min-height:70vh;padding:72px 0 40px; }
 .archive-header { max-width:none;margin-bottom:34px; }
 .archive-toolbar { display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 16px;border:1px solid var(--glass-border);border-radius:14px;background:var(--card-solid); }
 .archive-toolbar label { color:var(--text);font-size:.76rem;font-weight:750; }
@@ -2991,7 +2999,7 @@ button.archive-calendar-day.is-selected { border-color:var(--accent);background:
 .spotify-setting-actions { display: flex; gap: 8px; margin-top: 10px; }
 .spotify-setting-actions a, .spotify-setting-actions button { flex: 1; padding: 8px; border: 1px solid var(--glass-border); border-radius: 8px; background: transparent; color: var(--text); text-align: center; text-decoration: none; font: inherit; font-size: 11px; cursor: pointer; }
 
-.settings-main { display: block; width: 100%; max-width: calc(var(--app-reading-max) + (2 * var(--app-gutter))); margin: 0 auto; padding: 52px var(--app-gutter) 100px; position: relative; z-index: 1; text-align: left; }
+.settings-main { width: 100%; max-width: calc(var(--app-reading-max) + (2 * var(--app-gutter))); padding: 52px var(--app-gutter) 100px; }
 .settings-header p, .settings-section > p { color: var(--text-muted); font-size: 13px; line-height: 1.5; }
 .settings-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .settings-jump-nav { position:sticky;top:82px;z-index:3;display:flex;gap:7px;width:max-content;max-width:100%;margin:0 0 16px;padding:6px;border:1px solid var(--glass-border);border-radius:999px;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(16px);overflow-x:auto; }
@@ -3033,14 +3041,9 @@ button.archive-calendar-day.is-selected { border-color:var(--accent);background:
 }
 
 .playlist-library-main {
-  position: relative;
-  z-index: 1;
-  display: block;
   width: 100%;
   max-width: calc(var(--app-content-max) + (2 * var(--app-gutter)));
-  margin: 0 auto;
   padding: 52px var(--app-gutter) 130px;
-  text-align: left;
 }
 
 .playlist-library-header { width: 100%; margin-bottom: 20px; }
@@ -5447,10 +5450,8 @@ body > nav:not(.mobile-bottom-nav),
 
 .search-main {
   width: min(900px, calc(100% - 40px));
-  margin: 76px auto 100px;
+  margin-block: 76px 100px;
   padding: 0;
-  display: block;
-  text-align: left;
 }
 .search-header { margin-bottom: 24px; }
 .search-header > span { color: var(--accent); font-size: .68rem; font-weight: 800; letter-spacing: .16em; }
