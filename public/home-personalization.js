@@ -76,6 +76,12 @@ async function loadPersonalizedHome() {
 function renderMotd(data, grid) {
   const mood = data.mood;
   const songs = data.songs;
+  const section = document.getElementById('sotd');
+  const colors = moodColors[mood];
+  if (section && colors) {
+    section.style.setProperty('--accent', colors.accent);
+    section.style.setProperty('--sotd-gradient', 'linear-gradient(135deg, ' + colors.accent + ', ' + colors.accent2 + ')');
+  }
   document.getElementById('sotd-mood-subtitle').textContent = mood.charAt(0).toUpperCase() + mood.slice(1) + ' — ' + songs.length + ' picks for today';
   let html = '';
   songs.forEach(function(song, index) {

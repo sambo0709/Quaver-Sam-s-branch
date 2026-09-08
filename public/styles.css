@@ -8,6 +8,22 @@
 
 :root {
   --font-family: 'Spotify Mix', 'Circular Spotify Text', 'Circular Sp', Helvetica, Arial, sans-serif;
+  --type-display: clamp(3.8rem, 7.2vw, 6.4rem);
+  --type-page-title: clamp(2.35rem, 5vw, 4.5rem);
+  --type-section-title: clamp(1.45rem, 2.5vw, 2rem);
+  --type-card-title: 1rem;
+  --type-body: .9rem;
+  --type-small: .76rem;
+  --type-eyebrow: .68rem;
+  --weight-display: 750;
+  --weight-heading: 750;
+  --weight-body: 500;
+  --weight-label: 800;
+  --media-text-primary: #f7f8fc;
+  --media-text-secondary: rgba(247, 248, 252, .7);
+  --media-text-tertiary: rgba(247, 248, 252, .52);
+  --media-text-accent: #71eafa;
+  --control-ink: #101522;
   --app-content-max: 1440px;
   --app-reading-max: 1180px;
   --app-gutter: clamp(20px, 3vw, 48px);
@@ -56,6 +72,14 @@
   --card-solid-hover: #1d2a3b;
   --text: #e8f4ff;
   --text-muted: rgba(232, 244, 255, 0.5);
+  --text-primary: #e8f4ff;
+  --text-secondary: rgba(232, 244, 255, .68);
+  --text-tertiary: rgba(232, 244, 255, .5);
+  --text-on-color: #fff;
+  --text-accent: #22d3ee;
+  --text-danger: #ff8585;
+  --text-success: #55d98a;
+  --text-spotify: #1ed760;
   --accent: #22d3ee;
   --accent2: #0891b2;
   --accent-glow: rgba(34, 211, 238, 0.22);
@@ -87,6 +111,14 @@
   --card-solid-hover: rgba(255, 255, 255, 0.9);
   --text: #1a1a2e;
   --text-muted: rgba(26, 26, 46, 0.5);
+  --text-primary: #1a1a2e;
+  --text-secondary: rgba(26, 26, 46, .7);
+  --text-tertiary: rgba(26, 26, 46, .5);
+  --text-on-color: #fff;
+  --text-accent: #c2410c;
+  --text-danger: #b4232f;
+  --text-success: #167542;
+  --text-spotify: #168a42;
   --accent: #c2410c;
   --accent2: #f97316;
   --accent-glow: rgba(194, 65, 12, 0.18);
@@ -1675,7 +1707,8 @@ h1 span {
   text-align: left;
   border: 1px solid color-mix(in srgb, white 18%, transparent);
   border-radius: 22px;
-  color: var(--mood-text);
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,.3);
   background: linear-gradient(135deg, var(--mood-a), var(--mood-b));
   box-shadow: none;
   cursor: pointer;
@@ -3684,7 +3717,7 @@ button.archive-calendar-day.is-selected { border-color:var(--accent);background:
 .mood-collections { width:100%; margin:36px 0 0; padding-top:28px; border-top:1px solid var(--glass-border); }
 .mood-collections .playlist-grid-heading p { margin-top:5px; color:var(--text-muted); font-size:11px; }
 .mood-collection-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr)); gap:12px; }
-.mood-collection-card { position:relative; min-height:176px; padding:22px; overflow:hidden; border:1px solid rgba(255,255,255,.13); border-radius:15px; background:linear-gradient(135deg,var(--mood-a),var(--mood-b)); color:var(--mood-text); text-align:left; cursor:pointer; transition:transform .2s ease,filter .2s ease; }
+.mood-collection-card { position:relative; min-height:176px; padding:22px; overflow:hidden; border:1px solid rgba(255,255,255,.13); border-radius:15px; background:linear-gradient(135deg,var(--mood-a),var(--mood-b)); color:#fff; text-align:left; text-shadow:0 1px 2px rgba(0,0,0,.3); cursor:pointer; transition:transform .2s ease,filter .2s ease; }
 .mood-collection-card:hover { transform:translateY(-3px); filter:saturate(1.08); }
 .mood-collection-card span { display:block; font-size:9px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; opacity:.74; }
 .mood-collection-card strong { display:block; margin-top:24px; font-size:1.25rem; letter-spacing:-.025em; }
@@ -4826,7 +4859,7 @@ html.reduce-motion *::after {
   font-size: clamp(1.8rem, 4vw, 3rem);
   font-weight: 700;
   letter-spacing: -0.02em;
-  background: var(--gradient);
+  background: var(--sotd-gradient, var(--brand-gradient));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -6598,3 +6631,132 @@ main:has(.mood-context[open]) .recommendation-panel .recommendation-go-btn {
   .playlist-library-toolbar.is-simple { margin-top: 0; }
   .playlist-library-toolbar.is-simple .playlist-build-button { width: 100%; }
 }
+
+/* Semantic typography layer -------------------------------------------------
+   Page features may control layout, but text hierarchy and meaning come from
+   this shared system. Brand, status, and text-on-color are deliberate roles. */
+body { color:var(--text-primary);font-weight:var(--weight-body); }
+
+body :is(
+  .auth-title,
+  .profile-title,
+  .playlist-grid-heading h1,
+  .search-main > header h1,
+  .archive-main > header h1,
+  .discover-moods-header h1
+) { color:var(--text-primary);font-size:var(--type-page-title);font-weight:var(--weight-display);letter-spacing:-.035em; }
+
+body :is(
+  .personalized-heading h2,
+  .trending-title,
+  .playlist-grid-heading h2,
+  .playlist-section-heading h2,
+  .profile-box-heading h2,
+  .search-result-group-heading h2,
+  .onboarding-title,
+  .profile-editor-heading h2
+) { color:var(--text-primary);font-size:var(--type-section-title);font-weight:var(--weight-heading);letter-spacing:-.025em; }
+
+body :is(
+  .song-title,
+  .sotd-song-title,
+  .panel-song-title,
+  .queue-item-title,
+  .playlist-library-card-copy strong,
+  .playlist-detail-copy strong,
+  .media-card-copy strong
+) { color:var(--text-primary);font-size:var(--type-card-title);font-weight:var(--weight-heading); }
+
+body :is(
+  .subtitle,
+  .auth-subtitle,
+  .sotd-subtitle,
+  .trending-subtitle,
+  .playlist-grid-heading p,
+  .playlist-section-heading p,
+  .mood-collection-detail-heading p,
+  .search-generated-copy p
+) { color:var(--text-secondary);font-size:var(--type-body);line-height:1.55; }
+
+body :is(
+  .song-artist,
+  .sotd-song-artist,
+  .profile-playlist-meta,
+  .saved-playlist-meta,
+  .playlist-library-card-copy small,
+  .playlist-detail-copy small,
+  .media-card-copy small,
+  .artist-suggestion-status
+) { color:var(--text-tertiary);font-size:var(--type-small);font-weight:var(--weight-body); }
+
+body :is(
+  .hero-eyebrow,
+  .sotd-label,
+  .trending-label,
+  .saved-section-label,
+  .now-playing-label,
+  .search-result-group-heading > span,
+  .fine-tune-heading > span,
+  .profile-hero-copy > span
+) { color:var(--text-accent);font-size:var(--type-eyebrow);font-weight:var(--weight-label);letter-spacing:.14em;text-transform:uppercase; }
+
+/* The two expressive headings keep their theme/mood gradients. */
+main > h1 { font-size:var(--type-display);font-weight:var(--weight-display); }
+.sotd-title { color:transparent;font-size:var(--type-section-title);font-weight:var(--weight-heading); }
+
+/* Every large mood-colored surface uses one foreground treatment. */
+body :is(.mood-shortcut-card,.discover-mood-card,.mood-collection-card),
+body :is(.mood-shortcut-card,.discover-mood-card,.mood-collection-card) :is(span,strong,small,b) {
+  color:var(--text-on-color);
+}
+body :is(.mood-shortcut-card,.discover-mood-card,.mood-collection-card) :is(span,small) { opacity:.82; }
+
+/* Functional colors are consistent and do not leak into ordinary copy. */
+body :is(.spotify-nav-link,.spotify-connected-link,.player-spotify-link,.spotify-source,.playlist-spotify-export) { color:var(--text-spotify) !important; }
+body :is(.danger-zone button,.settings-danger button,.playlist-delete-action,.playlist-track-remove) { color:var(--text-danger); }
+body :is(.connection-status strong.connected,.taste-status.is-success) { color:var(--text-success); }
+
+/* Menus and forms use the same hierarchy as their parent page. */
+body :is(.user-menu-dropdown,.profile-editor,.playlist-picker,.queue-panel,.rename-modal) { color:var(--text-primary); }
+body :is(.user-menu-header small,.auth-field label,.fine-tune-label,.preference-fields label) { color:var(--text-tertiary);font-size:var(--type-small); }
+body :is(.auth-tab,.choice-chips button,.settings-jump-nav a) { color:var(--text-secondary); }
+body :is(.auth-tab.active,.auth-submit,.play-all-btn,.retry-btn,.add-btn) { color:var(--text-on-color); }
+body :is(.auth-error,.taste-status.is-error,.player-status-line [data-state="error"]) { color:var(--text-danger); }
+
+/* Compact player: a dark media surface in dark mode, a normal surface in light. */
+body .spotify-player { color:var(--media-text-primary); }
+body .spotify-player .player-track-copy strong { color:var(--media-text-primary);font-weight:var(--weight-heading); }
+body .spotify-player :is(.player-track-copy small,.player-progress-row,.player-status-line) { color:var(--media-text-tertiary); }
+body .spotify-player :is(.player-control-button,.player-shuffle-btn,.player-close-btn) { color:var(--media-text-secondary); }
+body .spotify-player :is(.player-control-button,.player-shuffle-btn):hover { color:var(--media-text-primary); }
+body .spotify-player .player-toggle-button { color:var(--control-ink);background:var(--media-text-primary); }
+body .spotify-player .player-status-line a { color:var(--media-text-primary); }
+
+:root[data-theme="light"] body .spotify-player { color:var(--text-primary); }
+:root[data-theme="light"] body .spotify-player .player-track-copy strong { color:var(--text-primary); }
+:root[data-theme="light"] body .spotify-player :is(.player-track-copy small,.player-progress-row,.player-status-line) { color:var(--text-tertiary); }
+:root[data-theme="light"] body .spotify-player :is(.player-control-button,.player-shuffle-btn,.player-close-btn) { color:var(--text-secondary); }
+:root[data-theme="light"] body .spotify-player :is(.player-control-button,.player-shuffle-btn):hover { color:var(--text-primary); }
+:root[data-theme="light"] body .spotify-player .player-toggle-button { color:var(--text-on-color);background:var(--text-primary); }
+:root[data-theme="light"] body .spotify-player .player-status-line a { color:var(--text-primary); }
+
+/* Profile hero and dark storytelling surfaces intentionally share media text. */
+body :is(.profile-hero,.wrapped-card) { color:var(--media-text-primary); }
+body .profile-hero :is(.profile-title,.profile-hero-copy > p strong,.profile-hero-actions a,.profile-edit-button) { color:var(--media-text-primary); }
+body .profile-hero .profile-hero-copy > p { color:var(--media-text-secondary); }
+body .profile-hero .profile-hero-copy > span { color:var(--media-text-accent); }
+body .wrapped-card :is(.wrapped-artist-name,.wrapped-close-btn) { color:var(--media-text-primary); }
+body .wrapped-card :is(.wrapped-year-text,.wrapped-stat-label,.wrapped-artist-plays) { color:var(--media-text-tertiary); }
+
+/* Expanded player uses media text unless its light-theme surface is active. */
+body .expanded-player { color:var(--media-text-primary); }
+body .expanded-player .expanded-player-header { color:var(--media-text-accent); }
+body .expanded-player :is(.expanded-player-now span,.expanded-player-controls button) { color:var(--media-text-secondary); }
+body .expanded-player :is(.expanded-player-progress,.expanded-queue-heading span,.expanded-queue-item small,.expanded-suggestion-item small) { color:var(--media-text-tertiary); }
+body .expanded-player :is(.expanded-queue-item,.expanded-suggestion-item strong,.expanded-suggestion-item button) { color:var(--media-text-primary); }
+
+:root[data-theme="light"] body .expanded-player { color:var(--text-primary); }
+:root[data-theme="light"] body .expanded-player .expanded-player-header { color:var(--text-accent); }
+:root[data-theme="light"] body .expanded-player :is(.expanded-player-now span,.expanded-player-controls button) { color:var(--text-secondary); }
+:root[data-theme="light"] body .expanded-player :is(.expanded-player-progress,.expanded-queue-heading span,.expanded-queue-item small,.expanded-suggestion-item small) { color:var(--text-tertiary); }
+:root[data-theme="light"] body .expanded-player :is(.expanded-queue-item,.expanded-suggestion-item strong,.expanded-suggestion-item button) { color:var(--text-primary); }
