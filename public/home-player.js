@@ -100,6 +100,31 @@ function playerNext() {
   if (songQueue.length > 0) playFromQueue(1);
   else QuaverPlayer.next();
 }
+
+function currentPlayerSong() {
+  const track = window.QuaverPlayer && QuaverPlayer.current && QuaverPlayer.current();
+  if (!track || !track.trackId) return null;
+  return {
+    trackId: track.trackId,
+    title: track.title || '',
+    artist: track.artist || '',
+    album_art: track.albumArt || '',
+    spotify_url: 'https://open.spotify.com/track/' + track.trackId,
+  };
+}
+
+function playerAddCurrentToPlaylist(button) {
+  const song = currentPlayerSong();
+  if (!song) return;
+  if (typeof addToPlaylist === 'function') addToPlaylist(song, button);
+  else if (typeof showToast === 'function') showToast('Open a mix to save tracks to a playlist.', 'error');
+}
+
+function playerMixFromCurrent() {
+  const song = currentPlayerSong();
+  if (!song) return;
+  if (typeof startMixFromTrack === 'function') startMixFromTrack(song.trackId, song.title, song.artist);
+}
 function playAll(songs) {
   if (!songs || songs.length === 0) return;
   songQueue = songs.filter(function(s) { return s.spotify_url; });

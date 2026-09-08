@@ -43,7 +43,6 @@ const APP_SCRIPTS = [
   'home-player.js',
   'home-playlists.js',
   'home-search-ui.js',
-  'mood-pad.js',
   'spotify-player.js',
 ];
 

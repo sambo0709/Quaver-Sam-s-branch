@@ -43,42 +43,6 @@ test.describe('Tier 2 — navigation', () => {
     await expect(page).toHaveURL(/archive\.html$/);
   });
 
-  test('mood pad toggles on, resolves a mood by position, and stays in sync with chips', async ({ page }) => {
-    await page.addInitScript(() => localStorage.setItem('quaver_onboarded', '1'));
-    await page.setViewportSize({ width: 1280, height: 900 });
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
-
-    await page.locator('.mood-pad-toggle').click();
-    const pad = page.locator('#mood-pad');
-    await expect(pad).toBeVisible();
-    await expect(page.locator('.main-mood-chips')).toBeHidden();
-
-    const surface = pad.locator('.mood-pad-surface');
-    const box = (await surface.boundingBox())!;
-
-    // top-right = high energy + upbeat -> an energetic-family mood
-    await page.mouse.click(box.x + box.width * 0.9, box.y + box.height * 0.08);
-    const upbeat = await page.locator('#mood-select').inputValue();
-    expect(['energetic', 'party', 'happy']).toContain(upbeat);
-    await expect(page.locator('#mood-pad-readout')).toHaveText(upbeat);
-
-    // bottom-left = low energy + downbeat -> sad
-    await page.mouse.click(box.x + box.width * 0.1, box.y + box.height * 0.75);
-    expect(await page.locator('#mood-select').inputValue()).toBe('sad');
-
-    // keyboard nudge still resolves a mood
-    await surface.focus();
-    await surface.press('ArrowUp');
-    await surface.press('ArrowUp');
-    expect(await page.locator('#mood-select').inputValue()).not.toBe('');
-
-    // switch back to chips; a chip click drives the same select
-    await page.locator('.mood-pad-toggle').click();
-    await expect(page.locator('.main-mood-chips')).toBeVisible();
-    await page.locator('.main-mood-chips button[data-value="calm"]').click();
-    expect(await page.locator('#mood-select').inputValue()).toBe('calm');
-  });
-
   test('top nav fits without horizontal overflow at laptop widths', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('quaver_onboarded', '1'));
     for (const width of [770, 900, 1100]) {
@@ -89,5 +53,87 @@ test.describe('Tier 2 — navigation', () => {
         `no overflow at ${width}px`,
       ).toBe(true);
     }
+  });
+});
+
+test.describe('Tier 2 — mix preview', () => {
+  const trackUrl = (n: number) => `https://open.spotify.com/track/${String(n).padStart(22, 'b')}`;
+  const mixOf = (ids: number[]) => ({
+    mood: 'happy',
+    context: { mood: 'happy' },
+    learning: { personalized: false },
+    count: ids.length,
+    songs: ids.map((n) => ({
+      title: `Song ${n}`, artist: `Artist ${n}`, duration: '3:00', album_art: '',
+      spotify_url: trackUrl(n), recommendation_reasons: ['Fits your happy mood'],
+    })),
+  });
+
+  test('"New mix" re-requests, excluding the tracks it just served', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('quaver_onboarded', '1'));
+    let call = 0;
+    await page.route('**/api/music/recommend**', (route) => {
+      call += 1;
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(call === 1 ? mixOf([1, 2, 3]) : mixOf([4, 5, 6])) });
+    });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.locator('#mood-select').selectOption('happy');
+    await page.locator('#recommendation-form button[type="submit"]').click();
+    await expect(page.locator('.song-card')).toHaveCount(3);
+
+    const secondCall = page.waitForRequest((r) => {
+      const u = new URL(r.url());
+      return u.pathname.endsWith('/api/music/recommend') && (u.searchParams.get('session') || '').includes('bbbbbbbbbbbbbbbbbbbbb1');
+    });
+    await page.getByRole('button', { name: /new mix/i }).click();
+    await secondCall;
+    await expect(page.locator('.song-card').first()).toContainText('Song 4');
+  });
+
+  test('"Save as playlist" posts the whole mix', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('quaver_onboarded', '1');
+      localStorage.setItem('quaver_user', JSON.stringify({ username: 'Mixer' }));
+    });
+    await page.route('**/api/music/recommend**', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mixOf([7, 8])) }),
+    );
+    let posted: any = null;
+    await page.route('**/api/playlist', (route) => {
+      if (route.request().method() === 'POST') {
+        posted = route.request().postDataJSON();
+        return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ playlist: { id: 'x', name: posted.name, mood: posted.mood, songs: posted.songs } }) });
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ playlists: [] }) });
+    });
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.locator('#mood-select').selectOption('happy');
+    await page.locator('#recommendation-form button[type="submit"]').click();
+    await expect(page.locator('.song-card')).toHaveCount(2);
+
+    page.once('dialog', (d) => d.accept('My Saved Mix'));
+    await page.getByRole('button', { name: /save as playlist/i }).click();
+    await expect.poll(() => posted).not.toBeNull();
+    expect(posted.name).toBe('My Saved Mix');
+    expect(posted.songs).toHaveLength(2);
+    expect(posted.songs[0].spotify_url).toContain('/track/');
+  });
+
+  test('player exposes the add-to-playlist and start-a-mix actions', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('quaver_onboarded', '1'));
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    const player = page.locator('#spotify-player');
+    await expect(player.locator('button[onclick="playerAddCurrentToPlaylist(this)"]')).toHaveCount(1);
+    await expect(player.locator('button[onclick="playerMixFromCurrent()"]')).toHaveCount(1);
+    // handlers are defined and safe to call with nothing playing
+    const ok = await page.evaluate(() => {
+      try {
+        (window as any).playerAddCurrentToPlaylist();
+        (window as any).playerMixFromCurrent();
+        return typeof (window as any).QuaverPlayer.current === 'function';
+      } catch { return false; }
+    });
+    expect(ok).toBe(true);
   });
 });

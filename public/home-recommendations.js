@@ -2,6 +2,7 @@ let recommendationRequestController = null;
 let artistSuggestionTimer = null;
 let artistSuggestionController = null;
 let pendingSeed = null;
+let pendingRegenerate = false;
 
 function spotifyTrackId(url) {
   const match = String(url || '').match(/^https:\/\/open\.spotify\.com\/track\/([A-Za-z0-9]+)(?:\?.*)?$/);
@@ -329,7 +330,7 @@ function recommendationLearningHTML(learning) {
 function renderRecommendationSongs(songs, learning) {
   window._lastResults = songs;
   window._lastResultsLearning = learning;
-  let html = '<div class="results-header"><span>' + songs.length + ' tracks — ' + escapeHTML(currentMood) + '</span><div class="results-actions"><button class="shuffle-mix-btn" type="button" onclick="shuffleMix()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h2.5c5 0 6 10 11 10H20M17 4l3 3-3 3M4 17h2.5c1.8 0 3-1.3 4.1-3M14 7.8c1-1 2.1-1.8 3.4-1.8H20M17 14l3 3-3 3"/></svg>Shuffle</button><button class="play-all-btn" type="button" onclick="playAll(window._lastResults)">Play all</button></div></div>';
+  let html = '<div class="results-header"><span>' + songs.length + ' tracks — ' + escapeHTML(currentMood) + '</span><div class="results-actions"><button class="shuffle-mix-btn" type="button" onclick="regenerateMix()" title="Build a different mix"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h2.5c5 0 6 10 11 10H20M17 4l3 3-3 3M4 17h2.5c1.8 0 3-1.3 4.1-3M14 7.8c1-1 2.1-1.8 3.4-1.8H20M17 14l3 3-3 3"/></svg>New mix</button><button class="shuffle-mix-btn" type="button" onclick="shuffleMix()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h3c5 0 5 10 10 10h3M17 4l3 3-3 3M4 17h3c2.2 0 3.4-1.8 4.5-4M17 14l3 3-3 3"/></svg>Shuffle</button><button class="play-all-btn" type="button" onclick="saveMixAsPlaylist(this)">Save as playlist</button><button class="play-all-btn" type="button" onclick="playAll(window._lastResults)">Play all</button></div></div>';
   html += recommendationLearningHTML(learning);
   songs.forEach(function(song, index) {
     const trackId = spotifyTrackId(song.spotify_url);
@@ -362,6 +363,55 @@ function shuffleMix() {
   showToast('Mix shuffled.','success');
 }
 
+// Fresh mix: re-run recommendation, telling the engine to steer clear of the
+// tracks it just served so the new set is genuinely different.
+function regenerateMix() {
+  if (!currentMood) return;
+  pendingRegenerate = true;
+  fetchSongs();
+}
+window.regenerateMix = regenerateMix;
+
+async function saveMixAsPlaylist(button) {
+  if (!requireLogin('You need an account to save a mix.')) return;
+  const songs = (window._lastResults || []).filter(function (song) { return song && song.title && song.spotify_url; });
+  if (songs.length < 1) return showToast('Nothing to save yet.', 'error');
+  const suggested = (currentMood ? currentMood.charAt(0).toUpperCase() + currentMood.slice(1) : 'Mood') + ' mix';
+  const name = (window.prompt('Name this playlist', suggested) || '').trim();
+  if (!name) return;
+  if (button) button.disabled = true;
+  try {
+    const res = await fetch(API + '/api/playlist', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name,
+        mood: currentMood || 'mixed',
+        songs: songs.map(function (song) {
+          return {
+            title: song.title,
+            artist: song.artist || '',
+            duration: song.duration || '',
+            album_art: song.album_art || '',
+            spotify_url: song.spotify_url,
+          };
+        }),
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not save this mix.');
+    if (Array.isArray(savedPlaylists)) { savedPlaylists.push(data.playlist); }
+    if (typeof loadPlaylists === 'function') loadPlaylists();
+    showToast('Saved “' + name + '” with ' + songs.length + ' tracks.', 'success');
+  } catch (error) {
+    showToast(error.message || 'Could not save this mix.', 'error');
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+window.saveMixAsPlaylist = saveMixAsPlaylist;
+
 function focusMobileResults() {
   if (window.matchMedia('(max-width: 768px)').matches) {
     window.setTimeout(function(){document.getElementById('results').scrollIntoView({behavior:document.documentElement.classList.contains('reduce-motion')?'auto':'smooth',block:'start'});},80);
@@ -387,6 +437,10 @@ async function fetchSongs() {
       hour: String(new Date().getHours()),
     };
     if (pendingSeed) { context[pendingSeed.type === 'playlist' ? 'seedPlaylist' : 'seedTrack'] = pendingSeed.id; }
+    if (pendingRegenerate) {
+      const previous = (window._lastResults || []).map(function (song) { return spotifyTrackId(song.spotify_url); }).filter(Boolean);
+      if (previous.length) context.session = previous.join(',');
+    }
     const params = new URLSearchParams({ mood: currentMood, limit: currentLimit, explicit: String(preferences.explicitContent !== false), variety: preferences.recommendationVariety || 'balanced', ...context });
     const url = API + '/api/music/recommend?' + params.toString();
     const res = await fetch(url, { credentials: 'include', signal: controller.signal });
@@ -412,6 +466,7 @@ async function fetchSongs() {
   } finally {
     clearTimeout(timeout);
     pendingSeed = null;
+    pendingRegenerate = false;
     if (controller === recommendationRequestController) recommendationRequestController = null;
   }
 }

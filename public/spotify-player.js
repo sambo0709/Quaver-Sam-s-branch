@@ -758,6 +758,7 @@
     setQueue: setQueue,
     playQueueIndex: playQueueIndex,
     showQueue: openExpandedPlayer,
+    current: function () { return currentTrack ? Object.assign({}, currentTrack) : null; },
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', autoInitialize);
