@@ -16,6 +16,8 @@ async function mockAppData(page: Page) {
     if (pathname === '/api/music/sotd') return route.fulfill({ json: { mood: 'calm', count: 1, songs: [] } });
     if (pathname === '/api/music/trending') return route.fulfill({ json: { moods: [] } });
     if (pathname === '/api/music/recommend') return route.fulfill({ json: { songs: [] } });
+    if (pathname === '/api/music/sotd/archive') return route.fulfill({ json: { archive: [] } });
+    if (pathname === '/api/taste') return route.fulfill({ json: { taste: { seedArtists: [], seedGenres: [], blockedArtists: [] } } });
     return route.fulfill({ json: {} });
   });
 }
@@ -35,6 +37,8 @@ for (const entry of [
   { name: 'Playlists', path: '/playlists.html' },
   { name: 'Profile', path: '/profile.html' },
   { name: 'Settings', path: '/settings.html' },
+  { name: 'Discover', path: '/discover.html' },
+  { name: 'Archive', path: '/archive.html' },
 ]) {
   test(entry.name + ' has no automated WCAG A/AA violations', async ({ page }) => {
     await mockAppData(page);

@@ -26,6 +26,11 @@
   let similarTracks = [];
   let similarTracksKey = '';
   let similarTracksRequest = null;
+  // 30-second preview fallback for listeners without Spotify Premium / a
+  // connection. The Web Playback SDK stays the primary path.
+  let previewAudio = null;
+  let previewMode = false;
+  const PREVIEW_MS = 30000;
 
   function readPersistedPlayback() {
     try { return JSON.parse(localStorage.getItem(PLAYBACK_STORAGE_KEY) || '{}'); }
@@ -192,7 +197,7 @@
       expandedToggle.classList.toggle('is-playing', !paused);
     }
     clearInterval(progressTimer);
-    if (!paused && duration > 0) {
+    if (!paused && duration > 0 && !previewMode) {
       progressTimer = setInterval(function () {
         renderProgress(Math.min(position + 1000, duration), duration);
       }, 1000);
@@ -447,6 +452,7 @@
 
   async function play(track) {
     if (!track || !track.trackId) return false;
+    stopPreview();
     track = Object.assign({}, track, { trackId: String(track.trackId).split('?')[0] });
     const queue = Array.isArray(persistedPlayback.queue) ? persistedPlayback.queue : [];
     const queueIndex = queue.findIndex(function(item) { return item.trackId === track.trackId; });
@@ -474,13 +480,16 @@
       savePersistedPlayback(true);
       return true;
     } catch (error) {
+      if (track.previewUrl && startPreview(Object.assign({}, track))) return true;
       handleError(error, true);
       return false;
     }
   }
 
   async function toggle() {
+    if (previewMode) return togglePreview();
     if (!player || !deviceId) {
+      if (previewAudio) return togglePreview();
       if (currentTrack) return play(currentTrack);
       return false;
     }
@@ -522,6 +531,10 @@
   }
 
   async function seek(value) {
+    if (previewMode && previewAudio) {
+      previewAudio.currentTime = (Number(value) || 0) / 1000;
+      return true;
+    }
     if (!player || !deviceId) return false;
     try {
       await player.seek(Number(value) || 0);
@@ -541,6 +554,7 @@
     if (slider) slider.style.setProperty('--player-volume', (normalized * 100) + '%');
     const button = element('player-volume-button');
     if (button) button.classList.toggle('is-muted', normalized === 0);
+    if (previewAudio) previewAudio.volume = normalized;
     if (!player) return false;
     try { await player.setVolume(normalized); return true; }
     catch (error) { handleError(error, true); return false; }
@@ -556,6 +570,7 @@
 
   async function hide() {
     clearInterval(progressTimer);
+    stopPreview();
     if (player) {
       try { await player.pause(); } catch (_) {}
     }
@@ -570,7 +585,59 @@
 
   function normalizeQueueTrack(track) {
     const trackId=String(track && (track.trackId || '') || '').split('?')[0] || String(track && track.spotify_url || '').split('/track/')[1]?.split('?')[0];
-    return { trackId:trackId||'', title:track && track.title || '', artist:track && track.artist || '', albumArt:track && (track.albumArt || track.album_art) || '' };
+    return { trackId:trackId||'', title:track && track.title || '', artist:track && track.artist || '', albumArt:track && (track.albumArt || track.album_art) || '', previewUrl:track && (track.previewUrl || track.preview_url) || '' };
+  }
+
+  function stopPreview() {
+    previewMode = false;
+    if (previewAudio) {
+      try { previewAudio.pause(); } catch (_) {}
+      previewAudio.removeAttribute('src');
+      if (previewAudio.parentNode) previewAudio.parentNode.removeChild(previewAudio);
+      previewAudio = null;
+    }
+    clearInterval(progressTimer);
+  }
+
+  function startPreview(track) {
+    if (!track || !track.previewUrl) return false;
+    stopPreview();
+    previewMode = true;
+    duration = PREVIEW_MS;
+    position = 0;
+    paused = false;
+    previewAudio = new Audio(track.previewUrl);
+    previewAudio.hidden = true;
+    previewAudio.setAttribute('data-quaver-preview', '');
+    document.body.appendChild(previewAudio);
+    previewAudio.volume = previousVolume;
+    previewAudio.addEventListener('timeupdate', function () {
+      position = previewAudio.currentTime * 1000;
+      renderProgress(position, (previewAudio.duration ? previewAudio.duration * 1000 : PREVIEW_MS));
+    });
+    previewAudio.addEventListener('ended', function () {
+      stopPreview();
+      if (typeof window.playerNext === 'function') window.playerNext();
+      else next();
+    });
+    previewAudio.addEventListener('error', function () {
+      stopPreview();
+      handleError(makeError('This preview is unavailable — open the track in Spotify for the full song.', 'PREVIEW_FAILED'), true);
+    });
+    const started = previewAudio.play();
+    if (started && started.catch) started.catch(function () { paused = true; renderPlaybackState(); });
+    setStatus('30-second preview · connect Spotify Premium for the full track', 'playing', 'Connect Spotify', 'settings.html#spotify-settings');
+    renderPlaybackState();
+    savePersistedPlayback(true);
+    return true;
+  }
+
+  function togglePreview() {
+    if (!previewAudio) return false;
+    if (previewAudio.paused) { previewAudio.play().catch(function () {}); paused = false; }
+    else { previewAudio.pause(); paused = true; }
+    renderPlaybackState();
+    return true;
   }
 
   function setQueue(tracks, index) {

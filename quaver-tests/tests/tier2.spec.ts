@@ -120,6 +120,56 @@ test.describe('Tier 2 — mix preview', () => {
     expect(posted.songs[0].spotify_url).toContain('/track/');
   });
 
+  test('preview-first: 30s clip plays when the SDK cannot', async ({ page }) => {
+    const silentWav = (seconds = 1, rate = 8000) => {
+      const size = seconds * rate;
+      const buf = Buffer.alloc(44 + size);
+      buf.write('RIFF', 0); buf.writeUInt32LE(36 + size, 4); buf.write('WAVE', 8);
+      buf.write('fmt ', 12); buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20);
+      buf.writeUInt16LE(1, 22); buf.writeUInt32LE(rate, 24); buf.writeUInt32LE(rate, 28);
+      buf.writeUInt16LE(1, 32); buf.writeUInt16LE(8, 34);
+      buf.write('data', 36); buf.writeUInt32LE(size, 40);
+      buf.fill(128, 44);
+      return 'data:audio/wav;base64,' + buf.toString('base64');
+    };
+
+    await page.addInitScript(() => {
+      localStorage.setItem('quaver_onboarded', '1');
+      localStorage.setItem('quaver_user', JSON.stringify({ username: 'Preview Listener' }));
+    });
+    await page.route('https://sdk.scdn.co/**', (r) => r.abort());
+    await page.route('**/spotify/**', (r) =>
+      r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ connected: false }) }),
+    );
+    await page.route('**/api/music/recommend**', (r) =>
+      r.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({
+          mood: 'happy', context: { mood: 'happy' }, learning: {}, count: 1,
+          songs: [{
+            title: 'Preview Song', artist: 'PA', duration: '0:30', album_art: '',
+            spotify_url: 'https://open.spotify.com/track/' + 'p'.repeat(22),
+            preview_url: silentWav(1),
+            recommendation_reasons: ['Fits your happy mood'],
+          }],
+        }),
+      }),
+    );
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.locator('#mood-select').selectOption('happy');
+    await page.locator('#recommendation-form button[type="submit"]').click();
+    await page.locator('.song-card .play-btn').first().click();
+
+    await expect(page.locator('#spotify-player')).toBeVisible();
+    await expect(page.locator('#player-status')).toContainText(/preview/i, { timeout: 20000 });
+    const usingClip = await page.evaluate(() => {
+      const audio = document.querySelector('audio');
+      return !!audio && /^data:audio\/wav/.test(audio.src || audio.currentSrc || '');
+    });
+    expect(usingClip).toBe(true);
+  });
+
   test('player exposes the add-to-playlist and start-a-mix actions', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('quaver_onboarded', '1'));
     await page.goto('/', { waitUntil: 'domcontentloaded' });

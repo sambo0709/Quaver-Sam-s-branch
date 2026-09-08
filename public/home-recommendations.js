@@ -51,7 +51,7 @@ function songMenuAction(action, index, button) {
   const song = songActionItems[index];
   if (!song) return;
   const trackId = song.trackId || spotifyTrackId(song.spotify_url);
-  if (action === 'play' && trackId) playInApp(trackId, song.title, song.artist, song.album_art || song.albumArt);
+  if (action === 'play' && trackId) playInApp(trackId, song.title, song.artist, song.album_art || song.albumArt, song.preview_url || song.previewUrl);
   if (action === 'queue') addToQueue(song);
   if (action === 'playlist') addToPlaylist(song, button);
   if (action === 'similar') moreLikeThis(song.title, song.artist);
@@ -526,7 +526,7 @@ document.addEventListener('click', function(event) {
   if (playButton) {
     const song = (window._lastResults || [])[Number(playButton.dataset.resultIndex)];
     const trackId = song && spotifyTrackId(song.spotify_url);
-    if (trackId) playInApp(trackId, song.title, song.artist, song.album_art);
+    if (trackId) playInApp(trackId, song.title, song.artist, song.album_art, song.preview_url);
     return;
   }
   closeSongMenus();

@@ -1,8 +1,8 @@
-async function playInApp(trackId, title, artist, albumArt) {
+async function playInApp(trackId, title, artist, albumArt, previewUrl) {
   updateQueueCounter();
   const qp = document.getElementById('queue-panel');
   if (qp && qp.classList.contains('open')) renderQueuePanel();
-  const started = await QuaverPlayer.play({ trackId: trackId, title: title, artist: artist || '', albumArt: albumArt || '' });
+  const started = await QuaverPlayer.play({ trackId: trackId, title: title, artist: artist || '', albumArt: albumArt || '', previewUrl: previewUrl || '' });
   if (!started) return false;
   trackRecommendationEvent('play', trackId);
   clearTimeout(meaningfulPlayTimer);
@@ -50,7 +50,7 @@ function addToQueue(song) {
   if (queueIndex === -1) {
     queueIndex = 0;
     const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
-    if (trackId) playInApp(trackId, song.title, song.artist, song.album_art);
+    if (trackId) playInApp(trackId, song.title, song.artist, song.album_art, song.preview_url);
     showToast('Now playing: "' + song.title + '"', 'success');
   } else {
     showToast('"' + song.title + '" added to queue', 'success');
@@ -71,7 +71,7 @@ function playFromQueue(direction) {
   const song = songQueue[queueIndex];
   if (window.QuaverPlayer) QuaverPlayer.setQueue(songQueue, queueIndex);
   const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
-  if (trackId) playInApp(trackId, song.title, song.artist, song.album_art);
+  if (trackId) playInApp(trackId, song.title, song.artist, song.album_art, song.preview_url);
 }
 
 function updateQueueCounter() {
@@ -132,7 +132,7 @@ function playAll(songs) {
   if (window.QuaverPlayer) QuaverPlayer.setQueue(songQueue, queueIndex);
   const first = songQueue[0];
   const trackId = first.spotify_url.split('/track/')[1];
-  playInApp(trackId, first.title, first.artist, first.album_art);
+  playInApp(trackId, first.title, first.artist, first.album_art, first.preview_url);
   showToast('Playing all ' + songQueue.length + ' tracks', 'success');
 }
 
@@ -179,7 +179,7 @@ function jumpToQueue(index) {
   if (window.QuaverPlayer) QuaverPlayer.setQueue(songQueue, queueIndex);
   const song = songQueue[index];
   const trackId = song.spotify_url ? song.spotify_url.split('/track/')[1] : null;
-  if (trackId) playInApp(trackId, song.title, song.artist, song.album_art);
+  if (trackId) playInApp(trackId, song.title, song.artist, song.album_art, song.preview_url);
 }
 
 function removeFromQueue(index) {
