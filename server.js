@@ -104,6 +104,7 @@ app.use('/api/mood', require('./routes/mood'));
 app.use('/api/music', require('./routes/music'));
 app.use('/api/playlist', require('./routes/playlist'));
 app.use('/api/listening', require('./routes/listening'));
+app.use('/api/taste', require('./routes/taste'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/spotify', require('./routes/spotify_auth'));
 

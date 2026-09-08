@@ -1,6 +1,7 @@
 let recommendationRequestController = null;
 let artistSuggestionTimer = null;
 let artistSuggestionController = null;
+let pendingSeed = null;
 
 function spotifyTrackId(url) {
   const match = String(url || '').match(/^https:\/\/open\.spotify\.com\/track\/([A-Za-z0-9]+)(?:\?.*)?$/);
@@ -12,7 +13,7 @@ function songActionMenuHTML(song, includeFeedback) {
   const feedback = includeFeedback && song.spotify_url
     ? '<div class="song-menu-divider"></div><button onclick="songMenuAction(\'helpful\',' + itemIndex + ',this)">Fits this mood</button><button onclick="songMenuAction(\'not-helpful\',' + itemIndex + ',this)">Not for me</button>'
     : '';
-  return '<div class="song-menu-wrap"><button class="song-more-button" onclick="toggleSongMenu(event,this)" aria-label="More options for ' + escapeHTML(song.title) + '" aria-expanded="false">•••</button><div class="song-action-menu" hidden><button onclick="songMenuAction(\'play\',' + itemIndex + ',this)">Play now</button><button onclick="songMenuAction(\'queue\',' + itemIndex + ',this)">Add to queue</button><button onclick="songMenuAction(\'playlist\',' + itemIndex + ',this)">Add to playlist</button><button onclick="songMenuAction(\'similar\',' + itemIndex + ',this)">More like this</button>' + feedback + '<div class="song-menu-divider"></div><button onclick="songMenuAction(\'spotify\',' + itemIndex + ',this)">Open in Spotify</button></div></div>';
+  return '<div class="song-menu-wrap"><button class="song-more-button" onclick="toggleSongMenu(event,this)" aria-label="More options for ' + escapeHTML(song.title) + '" aria-expanded="false">•••</button><div class="song-action-menu" hidden><button onclick="songMenuAction(\'play\',' + itemIndex + ',this)">Play now</button><button onclick="songMenuAction(\'queue\',' + itemIndex + ',this)">Add to queue</button><button onclick="songMenuAction(\'playlist\',' + itemIndex + ',this)">Add to playlist</button><button onclick="songMenuAction(\'similar\',' + itemIndex + ',this)">More like this</button><button onclick="songMenuAction(\'seed-mix\',' + itemIndex + ',this)">Start a mix from this</button>' + feedback + '<div class="song-menu-divider"></div><button onclick="songMenuAction(\'spotify\',' + itemIndex + ',this)">Open in Spotify</button></div></div>';
 }
 
 function closeSongMenus(except) {
@@ -53,6 +54,7 @@ function songMenuAction(action, index, button) {
   if (action === 'queue') addToQueue(song);
   if (action === 'playlist') addToPlaylist(song, button);
   if (action === 'similar') moreLikeThis(song.title, song.artist);
+  if (action === 'seed-mix' && trackId) startMixFromTrack(trackId, song.title, song.artist);
   if (action === 'spotify' && trackId) window.open('https://open.spotify.com/track/' + trackId, '_blank', 'noopener');
   if (action === 'helpful' && trackId) sendRecommendationFeedback(trackId, true, button);
   if (action === 'not-helpful' && trackId) sendRecommendationFeedback(trackId, false, button);
@@ -382,7 +384,9 @@ async function fetchSongs() {
       direction: document.getElementById('mood-direction').value,
       artist: document.getElementById('preferred-artist').value.trim(),
       genre: document.getElementById('preferred-genre').value.trim(),
+      hour: String(new Date().getHours()),
     };
+    if (pendingSeed) { context[pendingSeed.type === 'playlist' ? 'seedPlaylist' : 'seedTrack'] = pendingSeed.id; }
     const params = new URLSearchParams({ mood: currentMood, limit: currentLimit, explicit: String(preferences.explicitContent !== false), variety: preferences.recommendationVariety || 'balanced', ...context });
     const url = API + '/api/music/recommend?' + params.toString();
     const res = await fetch(url, { credentials: 'include', signal: controller.signal });
@@ -407,9 +411,25 @@ async function fetchSongs() {
     document.getElementById('results').innerHTML = '<div class="error-state"><p>' + message + '</p><button class="retry-btn" onclick="fetchSongs()">Try again</button></div>';
   } finally {
     clearTimeout(timeout);
+    pendingSeed = null;
     if (controller === recommendationRequestController) recommendationRequestController = null;
   }
 }
+
+function startMixFromTrack(trackId, title, artist) {
+  if (!currentMood) {
+    currentMood = 'happy';
+    const select = document.getElementById('mood-select');
+    if (select) { select.value = 'happy'; if (typeof revealSelectedMainMood === 'function') revealSelectedMainMood('happy'); }
+    if (typeof applyMoodColors === 'function') applyMoodColors('happy');
+    if (typeof updateRecommendationState === 'function') updateRecommendationState();
+  }
+  pendingSeed = { type: 'track', id: trackId };
+  if (typeof showToast === 'function') showToast('Building a mix around ' + (artist || title || 'this track') + '…', 'success');
+  closeSongMenus();
+  fetchSongs();
+}
+window.startMixFromTrack = startMixFromTrack;
 
 function trackRecommendationEvent(type, trackId, details) {
   if (!localStorage.getItem('quaver_user')) return;

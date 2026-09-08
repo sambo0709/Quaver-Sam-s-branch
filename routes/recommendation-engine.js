@@ -20,9 +20,23 @@ function cleanChoice(value, allowed, fallback) {
   return allowed.has(clean) ? clean : fallback;
 }
 
+function partOfDay(hour) {
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) return '';
+  if (hour >= 22 || hour < 5) return 'late night';
+  if (hour < 9) return 'morning';
+  if (hour < 17) return 'daytime';
+  return 'evening';
+}
+
 function parseRecommendationContext(query) {
   const mood = String(query.mood || '').toLowerCase();
   const secondaryMood = MOOD_PROFILES[String(query.secondaryMood || '').toLowerCase()] ? String(query.secondaryMood).toLowerCase() : '';
+  const hourOfDay = Number.parseInt(query.hour, 10);
+  const sessionTrackIds = String(query.session || '')
+    .split(',')
+    .map(function(id) { return id.trim(); })
+    .filter(Boolean)
+    .slice(0, 100);
   return {
     mood,
     secondaryMood: secondaryMood === mood ? '' : secondaryMood,
@@ -32,6 +46,8 @@ function parseRecommendationContext(query) {
     minutes: Math.min(180, Math.max(10, Number.parseInt(query.minutes, 10) || 30)),
     preferredArtist: String(query.artist || '').trim().slice(0, 80),
     preferredGenre: String(query.genre || '').trim().slice(0, 40),
+    partOfDay: partOfDay(hourOfDay),
+    sessionTrackIds,
   };
 }
 
@@ -42,9 +58,12 @@ function buildSearchQueries(context) {
   const activity = context.activity === 'none' ? '' : ' for ' + context.activity;
   const direction = context.direction === 'stay' ? '' : ' ' + context.direction;
   const intensity = context.intensity >= 4 ? ' intense' : context.intensity <= 2 ? ' gentle' : '';
+  const timeOfDay = context.partOfDay === 'late night' ? ' late night'
+    : context.partOfDay === 'morning' ? ' morning'
+    : '';
   const moodQueries = profile.terms.map(function(term) {
     const genre = context.preferredGenre ? ' ' + context.preferredGenre : '';
-    return term + secondary + direction + intensity + activity + genre;
+    return term + secondary + direction + intensity + activity + genre + timeOfDay;
   });
   if (context.preferredArtist) {
     // Combining Spotify field filters with several mood terms can produce an
@@ -66,7 +85,11 @@ function scoreAndExplain(song, context, history) {
   let score = (Math.abs(hash) % 1000) / 1000 * 0.15;
   const reasons = [];
   if (history.disliked.has(id)) return { score: -Infinity, reasons: [] };
+  if (history.blockedArtists && history.blockedArtists.has(artistKey)) return { score: -Infinity, reasons: [] };
+  if (!context._sessionSet) context._sessionSet = new Set(context.sessionTrackIds || []);
+  if (context._sessionSet.has(id) && context.variety !== 'familiar') score -= 1.6;
   if (history.liked.has(id)) { score += context.direction === 'stay' ? 1.5 : 0.55; reasons.push('Because you liked this track'); }
+  if (history.seedArtists && history.seedArtists.has(artistKey)) { score += 0.9; reasons.push('One of your go-to artists'); }
   if (history.played.has(id)) { score += context.variety === 'familiar' ? 1.1 : -0.2; reasons.push('A familiar pick from your history'); }
   if (history.likedArtists.has(artistKey)) { score += 0.8; reasons.push('Because you respond well to ' + song.artist); }
   const skipCount = history.skipped?.get(id) || 0;
@@ -81,6 +104,8 @@ function scoreAndExplain(song, context, history) {
   if (context.activity !== 'none') reasons.push('Chosen for ' + context.activity);
   if (context.direction !== 'stay') reasons.push('Designed to help you ' + context.direction);
   if (context.secondaryMood) reasons.push('Blends ' + context.mood + ' with ' + context.secondaryMood);
+  if (context.partOfDay === 'late night') reasons.push('Tuned for late-night listening');
+  else if (context.partOfDay === 'morning') reasons.push('An easy pick for the morning');
   if (!reasons.length) reasons.push('Selected from Quaver’s ' + context.mood + ' discovery');
   return { score, reasons: reasons.slice(0, 2) };
 }

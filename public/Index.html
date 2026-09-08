@@ -49,7 +49,7 @@
 <canvas id="confetti-canvas"></canvas>
 
 <div id="onboarding-overlay" class="onboarding-overlay" style="display:none">
-  <div class="onboarding-card">
+  <div class="onboarding-card" id="onboarding-welcome">
     <img class="onboarding-brand-mark" src="quaver-logo-cyan.svg" alt=""/>
     <h2 class="onboarding-title">Welcome to Quaver</h2>
     <p class="onboarding-sub">Mood-based music discovery in 3 steps</p>
@@ -58,7 +58,17 @@
       <div class="onboarding-step"><span class="onboarding-num">2</span><span>Get a personalised playlist</span></div>
       <div class="onboarding-step"><span class="onboarding-num">3</span><span>Save &amp; export to Spotify</span></div>
     </div>
-    <button class="onboarding-btn" onclick="dismissOnboarding()">Let's go</button>
+    <button class="onboarding-btn" onclick="advanceOnboarding()">Let's go</button>
+  </div>
+  <div class="onboarding-card" id="onboarding-taste" hidden>
+    <img class="onboarding-brand-mark" src="quaver-logo-cyan.svg" alt=""/>
+    <h2 class="onboarding-title">Name a few artists you love</h2>
+    <p class="onboarding-sub">Quaver uses these to shape your first mixes. You can change them any time in Settings.</p>
+    <div id="onboarding-taste-input"></div>
+    <div class="onboarding-actions">
+      <button class="onboarding-btn" onclick="saveOnboardingTaste()">Save &amp; continue</button>
+      <button class="onboarding-skip" onclick="dismissOnboarding()">Skip for now</button>
+    </div>
   </div>
 </div>
 
@@ -244,6 +254,7 @@
 <script src="profile-story.js"></script>
 <script src="settings.js"></script>
 <script src="archive.js"></script>
+<script src="taste-ui.js"></script>
 <script src="home-core.js"></script>
 <script src="home-state.js"></script>
 <script src="home-recommendations.js"></script>

@@ -176,6 +176,70 @@
     if (res.ok) logout(); else showToast('Could not delete your account.', 'error');
   }
 
+  let tasteEditors = null;
+
+  function mountTasteEditor(scope) {
+    const lovedEl = scope.querySelector('#taste-loved');
+    const blockedEl = scope.querySelector('#taste-blocked');
+    const genreWrap = scope.querySelector('#taste-genres');
+    const statusEl = scope.querySelector('#taste-status');
+    if (!lovedEl || !blockedEl || !genreWrap || !window.QuaverTaste) return;
+
+    let saveTimer = null;
+    let current = { seedArtists: [], seedGenres: [], blockedArtists: [] };
+
+    function flash(message, isError) {
+      if (!statusEl) return;
+      statusEl.textContent = message;
+      statusEl.classList.toggle('is-error', !!isError);
+    }
+    function persist(patch) {
+      Object.assign(current, patch);
+      clearTimeout(saveTimer);
+      flash('Saving…');
+      saveTimer = setTimeout(function () {
+        window.QuaverTaste.save(patch).then(function (taste) {
+          current = taste;
+          flash('Saved');
+        }).catch(function () { flash('Could not save — try again', true); });
+      }, 700);
+    }
+    function paintGenres() {
+      genreWrap.querySelectorAll('button[data-genre]').forEach(function (button) {
+        button.setAttribute('aria-pressed', current.seedGenres.indexOf(button.dataset.genre) !== -1 ? 'true' : 'false');
+      });
+    }
+
+    const loved = window.QuaverTaste.tagEditor(lovedEl, {
+      placeholder: 'e.g. SZA — press Enter', label: 'Artists you love', max: 30,
+      onChange: function (items) { persist({ seedArtists: items }); },
+    });
+    const blocked = window.QuaverTaste.tagEditor(blockedEl, {
+      placeholder: 'Artist to never recommend', label: 'Artists to keep out', max: 100,
+      onChange: function (items) { persist({ blockedArtists: items }); },
+    });
+    genreWrap.addEventListener('click', function (event) {
+      const button = event.target.closest('button[data-genre]');
+      if (!button) return;
+      const genre = button.dataset.genre;
+      const next = current.seedGenres.indexOf(genre) !== -1
+        ? current.seedGenres.filter(function (g) { return g !== genre; })
+        : current.seedGenres.concat([genre]);
+      persist({ seedGenres: next });
+      paintGenres();
+    }, { signal: listeners.signal });
+
+    tasteEditors = { loved: loved, blocked: blocked };
+    window.QuaverTaste.load().then(function (taste) {
+      if (!taste) { flash('Sign in to set your taste', true); return; }
+      current = taste;
+      loved.set(taste.seedArtists);
+      blocked.set(taste.blockedArtists);
+      paintGenres();
+      flash('');
+    });
+  }
+
   function mount(root) {
     const scope = root || document;
     if (!scope.querySelector('#settings-name')) return false;
@@ -211,9 +275,11 @@
     identityObserver.observe(label, { childList: true });
     loadAccountSettings();
     checkSpotifyConnection();
+    mountTasteEditor(scope);
     return true;
   }
   function unmount() {
+    tasteEditors = null;
     if (listeners) listeners.abort();
     if (identityObserver) identityObserver.disconnect();
     if (previousGlobals) Object.keys(previousGlobals).forEach(function (name) { window[name] = previousGlobals[name]; });

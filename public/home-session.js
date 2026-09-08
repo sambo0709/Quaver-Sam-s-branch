@@ -158,6 +158,34 @@ function updateSpotifyUI() {
   }
 }
 
+let onboardingTasteEditor = null;
+
+function advanceOnboarding() {
+  const loggedIn = !!localStorage.getItem('quaver_user');
+  const tasteCard = document.getElementById('onboarding-taste');
+  if (!loggedIn || !tasteCard || !window.QuaverTaste) { dismissOnboarding(); return; }
+  window.QuaverTaste.load().then(function(taste) {
+    if (taste && taste.seedArtists && taste.seedArtists.length) { dismissOnboarding(); return; }
+    document.getElementById('onboarding-welcome').hidden = true;
+    tasteCard.hidden = false;
+    if (!onboardingTasteEditor) {
+      onboardingTasteEditor = window.QuaverTaste.tagEditor(document.getElementById('onboarding-taste-input'), {
+        placeholder: 'e.g. SZA — press Enter', label: 'Artists you love', max: 10,
+      });
+    }
+    onboardingTasteEditor.focus();
+  }).catch(function() { dismissOnboarding(); });
+}
+window.advanceOnboarding = advanceOnboarding;
+
+function saveOnboardingTaste() {
+  const items = onboardingTasteEditor ? onboardingTasteEditor.items : [];
+  const done = function() { dismissOnboarding(); };
+  if (!items.length || !window.QuaverTaste) { done(); return; }
+  window.QuaverTaste.save({ seedArtists: items }).then(done, done);
+}
+window.saveOnboardingTaste = saveOnboardingTaste;
+
 function dismissOnboarding() {
   localStorage.setItem('quaver_onboarded', '1');
   const overlay = document.getElementById('onboarding-overlay');

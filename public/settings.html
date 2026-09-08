@@ -20,7 +20,7 @@
   <main class="settings-main">
     <header class="settings-header"><span>Account</span><h1>Settings</h1><p>Manage how Quaver looks, recommends music, and stores your data.</p></header>
     <nav class="settings-jump-nav" aria-label="Settings sections">
-      <a href="#settings-account">Account</a><a href="#settings-music">Music</a><a href="#settings-playback">Appearance</a><a href="#settings-privacy">Privacy</a>
+      <a href="#settings-account">Account</a><a href="#settings-music">Music</a><a href="#settings-taste">Taste</a><a href="#settings-playback">Appearance</a><a href="#settings-privacy">Privacy</a>
     </nav>
     <div class="settings-layout">
       <section class="settings-section" id="settings-account">
@@ -30,6 +30,28 @@
       <section class="settings-section" id="settings-music">
         <h2>Music preferences</h2><p>Control the recommendations you receive.</p>
         <div class="settings-form"><label for="settings-mood">Default mood</label><select id="settings-mood"><option value="">No default</option><option value="happy">Happy</option><option value="sad">Sad</option><option value="energetic">Energetic</option><option value="calm">Calm</option><option value="focused">Focused</option><option value="angry">Angry</option><option value="romantic">Romantic</option><option value="nostalgic">Nostalgic</option><option value="party">Party</option><option value="sleepy">Sleepy</option><option value="anxious">Anxious</option></select><label for="settings-count">Playlist size</label><select id="settings-count"><option value="10">10 songs</option><option value="15">15 songs</option><option value="20">20 songs</option></select><label for="settings-variety">Recommendation variety</label><select id="settings-variety"><option value="familiar">Familiar</option><option value="balanced">Balanced</option><option value="adventurous">Adventurous</option></select><label class="settings-check"><input id="settings-explicit" type="checkbox" checked/> Allow explicit music</label></div>
+      </section>
+      <section class="settings-section settings-section-wide" id="settings-taste">
+        <h2>Your taste</h2><p>Quaver leans on these when it builds a mix, on top of what it learns from your listening.</p>
+        <div class="taste-fields">
+          <div class="taste-field">
+            <label for="taste-loved">Artists you love</label>
+            <small>Favourites get pulled into your mixes and ranked higher.</small>
+            <div id="taste-loved" data-taste="seedArtists"></div>
+          </div>
+          <div class="taste-field">
+            <label for="taste-genres">Genres you gravitate to</label>
+            <div class="taste-genre-chips" id="taste-genres" role="group" aria-label="Preferred genres">
+              <button type="button" data-genre="pop">Pop</button><button type="button" data-genre="r&b">R&amp;B</button><button type="button" data-genre="hip-hop">Hip-hop</button><button type="button" data-genre="rock">Rock</button><button type="button" data-genre="indie">Indie</button><button type="button" data-genre="electronic">Electronic</button><button type="button" data-genre="jazz">Jazz</button><button type="button" data-genre="classical">Classical</button><button type="button" data-genre="country">Country</button><button type="button" data-genre="afrobeats">Afrobeats</button><button type="button" data-genre="latin">Latin</button><button type="button" data-genre="metal">Metal</button><button type="button" data-genre="folk">Folk</button><button type="button" data-genre="soul">Soul</button><button type="button" data-genre="ambient">Ambient</button>
+            </div>
+          </div>
+          <div class="taste-field">
+            <label for="taste-blocked">Artists to keep out</label>
+            <small>Never recommended, in any mood.</small>
+            <div id="taste-blocked" data-taste="blockedArtists"></div>
+          </div>
+        </div>
+        <p class="taste-status" id="taste-status" aria-live="polite"></p>
       </section>
       <section class="settings-section" id="settings-playback">
         <h2>Appearance</h2><p>Choose your preferred theme and motion level.</p>

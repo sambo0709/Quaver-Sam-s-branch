@@ -67,7 +67,10 @@ async function spotifyApiError(response, context) {
 }
 
 async function getMoodPool(context, token) {
-  const cacheKey = JSON.stringify(context);
+  // Key on the actual search queries, so context fields that only affect ranking
+  // (variety, sessionTrackIds) don't fragment this shared cache.
+  const queries = buildSearchQueries(context);
+  const cacheKey = 'pool:' + queries.join('|');
   const entry = moodPoolCache[cacheKey];
   if (entry && Date.now() < entry.expiresAt) {
     return entry.songs;
@@ -75,7 +78,7 @@ async function getMoodPool(context, token) {
   try {
     // Blend several mood/context searches into a larger candidate pool before
     // ranking. This keeps one broad Spotify result page from defining a mix.
-    const songs = await searchTracks(buildSearchQueries(context), token, 30);
+    const songs = await searchTracks(queries, token, 30);
     moodPoolCache[cacheKey] = { songs, expiresAt: Date.now() + POOL_TTL, staleUntil: Date.now() + POOL_STALE_TTL };
     return songs;
   } catch (error) {
@@ -337,18 +340,65 @@ router.get('/recommend', async function(req, res) {
 
   try {
     const token = await getSpotifyToken();
+
+    // Seed the mix from a specific track or one of the user's playlists: resolve
+    // it to an artist and treat that as the preferred artist for this run.
+    let seededFrom = null;
+    const seedTrackId = String(req.query.seedTrack || '').trim();
+    const seedPlaylistId = String(req.query.seedPlaylist || '').trim();
+    if (/^[A-Za-z0-9]{22}$/.test(seedTrackId)) {
+      try {
+        const r = await fetch('https://api.spotify.com/v1/tracks/' + seedTrackId, { headers: { Authorization: 'Bearer ' + token } });
+        if (r.ok) {
+          const t = await r.json();
+          const artistName = t && t.artists && t.artists[0] && t.artists[0].name;
+          if (artistName) {
+            if (!context.preferredArtist) context.preferredArtist = artistName;
+            seededFrom = { type: 'track', label: (t.name ? t.name + ' — ' : '') + artistName };
+          }
+        }
+      } catch (_) {}
+    } else if (seedPlaylistId) {
+      const seedUser = getUser(req);
+      if (seedUser) {
+        try {
+          const db = await getDB();
+          const playlist = await db.collection('playlists').findOne(
+            { userId: new (require('mongodb').ObjectId)(seedUser.userId), id: seedPlaylistId },
+            { projection: { name: 1, songs: 1 } }
+          );
+          if (playlist && Array.isArray(playlist.songs) && playlist.songs.length) {
+            const counts = new Map();
+            playlist.songs.forEach(function(song) {
+              const a = String(song.artist || '').split(',')[0].trim();
+              if (a) counts.set(a, (counts.get(a) || 0) + 1);
+            });
+            const topArtist = Array.from(counts.entries()).sort(function(a, b) { return b[1] - a[1]; })[0];
+            if (topArtist) {
+              if (!context.preferredArtist) context.preferredArtist = topArtist[0];
+              seededFrom = { type: 'playlist', label: playlist.name || 'your playlist' };
+            }
+          }
+        } catch (_) {}
+      }
+    }
+
     let pool = (await getMoodPool(context, token)).filter(function(song) { return allowExplicit || !song.explicit; });
     const unfilteredForVariety = pool.slice();
     const user = getUser(req);
-    const history = { liked: new Set(), disliked: new Set(), played: new Set(), likedArtists: new Set(), skipped: new Map(), completed: new Map(), artistAffinity: new Map() };
+    const history = { liked: new Set(), disliked: new Set(), played: new Set(), likedArtists: new Set(), skipped: new Map(), completed: new Map(), artistAffinity: new Map(), seedArtists: new Set(), blockedArtists: new Set() };
     if (user) {
       try {
         const db = await getDB();
         const oid = new (require('mongodb').ObjectId)(user.userId);
         const found = await db.collection('users').findOne(
           { _id: oid },
-          { projection: { recommendationFeedback: 1, recommendationEvents: 1 } }
+          { projection: { recommendationFeedback: 1, recommendationEvents: 1, taste: 1 } }
         );
+        if (found && found.taste) {
+          (Array.isArray(found.taste.seedArtists) ? found.taste.seedArtists : []).forEach(function(a) { history.seedArtists.add(String(a).toLowerCase()); });
+          (Array.isArray(found.taste.blockedArtists) ? found.taste.blockedArtists : []).forEach(function(a) { history.blockedArtists.add(String(a).toLowerCase()); });
+        }
         const plays = await db.collection('listening_history')
           .find({ userId: oid })
           .project({ _id: 0, trackId: 1, artist: 1 })
@@ -372,6 +422,23 @@ router.get('/recommend', async function(req, res) {
         });
       } catch (_) {}
     }
+
+    // Pull a few tracks by the listener's seed artists into the candidate pool so
+    // favourites can actually surface (the shared mood pool won't always contain
+    // them). Mood-flavoured so an angry mix doesn't fill up with mellow favourites.
+    if (history.seedArtists.size) {
+      const moodTerm = (MOOD_PROFILES[context.mood] && MOOD_PROFILES[context.mood].terms[0]) || context.mood;
+      const seedQueries = Array.from(history.seedArtists).slice(0, 2).map(function(a) { return a + ' ' + moodTerm; });
+      try {
+        const seedTracks = await searchTracks(seedQueries, token, 6);
+        const have = new Set(pool.map(trackIdentity));
+        seedTracks.forEach(function(song) {
+          const id = trackIdentity(song);
+          if (id && !have.has(id) && (allowExplicit || !song.explicit)) { have.add(id); pool.push(song); }
+        });
+      } catch (_) {}
+    }
+
     function trackId(song) { return song.spotify_url ? song.spotify_url.split('/track/')[1]?.split('?')[0] : ''; }
     if (variety === 'adventurous') pool = pool.filter(function(song) { return !history.liked.has(trackId(song)) && !history.played.has(trackId(song)); });
     if (!pool.length && unfilteredForVariety.length) pool = unfilteredForVariety;
@@ -388,14 +455,16 @@ router.get('/recommend', async function(req, res) {
       }).slice(0, songLimit);
     }
     const learning = user ? {
-      personalized: history.liked.size + history.disliked.size + history.played.size + history.skipped.size + history.completed.size > 0,
+      personalized: history.liked.size + history.disliked.size + history.played.size + history.skipped.size + history.completed.size + history.seedArtists.size > 0,
       ratings: history.liked.size + history.disliked.size,
       completed: Array.from(history.completed.values()).reduce(function(total, count) { return total + count; }, 0),
       skipped: Array.from(history.skipped.values()).reduce(function(total, count) { return total + count; }, 0),
       familiarTracks: history.played.size,
+      seedArtists: history.seedArtists.size,
+      blockedArtists: history.blockedArtists.size,
       variety,
-    } : { personalized: false, loggedOut: true, ratings: 0, completed: 0, skipped: 0, familiarTracks: 0, variety };
-    res.json({ mood: mood, context, profile: MOOD_PROFILES[context.mood], learning, daily: dailyKey || undefined, count: songs.length, songs: songs });
+    } : { personalized: false, loggedOut: true, ratings: 0, completed: 0, skipped: 0, familiarTracks: 0, seedArtists: 0, blockedArtists: 0, variety };
+    res.json({ mood: mood, context, profile: MOOD_PROFILES[context.mood], learning, daily: dailyKey || undefined, seededFrom: seededFrom || undefined, count: songs.length, songs: songs });
   } catch (err) {
     console.error('Spotify error:', err.message);
     const rateLimited = /rate limit|429/i.test(err.message || '');

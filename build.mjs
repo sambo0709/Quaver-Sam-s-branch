@@ -34,6 +34,7 @@ const APP_SCRIPTS = [
   'profile-story.js',
   'settings.js',
   'archive.js',
+  'taste-ui.js',
   'home-core.js',
   'home-state.js',
   'home-recommendations.js',
