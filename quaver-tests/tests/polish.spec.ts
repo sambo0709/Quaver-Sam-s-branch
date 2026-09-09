@@ -1126,6 +1126,7 @@ test('primary pages share one navigation, footer, and page-title hierarchy', asy
   const expectedMobileNavigation = ['Home', 'Search', 'Discover', 'Playlists', 'Account'];
   const expectedFooterLinks = ['Search', 'Daily discovery', 'Trending moods', 'Mood archive', 'Playlists', 'Profile', 'Settings', 'Create a mood mix', 'Spotify connection'];
   let referenceTitleStyle: { fontFamily: string; fontSize: string; fontWeight: string; lineHeight: string; letterSpacing: string; textAlign: string } | null = null;
+  let referenceFooterColors: { heading: string; link: string; metadata: string } | null = null;
 
   for (const destination of [
     { path: '/search.html', heading: 'Search' },
@@ -1175,6 +1176,14 @@ test('primary pages share one navigation, footer, and page-title hierarchy', asy
       page.locator('.site-footer-links a').first().evaluate(element => getComputedStyle(element).fontFamily),
     ]);
     expect(shellFonts).toEqual([titleStyle.fontFamily, titleStyle.fontFamily]);
+
+    const footerColors = {
+      heading: await page.locator('.site-footer-links h2').first().evaluate(element => getComputedStyle(element).color),
+      link: await page.locator('.site-footer-links a').first().evaluate(element => getComputedStyle(element).color),
+      metadata: await page.locator('.site-footer-bottom').evaluate(element => getComputedStyle(element).color),
+    };
+    referenceFooterColors ||= footerColors;
+    expect(footerColors).toEqual(referenceFooterColors);
   }
 });
 
