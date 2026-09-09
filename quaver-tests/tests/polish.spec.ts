@@ -1106,3 +1106,105 @@ test('mood collections use a desktop rail and retain the half-window grid', asyn
   const halfWindowTops = await cards.evaluateAll(elements => elements.map(element => Math.round(element.getBoundingClientRect().top)));
   expect(new Set(halfWindowTops).size).toBeGreaterThan(1);
 });
+
+test('primary pages share one navigation, footer, and page-title hierarchy', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.addInitScript(() => {
+    localStorage.setItem('quaver_onboarded', 'true');
+    sessionStorage.setItem('quaver_launched', '1');
+    localStorage.setItem('quaver_user', JSON.stringify({ username: 'Consistent Listener' }));
+  });
+  await page.route('**/api/auth/me', route => route.fulfill({ json: { username: 'Consistent Listener', email: 'listener@example.com', profileImage: '' } }));
+  await page.route('**/api/auth/settings', route => route.fulfill({ json: { username: 'Consistent Listener', profileImage: '', defaultTheme: 'dark', preferences: {} } }));
+  await page.route('**/api/playlist', route => route.fulfill({ json: { playlists: [] } }));
+  await page.route('**/api/mood/history', route => route.fulfill({ json: { moods: [] } }));
+  await page.route('**/api/listening/history', route => route.fulfill({ json: { plays: [] } }));
+  await page.route('**/api/music/sotd/archive?*', route => route.fulfill({ json: { entries: [] } }));
+  await page.route('**/api/music/sotd', route => route.fulfill({ json: { date: '2026-09-08', mood: 'calm', songs: [] } }));
+  await page.route('**/spotify/status', route => route.fulfill({ json: { connected: false } }));
+
+  const expectedMobileNavigation = ['Home', 'Search', 'Discover', 'Playlists', 'Account'];
+  const expectedFooterLinks = ['Search', 'Daily discovery', 'Trending moods', 'Mood archive', 'Playlists', 'Profile', 'Settings', 'Create a mood mix', 'Spotify connection'];
+  let referenceTitleStyle: { fontFamily: string; fontSize: string; fontWeight: string; lineHeight: string; letterSpacing: string; textAlign: string } | null = null;
+
+  for (const destination of [
+    { path: '/search.html', heading: 'Search' },
+    { path: '/playlists.html', heading: 'Playlists' },
+    { path: '/profile.html', heading: 'Consistent Listener' },
+    { path: '/settings.html', heading: 'Settings' },
+    { path: '/archive.html', heading: 'Mood Archive' },
+    { path: '/discover.html', heading: 'Explore every mood' },
+    { path: '/privacy.html', heading: 'Privacy Policy' },
+    { path: '/terms.html', heading: 'Terms of Service' },
+    { path: '/support.html', heading: 'How can we help?' },
+  ]) {
+    await page.goto(destination.path);
+    const title = page.getByRole('heading', { name: destination.heading, exact: true, level: 1 });
+    await expect(title).toBeVisible();
+    await expect(page.locator('.top-nav')).toHaveCount(1);
+    await expect(page.locator('.site-footer')).toHaveCount(1);
+    expect(await page.locator('.mobile-bottom-nav > a').allTextContents()).toEqual(expectedMobileNavigation);
+    expect(await page.locator('.site-footer-links a').allTextContents()).toEqual(expectedFooterLinks);
+
+    const titleStyle = await title.evaluate(element => {
+      const style = getComputedStyle(element);
+      return { fontFamily: style.fontFamily, fontSize: style.fontSize, fontWeight: style.fontWeight, lineHeight: style.lineHeight, letterSpacing: style.letterSpacing, textAlign: style.textAlign };
+    });
+    referenceTitleStyle ||= titleStyle;
+    expect(titleStyle).toEqual(referenceTitleStyle);
+    expect(titleStyle.textAlign).toBe('left');
+
+    const visibleContentHeadingAlignments = await page.locator('main h1, main h2, main h3').evaluateAll(elements => elements
+      .filter(element => {
+        const style = getComputedStyle(element);
+        return style.display !== 'none' && style.visibility !== 'hidden' && element.getClientRects().length > 0;
+      })
+      .map(element => getComputedStyle(element).textAlign));
+    expect(visibleContentHeadingAlignments.every(alignment => alignment === 'left')).toBe(true);
+
+    if (/\/(privacy|terms|support)\.html$/.test(destination.path)) {
+      const legalCopyAlignments = await page.locator('.legal-main p, .legal-main li, .legal-main small').evaluateAll(elements => elements
+        .filter(element => getComputedStyle(element).display !== 'none' && element.getClientRects().length > 0)
+        .map(element => getComputedStyle(element).textAlign));
+      expect(legalCopyAlignments.length).toBeGreaterThan(0);
+      expect(legalCopyAlignments.every(alignment => alignment === 'left')).toBe(true);
+    }
+
+    const shellFonts = await Promise.all([
+      page.locator('.top-nav .nav-link').first().evaluate(element => getComputedStyle(element).fontFamily),
+      page.locator('.site-footer-links a').first().evaluate(element => getComputedStyle(element).fontFamily),
+    ]);
+    expect(shellFonts).toEqual([titleStyle.fontFamily, titleStyle.fontFamily]);
+  }
+});
+
+test('authentication and public sharing keep the same shell and left-aligned title rhythm', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.route('**/api/auth/me', route => route.fulfill({ status: 401, json: { error: 'Not authenticated' } }));
+  await page.route('**/api/playlist/public/shared-consistency', route => route.fulfill({ json: {
+    owner: 'Quaver Listener',
+    playlist: { name: 'Shared Consistency', mood: 'calm', songs: [] },
+  } }));
+
+  await page.goto('/login.html');
+  const authTitle = page.getByRole('heading', { name: 'Quaver', exact: true, level: 1 });
+  await expect(authTitle).toBeVisible();
+  await expect(page.locator('.top-nav')).toHaveCount(1);
+  await expect(page.locator('.site-footer')).toHaveCount(1);
+  const authTitleStyle = await authTitle.evaluate(element => {
+    const style = getComputedStyle(element);
+    return { fontFamily: style.fontFamily, fontSize: style.fontSize, fontWeight: style.fontWeight, lineHeight: style.lineHeight, letterSpacing: style.letterSpacing, textAlign: style.textAlign };
+  });
+  expect(authTitleStyle.textAlign).toBe('left');
+
+  await page.goto('/share.html?id=shared-consistency');
+  const sharedTitle = page.getByRole('heading', { name: 'Shared Consistency', exact: true, level: 1 });
+  await expect(sharedTitle).toBeVisible();
+  await expect(page.locator('.top-nav')).toHaveCount(1);
+  await expect(page.locator('.site-footer')).toHaveCount(1);
+  const sharedTitleStyle = await sharedTitle.evaluate(element => {
+    const style = getComputedStyle(element);
+    return { fontFamily: style.fontFamily, fontSize: style.fontSize, fontWeight: style.fontWeight, lineHeight: style.lineHeight, letterSpacing: style.letterSpacing, textAlign: style.textAlign };
+  });
+  expect(sharedTitleStyle).toEqual(authTitleStyle);
+});
