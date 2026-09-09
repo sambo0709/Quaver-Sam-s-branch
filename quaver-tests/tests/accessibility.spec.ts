@@ -39,6 +39,9 @@ for (const entry of [
   { name: 'Settings', path: '/settings.html' },
   { name: 'Discover', path: '/discover.html' },
   { name: 'Archive', path: '/archive.html' },
+  { name: 'Privacy', path: '/privacy.html' },
+  { name: 'Terms', path: '/terms.html' },
+  { name: 'Support', path: '/support.html' },
 ]) {
   test(entry.name + ' has no automated WCAG A/AA violations', async ({ page }) => {
     await mockAppData(page);

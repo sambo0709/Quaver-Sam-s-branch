@@ -6723,13 +6723,39 @@ body :is(.user-menu-dropdown,.profile-editor,.playlist-picker,.queue-panel,.rena
 .auth-consent { display:flex;align-items:flex-start;gap:9px;margin:14px 0;color:var(--text-secondary);font-size:.76rem;line-height:1.45; }
 .auth-consent input { flex:0 0 auto;margin-top:3px;accent-color:var(--accent); }
 .auth-consent a,.legal-page a { color:var(--text-accent); }
-.legal-page { min-height:100vh;padding:clamp(28px,6vw,72px) var(--app-gutter);background:var(--bg);color:var(--text-primary); }
-.legal-document { width:min(760px,100%);margin:0 auto;padding:clamp(24px,5vw,52px);border:1px solid var(--surface-line);border-radius:var(--surface-radius);background:var(--surface-panel);box-shadow:var(--surface-shadow); }
-.legal-document > a { display:inline-block;margin-bottom:30px;text-decoration:none;font-weight:800; }
-.legal-document h1 { margin:0 0 8px;font-size:clamp(2.2rem,7vw,4.2rem);letter-spacing:-.05em; }
-.legal-document h2 { margin:30px 0 8px;font-size:1.1rem; }
+.legal-page { min-height:100vh;background:var(--bg);color:var(--text-primary); }
+.legal-nav .nav-left a { display:grid;place-items:center; }
+.legal-main { position:relative;z-index:1;width:min(980px,calc(100% - (2 * var(--app-gutter))));margin:0 auto;padding:clamp(64px,9vw,108px) 0 20px; }
+.legal-hero { max-width:760px;margin-bottom:28px; }
+.legal-hero > span { color:var(--text-accent);font-size:var(--type-eyebrow);font-weight:var(--weight-label);letter-spacing:.14em; }
+.legal-hero h1 { margin:8px 0 10px;color:var(--text-primary);font-size:clamp(2.8rem,7vw,5.2rem);font-weight:var(--weight-display);letter-spacing:-.055em; }
+.legal-hero p { max-width:620px;color:var(--text-secondary);font-size:1rem;line-height:1.6; }
+.legal-hero small { display:block;margin-top:12px;color:var(--text-tertiary);font-size:var(--type-small); }
+.legal-document { width:100%;margin:0;padding:clamp(24px,5vw,52px);border:1px solid var(--surface-line);border-radius:var(--surface-radius);background:var(--surface-panel);box-shadow:var(--surface-shadow); }
+.legal-document section + section { margin-top:30px;padding-top:30px;border-top:1px solid var(--surface-line); }
+.legal-document h2 { margin:0 0 8px;color:var(--text-primary);font-size:1.1rem; }
 .legal-document p,.legal-document li { color:var(--text-secondary);font-size:.92rem;line-height:1.7; }
 .legal-document ul { padding-left:20px; }
+.legal-action { display:inline-flex;margin-top:14px;padding:10px 16px;border:1px solid var(--surface-line);border-radius:999px;text-decoration:none;font-size:.8rem;font-weight:800; }
+.legal-footer { margin-top:56px; }
+.site-footer-bottom [aria-current="page"] { color:var(--text-primary); }
+.support-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px; }
+.support-grid article { padding:24px;border:1px solid var(--surface-line);border-radius:var(--surface-inner-radius);background:var(--surface-panel);box-shadow:var(--surface-shadow); }
+.support-grid h2 { margin:0 0 8px;color:var(--text-primary);font-size:1.05rem; }
+.support-grid p { color:var(--text-secondary);font-size:.86rem;line-height:1.6; }
+.support-grid a { display:inline-block;margin-top:14px;text-decoration:none;font-size:.78rem;font-weight:800; }
+@media (max-width:768px) {
+  .legal-page .site-footer { display:block;width:calc(100% - 32px);margin-top:38px;padding-bottom:100px; }
+  .legal-page .site-footer-main { grid-template-columns:1fr;gap:28px; }
+  .legal-page .site-footer-links { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .legal-page .site-footer-bottom { align-items:flex-start;flex-direction:column; }
+  .legal-main { width:calc(100% - 32px);padding-top:42px; }
+  .support-grid { grid-template-columns:1fr; }
+}
+@media (max-width:480px) {
+  .legal-page .site-footer-links { grid-template-columns:1fr 1fr; }
+  .legal-nav .nav-center { display:none; }
+}
 body :is(.user-menu-header small,.auth-field label,.fine-tune-label,.preference-fields label) { color:var(--text-tertiary);font-size:var(--type-small); }
 body :is(.auth-tab,.choice-chips button,.settings-jump-nav a) { color:var(--text-secondary); }
 body :is(.auth-tab.active,.auth-submit,.play-all-btn,.retry-btn,.add-btn) { color:var(--text-on-color); }
